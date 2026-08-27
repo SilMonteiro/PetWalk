@@ -1,2 +1,2 @@
-# AdoraPET
-Plataforma Web para intermediação de adoção responsável de animais
+# PetWalk
+Plataforma Web para intermediação de passeios com pets
