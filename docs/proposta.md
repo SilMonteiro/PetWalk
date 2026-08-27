@@ -1,110 +1,103 @@
  Proposta do projeto integrador
 
 ## Identificação
-- Nome provisório: Adora PET
+
+- Nome provisório: PetWalk
 
 - Integrantes: Silvia Maria Albuquerque Monteiro, Guilherme Inácio dos Santos Moreira, Rafaella Alves Guerra, Sarah Letícia Domingues dos Santos, Daniel Moraes Delgado
 
-- Público usuário: Pessoas que desejam adotar animais
+- Público usuário: Pessoas sem tempo para passear com seus pets
 
-- Problema concreto: Encontrar animais disponíveis para adoção e informações sobre os mesmos é burocrático e dificultoso, muitas vezes não se encontra em plataformas acessíveis, informações são desatualizadas, incompletas ou se perdem pelo caminho. Evitar a compra ilegal de animais, estimulando a adoção responsável.
+- Problema concreto: Muitos tutores possuem rotina de trabalho, estudo ou outras atividades que dificultam a realização regular dos passeios dos seus pets. Ao mesmo tempo, pessoas interessadas em oferecer o serviço podem ter dificuldade para encontrar clientes e organizar horários.
 
-- Processo atual: Compartilhamento nas redes sociais, como fotos em stories, postagens para compartilhamento, grupos de whatsapp.
+- Processo atual: O tutor pode procurar um passeador por indicação, redes sociais ou aplicativos de mensagens, combinando manualmente horário, duração, local, pet e valor. Isso pode gerar conflitos de agenda, falta de informações sobre o serviço e dificuldade para acompanhar o histórico.
 
-- Resultado esperado: Plataforma acessível e centralizada para adoção de animais, com informações atualizadas e completas, sem o risco de perder informações importantes com o compartilhamento.
+- Resultado esperado: Plataforma que permita ao tutor cadastrar pets e solicitar passeios, enquanto passeadores informam disponibilidade e aceitam solicitações compatíveis. O sistema controla o ciclo do passeio, registra informações e permite acompanhar serviço e pagamento.
 
 
 ## Processo principal
-Início: O usuário cria um cadastro na plataforma Adora PET.
 
-Decisão: O usuário busca o pet que deseja adotar ou coloca um pet para adoção. 
+Início: O tutor cadastra seu pet e solicita um passeio, informando data, horário, duração, local, pet participante e o passeador de sua preferência.
 
-Mudança de estado: Em caso de adoção, o usuário preenche um formulário de intenção de adoção com seus dados pessoais e de contato. Em caso de disponibilização de pet para adoção, o usuário cria um cadastro para o pet.
+Decisão: O sistema verifica as condições necessárias para a realização do passeio, principalmente a disponibilidade do horário e as condições da solicitação.
 
-Atendimento: O doador visualiza o formulário de intenção de adoção preenchido pelo adotante, obtém os dados de contato (telefone, e-mail, etc.) e entra em contato com o adotante da forma que preferir, fora da plataforma.
+Mudança de estado: Após a solicitação, o passeador escolhido poderá Aceitar ou Recusar o passeio. Quando aceito, o passeio segue pelos estados Solicitado → Aceito → Em andamento → Finalizado. Caso seja recusado, a solicitação é registrada como Recusada. Se cancelada antes da realização, passa para Cancelado.
 
-Encerramento:O usuário adota o pet e o cadastro do pet é alterado para adotado.
+Atendimento: O passeador escolhido recebe a solicitação e decide se irá aceitá-la ou recusá-la. Caso aceite, realiza o passeio no horário e local definidos pelo tutor.
+
+Encerramento:  Após a realização, o passeio é registrado como Finalizado, mantendo seu histórico no sistema. Em caso de recusa ou cancelamento, o registro permanece com o respectivo status.
 
 
 ## Conceitos do domínio
+
 | Conceito | Identidade | Estado relevante | Comportamento próprio |
 | :-- | :-- | :-- | :-- |
-| Usuário  | idUsuario ou cpf | tipoPerfil (ADOTANTE, DOADOR, AMBOS), ativo (Boolean), bloqueado (Boolean)| cadastrarAnimal(), solicitarAdocao(), atualizarPerfil() |
-| Animal   | idAnimal | status (PARA_ADOCAO, EM_ADOCAO, ADOTADO, INATIVO) | disponibilizarParaAdocao(), iniciarProcessoAdocao(), concluirAdocao(), retirarDeAdocao()|
-| SolicitacaoAdocao | idSolicitacao | status (PENDENTE, APROVADA, RECUSADA, CANCELADA), dataSolicitacao | aprovar(), recusar(), cancelar() |
-| Endereço | idEndereco | cep, cidade, estado | validarCep(), formatarEndereco() |
-| Notificacao | idNotificacao | status (NAO_LIDA, LIDA), dataEnvio | marcarComoLida(), arquivar() |
+| Usuário | idUsuario | tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail | solicitarPasseio(), aceitarPasseio(), recusarPasseio(), marcarPasseioComoFinalizado(), atualizarDisponibilidade() |
+| Pet | idPet | nome, espécie, porte, idade, vacinas, castrado, localização, tutor (Usuário) | adicionarPet(), removerPet(), buscarPetsDisponiveis(), atualizarStatusPasseio() |
+| Passeio | idPasseio | data, horário, duração, local, tutor (Usuário), passeador (Usuário), pet (Pet), status (SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO) | criarPasseio(), aceitarPasseio(), recusarPasseio(), iniciarPasseio(), finalizarPasseio(), cancelarPasseio() |
+| Avaliação | idAvaliacao | nota, comentário, data, avaliador (Usuário), avaliado (Usuário), passeio (Passeio) | avaliarPasseio(), calcularMediaAvaliacao() |
+
 
 
 ## Regras e invariantes
+
 | ID      | Regra | Objetos envolvidos | Sucesso | Falha |
 | :-- | :-- | :-- | :-- | :-- |
-| REG-001 | Disponibilidade para Intenção de Adoção: Um animal só pode receber novas solicitações de adoção se o seu status atual for PARA_ADOCAO. | Animal, Usuario, SolicitacaoAdocao | Processo de adoção é iniciado e o status do animal muda para EM_ADOCAO. | Lança AnimalIndisponivelException (Ação bloqueada se o pet estiver EM_ADOCAO ou ADOTADO). |
-| REG-002 | Autorização de Cadastro: Apenas usuários com conta ativa e perfil configurado (DOADOR ou AMBOS) podem cadastrar um animal.| Usuario, Animal | O animal é cadastrado com sucesso com o status PARA_ADOCAO. | Lança UsuarioInativoOuNaoAutorizadoException. |
-| REG-003 | Limite de Solicitações Ativas: Um usuário no papel de ADOTANTE só pode ter no máximo 2 solicitações com status PENDENTE simultaneamente. | Usuario, SolicitacaoAdocao | A solicitação é registrada no sistema. | Lança LimiteSolicitacoesExcedidoException. |
-| REG-004 | Restrição de Auto-adoção: O usuário que cadastrou o animal (Doador) não pode solicitar a adoção do próprio animal.| Usuario, Animal | Sistema valida que o ID do solicitante é diferente do ID do responsável pelo cadastro. | Lança AutoAdocaoNaoPermitidaException. |
-| REG-005 | Irreversibilidade de Adoção Concluída: Um animal com status ADOTADO não pode retornar para PARA_ADOCAO ou EM_ADOCAO sem um processo explícito de devolução/reativação.| Animal | O status do animal permanece imutável como ADOTADO. | Lança TransicaoEstadoInvalidaException.|
-| REG-006 | Invariante de Tutor Único: Um animal só pode ter 1 usuário associado como Doador/Responsável e, após a transição para ADOTADO, exatamente 1 usuário associado como Novo Tutor.| Animal, Usuario | Associação efetuada e histórico registrado no banco. | Lança ConflitoDeResponsavelException.|
+| REG-001 | Uma Avaliação só pode ser criada se o Passeio referenciado estiver com status FINALIZADO e o mesmo avaliador ainda não tiver avaliado esse passeio. | Avaliação, Passeio, Usuário | Avaliação registrada e média do avaliado recalculada | Lançar erro: "Passeio não finalizado" ou "Passeio já avaliado por este usuário" |
+| REG-002 | Somente um Usuário com tipoPerfil TUTOR ou AMBOS pode solicitar um Passeio. | Passeio, Usuário | Passeio criado com status SOLICITADO | Erro: "Usuário não possui perfil de tutor" |
+| REG-003 | Somente um Usuário com tipoPerfil PASSEADOR ou AMBOS e status ATIVO pode aceitar um Passeio. | Passeio, Usuário | Status do Passeio alterado para ACEITO | Erro: "Usuário não possui perfil de passeador" ou "Usuário está bloqueado" |
+| REG-004 | Um Passeio só pode ser cancelado se estiver com status SOLICITADO ou ACEITO. | Passeio | Status do Passeio alterado para CANCELADO | Erro: "Passeio não pode ser cancelado no estado atual" |
+| REG-005 | O Pet vinculado ao Passeio deve pertencer ao Usuário tutor que está realizando a solicitação. | Passeio, Pet, Usuário | Pet vinculado ao Passeio com sucesso | Erro: "O pet informado não pertence ao tutor solicitante" |
+| REG-006 | Um Usuário só pode avaliar um Passeio do qual participou como tutor ou passeador. | Avaliação, Passeio, Usuário | Avaliação registrada com sucesso | Erro: "Usuário não participou deste passeio" |
+
 
 
 ## Ciclo de vida
-- Objeto central: Animal
-- Estados: PARA_ADOCAO, EM_ADOCAO, ADOTADO, INATIVO
-- Transições permitidas: disponibilizarParaAdocao(), iniciarProcessoAdocao(), concluirAdocao(), retirarDeAdocao()
-- Transições proibidas: ADOTADO ➔ PARA_ADOCAO (REG-005); PARA_ADOCAO ➔ ADOTADO (deve passar pelo estado intermediário de análise em EM_ADOCAO); ADOTADO ➔ INATIVO (REG-005).
+
+- Objeto central: Passeio
+- Estados: SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO
+- Transições permitidas: criarPasseio() → SOLICITADO; aceitarPasseio() → ACEITO; recusarPasseio() → RECUSADO; iniciarPasseio() → EM_ANDAMENTO; finalizarPasseio() → FINALIZADO; cancelarPasseio() → CANCELADO
+- Transições proibidas: FINALIZADO ➔ qualquer estado (passeio encerrado não pode ser reaberto); RECUSADO ➔ qualquer estado (recusa é terminal); CANCELADO ➔ qualquer estado (cancelamento é terminal); SOLICITADO ➔ FINALIZADO (deve passar pelos estados intermediários ACEITO e EM_ANDAMENTO); EM_ANDAMENTO ➔ CANCELADO (REG-004, cancelamento só permitido nos estados SOLICITADO ou ACEITO)
+
 
 
 ## Fluxos da versão final
 | ID | Ação do usuário | Regra principal | Alteração persistida | Resultado |
 | :-- | :-- | :-- | :-- | :-- |
-| FLX-001 | Cadastro de usuário: Preenche o formulário informando os dados pessoais, endereço e escolhe o tipo de perfil (ADOTANTE, DOADOR, AMBOS). | Validação de CPF único e formato do e-mail | Insere registro na tabela usuário (ativo = True) e vincula um Endereço | Usuário criado e logado no sistema |
-| FLX-002 | Cadastro do PET para adoção: Doador preenche a ficha do animal (nome, espécie, idade, saúde, vacinas, castrado, foto, descrição, raça, localização) | REG-002 (Autorização de Doador ativo) e REG-006 (Vinculação de Tutor Único Inicial) | Insere registro na tabela animal com status PARA_ADOCAO e vincula ao doador | Pet cadastrado e disponível para adoção |
-| FLX-003 | Busca e filtragem dos PETS: Usuário pode navegar utilizando filtros (espécie, porte, idade, saúde, vacinas, castrado, raça, localização) |Exibição restrita a animais atualmente disponíveis (status == PARA_ADOCAO) | Nenhuma (Operação de leitura/consulta otimizada) | Pets filtrados exibidos na interface de busca |
-| FLX-004 | Solicitação de Adoção: Adotante clica em "quero adotar", preenche o formulário de intenção de adoção (nome, telefone, e-mail, motivo, experiência com animais) e envia a proposta | REG-001 (Pet PARA_ADOCAO), REG-003 (Máx 2 ativas) e REG-004 (Sem Auto-adoção) | Registra em SolicitacaoAdocao (PENDENTE); Atualiza Animal.status para EM_ADOCAO | Solicitação registrada. Sistema gera uma Notificacao para o doador e o pet entra em análise reservada |
-| FLX-005 | Visualização da Intenção de Adoção: Doador acessa a lista de solicitações recebidas para seus pets e visualiza os dados do formulário preenchido pelo adotante (nome, telefone, e-mail, motivo) | REG-002 (Doador ativo e responsável pelo animal) | Nenhuma (Operação de leitura) | Doador obtém os dados de contato do adotante e pode entrar em contato fora da plataforma (telefone, e-mail, etc.) |
-| FLX-006 | Conclusão da Adoção: Após contato e acordo direto com o adotante, o doador atualiza o status do animal para ADOTADO (EM_ADOCAO -> ADOTADO) | REG-005 (Irreversibilidade de Adoção Concluída) e REG-006 (Invariante de Tutor Único) | Atualiza Animal.status para ADOTADO, vincula ao novo tutor e atualiza SolicitacaoAdocao.status para APROVADA | Pet adotado e indisponível para novas solicitações |
-| FLX-007 | Recusa/Cancelamento: Doador recusa a solicitação ou adotante desiste da adoção | REG-005 (Guarda: bloqueia ação se Animal já estiver ADOTADO) | Atualiza SolicitacaoAdocao.status para RECUSADA ou CANCELADA; Reverte Animal.status de EM_ADOCAO para PARA_ADOCAO | Solicitação encerrada. Animal volta a ficar disponível para novas solicitações |
-| FLX-008 | Retirada do PET da plataforma: Doador desiste de disponibilizar o animal (desistência, cadastro errado ou outro motivo) | REG-005 (Guarda: bloqueia ação se Animal já estiver ADOTADO) | Atualiza Animal.status para INATIVO; Cancela solicitações PENDENTES vinculadas ao animal | Pet removido da listagem pública e indisponível para novas solicitações |
 
 
 ## Variação polimórfica
-- O que varia: A forma como o doador é notificado sobre uma nova solicitação de adoção (FLX-004).
-- Contrato possível: `Notificador.notificar(doador, solicitacao)` — interface que recebe o doador e a solicitação e executa a notificação.
-- Implementação 1: `NotificadorEmail` — envia um e-mail ao doador informando que há uma nova solicitação de adoção para seu pet.
-- Implementação 2: `NotificadorPlataforma` — exibe uma notificação interna na plataforma (badge/alerta no painel do doador).
-- Por que a variação é legítima: Diferentes doadores podem preferir canais de notificação distintos; o comportamento de "notificar" é o mesmo, mas o meio de entrega varia. A interface permite adicionar novos canais (ex: SMS) sem alterar a lógica de negócio.
+- O que varia: 
+- Contrato possível: 
+- Implementação 1: 
+- Implementação 2: 
+- Por que a variação é legítima: 
 
 
 ## Escopo da AV1
-- Fatia vertical escolhida: Cadastro de Usuário (FLX-001) + Cadastro de Pet (FLX-002) + Solicitação de Adoção (FLX-004). Essa fatia cobre o caminho completo desde a criação de conta até a primeira mudança de estado do animal.
-- Três regras essenciais: REG-001 (Animal deve estar PARA_ADOCAO), REG-002 (Doador ativo para cadastrar), REG-004 (Sem auto-adoção).
-- Mudança de estado: PARA_ADOCAO ➔ EM_ADOCAO (disparada pelo FLX-004 quando o adotante envia a solicitação).
-- Dados persistidos: INSERT em Usuário (ativo=true, bloqueado=false), INSERT em Animal (status=PARA_ADOCAO, vínculo com doador), INSERT em SolicitacaoAdocao (status=PENDENTE), UPDATE em Animal.status para EM_ADOCAO.
+- Fatia vertical escolhida: 
+- Três regras essenciais: 
+- Mudança de estado: 
+- Dados persistidos: 
 
 
 ## Escopo da AV2
-- Evoluções previstas: Busca com filtros (FLX-003), Visualização do formulário pelo doador (FLX-005), Conclusão da adoção (FLX-006), Recusa/Cancelamento (FLX-007) e Retirada do pet (FLX-008).
-- Três fluxos completos: FLX-003 (Busca e filtragem), FLX-006 (Conclusão da adoção — EM_ADOCAO ➔ ADOTADO), FLX-007 (Recusa/Cancelamento — EM_ADOCAO ➔ PARA_ADOCAO).
-- Falhas tratadas: AnimalIndisponivelException (REG-001), LimiteSolicitacoesExcedidoException (REG-003), AutoAdocaoNaoPermitidaException (REG-004), TransicaoEstadoInvalidaException (REG-005), ConflitoDeResponsavelException (REG-006).
-- Testes esperados: Testes unitários para cada regra (REG-001 a REG-006), teste de integração do ciclo completo (PARA_ADOCAO ➔ EM_ADOCAO ➔ ADOTADO), teste de recusa com retorno a PARA_ADOCAO, teste de retirada com cancelamento de solicitações pendentes.
+- Evoluções previstas: 
+- Três fluxos completos: 
+- Falhas tratadas: 
+- Testes esperados: 
 
 
 ## Fora do escopo
-Doações financeiras, logística/transporte físico do pet e integração com bancos de dados governamentais
 
 
 ## Riscos e mitigação
 | Risco | Impacto | Mitigação |
 | :-- | :-- | :-- |
-| Dados falsos no formulário de intenção (telefone/e-mail inválidos) | Doador não consegue contatar o adotante | Validação de formato no front-end e obrigatoriedade de campos essenciais |
-| Pet preso em EM_ADOCAO por inação do doador | Adotante fica sem resposta e pet sai da busca | Prazo limite (ex: 15 dias); após expiração, solicitação é cancelada automaticamente e pet volta a PARA_ADOCAO |
-| Sobrecarga de solicitações para um pet popular | Frustração de adotantes que não serão atendidos | REG-003 (limite de 2 solicitações ativas por adotante) |
-| Membro do grupo indisponível em fase crítica | Atraso na entrega da AV1 ou AV2 | Rodízio de tarefas e pareamento; cada funcionalidade tem ao menos 2 pessoas que conhecem o código |
-| Perda de dados por falha técnica | Cadastros e solicitações perdidos | Backups periódicos do banco de dados e versionamento do código (Git) |
 
 
 ## Participação
 
-- **Rodízio**: Cada integrante será responsável principal por ao menos um fluxo (FLX) na AV1 e na AV2, alternando entre back-end e front-end a cada ciclo.
-- **Revisões cruzadas**: Todo pull request deve ser revisado por pelo menos 1 integrante que não participou da implementação, garantindo que todos leiam código de áreas diferentes.
-- **Conhecimento compartilhado**: Reuniões semanais de 30 min para demonstração do que cada um desenvolveu, garantindo que todos conheçam o produto inteiro.
+- **Rodízio**: 
+- **Revisões cruzadas**: 
+- **Conhecimento compartilhado**: 
