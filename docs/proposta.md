@@ -32,10 +32,11 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 
 | Conceito | Identidade | Estado relevante | Comportamento próprio |
 | :-- | :-- | :-- | :-- |
-| Usuário | idUsuario | tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail | solicitarPasseio(), aceitarPasseio(), recusarPasseio(), marcarPasseioComoFinalizado(), atualizarDisponibilidade() |
+| Usuário | idUsuario | tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail, endereço (privado) | solicitarPasseio(), aceitarPasseio(), recusarPasseio(), marcarPasseioComoFinalizado(), atualizarDisponibilidade(), listarPasseadoresDisponiveis() |
 | Pet | idPet | nome, espécie, porte, idade, vacinas, castrado, localização, tutor (Usuário) | adicionarPet(), removerPet(), buscarPetsDisponiveis(), atualizarStatusPasseio() |
 | Passeio | idPasseio | data, horário, duração, local, tutor (Usuário), passeador (Usuário), pet (Pet), status (SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO) | criarPasseio(), aceitarPasseio(), recusarPasseio(), iniciarPasseio(), finalizarPasseio(), cancelarPasseio() |
 | Avaliação | idAvaliacao | nota, comentário, data, avaliador (Usuário), avaliado (Usuário), passeio (Passeio) | avaliarPasseio(), calcularMediaAvaliacao() |
+| Notificação | idNotificacao | destinatario (Usuário), tipo (PASSEIO_SOLICITADO, PASSEIO_ACEITO, PASSEIO_RECUSADO, PASSEIO_INICIADO, PASSEIO_FINALIZADO, PASSEIO_CANCELADO), mensagem, lida, dataEnvio, passeio (Passeio) | enviarNotificacao(), marcarComoLida(), listarNaoLidas() |
 
 
 
@@ -49,6 +50,7 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 | REG-004 | Um Passeio só pode ser cancelado se estiver com status SOLICITADO ou ACEITO. | Passeio | Status do Passeio alterado para CANCELADO | Erro: "Passeio não pode ser cancelado no estado atual" |
 | REG-005 | O Pet vinculado ao Passeio deve pertencer ao Usuário tutor que está realizando a solicitação. | Passeio, Pet, Usuário | Pet vinculado ao Passeio com sucesso | Erro: "O pet informado não pertence ao tutor solicitante" |
 | REG-006 | Um Usuário só pode avaliar um Passeio do qual participou como tutor ou passeador. | Avaliação, Passeio, Usuário | Avaliação registrada com sucesso | Erro: "Usuário não participou deste passeio" |
+| REG-007 | O endereço registrado no perfil de um Usuário é privado: outros usuários não podem visualizá-lo. O endereço do local do Passeio só é compartilhado com o passeador quando o tutor o informa explicitamente no formulário de solicitação (podendo usar o endereço do perfil como sugestão de preenchimento ou inserir um diferente). | Usuário, Passeio | Endereço do perfil acessível apenas ao próprio usuário; local do Passeio visível somente após informado na solicitação | Erro: "Acesso não autorizado ao endereço do perfil" |
 
 
 
@@ -64,6 +66,11 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 ## Fluxos da versão final
 | ID | Ação do usuário | Regra principal | Alteração persistida | Resultado |
 | :-- | :-- | :-- | :-- | :-- |
+| FLX-001 | Tutor acessa a listagem de passeadores disponíveis e seleciona um para solicitar o serviço | REG-002 (somente Usuário com perfil TUTOR ou AMBOS pode iniciar uma solicitação); REG-007 (endereços de perfil dos passeadores não são exibidos na listagem) | Nenhuma alteração persistida; passeador selecionado é carregado no formulário de solicitação | Tutor visualiza o perfil público do passeador e avança para o formulário de solicitação |
+| FLX-002 | Tutor preenche o formulário de solicitação (data, horário, duração, pet e local) — o campo local é pré-preenchido com o endereço do seu próprio perfil, podendo ser mantido ou alterado — e confirma | REG-002 (perfil TUTOR obrigatório), REG-005 (pet deve pertencer ao tutor), REG-007 (o local informado no formulário é o único endereço visível ao passeador) | Passeio criado com status SOLICITADO contendo o local explicitamente informado; Notificação (tipo PASSEIO_SOLICITADO) enviada ao passeador | Passeio registrado com o endereço escolhido pelo tutor e passeador notificado da solicitação |
+| FLX-003 | Passeador visualiza a solicitação recebida e confirma a aceitação | REG-003 (perfil PASSEADOR e status ATIVO obrigatórios) | Status do Passeio alterado para ACEITO; Notificação (tipo PASSEIO_ACEITO) enviada ao tutor | Tutor notificado de que o passeio foi aceito e está confirmado |
+| FLX-004 | Passeador marca o passeio como concluído ao término do serviço | Passeio deve estar com status EM_ANDAMENTO para ser finalizado (transição válida no ciclo de vida) | Status do Passeio alterado para FINALIZADO; Notificação (tipo PASSEIO_FINALIZADO) enviada ao tutor | Passeio encerrado, histórico preservado e avaliação liberada para o tutor |
+| FLX-005 | Tutor atribui nota e comentário ao passeador após o término do passeio | REG-001 (passeio FINALIZADO e ainda não avaliado pelo mesmo usuário), REG-006 (tutor participou do passeio como tutor) | Avaliação criada; média de avaliações do passeador recalculada | Avaliação registrada com sucesso e reputação do passeador atualizada |
 
 
 ## Variação polimórfica
