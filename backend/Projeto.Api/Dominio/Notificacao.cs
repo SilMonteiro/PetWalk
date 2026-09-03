@@ -1,5 +1,3 @@
-using System;
-
 public class Notificacao
 {
     public int Id { get; set; }
