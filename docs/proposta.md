@@ -33,7 +33,7 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 | Conceito | Identidade | Estado relevante | Comportamento próprio |
 | :-- | :-- | :-- | :-- |
 | Usuário | idUsuario | tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail, endereço (privado) | solicitarPasseio(), aceitarPasseio(), recusarPasseio(), marcarPasseioComoFinalizado(), atualizarDisponibilidade(), listarPasseadoresDisponiveis() |
-| Pet | idPet | nome, espécie, porte, idade, vacinas, castrado, localização, tutor (Usuário) | adicionarPet(), removerPet(), buscarPetsDisponiveis(), atualizarStatusPasseio() |
+| Pet | idPet | nome, espécie, porte, idade, localização, tutor (Usuário) | adicionarPet(), removerPet(), buscarPetsDisponiveis(), atualizarStatusPasseio() |
 | Passeio | idPasseio | data, horário, duração, local, tutor (Usuário), passeador (Usuário), pet (Pet), status (SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO) | criarPasseio(), aceitarPasseio(), recusarPasseio(), iniciarPasseio(), finalizarPasseio(), cancelarPasseio() |
 | Avaliação | idAvaliacao | nota, comentário, data, avaliador (Usuário), avaliado (Usuário), passeio (Passeio) | avaliarPasseio(), calcularMediaAvaliacao() |
 | Notificação | idNotificacao | destinatario (Usuário), tipo (PASSEIO_SOLICITADO, PASSEIO_ACEITO, PASSEIO_RECUSADO, PASSEIO_INICIADO, PASSEIO_FINALIZADO, PASSEIO_CANCELADO), mensagem, lida, dataEnvio, passeio (Passeio) | enviarNotificacao(), marcarComoLida(), listarNaoLidas() |

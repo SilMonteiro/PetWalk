@@ -1,14 +1,13 @@
 public class Tutor
 {
-    //atributos
+    public int Id { get; set; }
     public string Nome { get; set; } = "";
-    public string Email { get; set; }
-    public int NumeroPets { get; set; }
+    public string Email { get; set; } = "";
+    public string Telefone { get; set; } = "";
+    public string Endereco { get; set; } = ""; 
+    public TipoPerfil TipoPerfil { get; set; } = TipoPerfil.TUTOR;
+    public StatusUsuario Status { get; set; } = StatusUsuario.ATIVO;
 
-    //métodos
-    public void AdicionarPet() { }
-    public void RemoverPet() { }
-    public void SolicitarPasseio() { }
-    public void AvaliarPasseador() { }
-    public void CancelarPasseio() { }
+    public List<Pet> Pets { get; set; } = new List<Pet>();
+
 }
