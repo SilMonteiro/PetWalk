@@ -10,4 +10,20 @@ public class Tutor
 
     public List<Pet> Pets { get; set; } = new List<Pet>();
 
+    public Passeio SolicitarPasseio(Pet pet, Passeador passeador, DateTime DataHora, TimeSpan Duracao, string Local)
+    {
+        if (!Pets.Contains(pet))
+        {
+            throw new InvalidOperationException("O tutor não possui esse pet.");
+        }
+
+        if (DataHora <= DateTime.Now)
+        {
+            throw new InvalidOperationException("A data e hora do passeio devem ser futuras.");
+        }
+
+        Passeio passeio = new Passeio(this, passeador, DataHora, Duracao, Local);
+        return passeio;
+    }
+
 }
