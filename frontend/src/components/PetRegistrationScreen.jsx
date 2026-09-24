@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './pet-registration.css';
+import '../styles/pet-registration.css';
 
 const PetRegistrationScreen = () => {
     const [nomePet, setNomePet] = useState('');
