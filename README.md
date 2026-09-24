@@ -4,14 +4,14 @@ Plataforma Web para intermediação de passeios com pets.
 
 ---
 
-## 📋 Requisitos para execução do projeto
+##  Requisitos para execução do projeto
 
 - **Node.js** >= 18 (versão LTS recomendada).
 - **npm** (instalado junto com o Node.js).
 
 ---
 
-## 🚀 Como Executar o Projeto
+## Como Executar o Projeto
 
 No terminal, estando na raiz do projeto:
 
@@ -26,13 +26,11 @@ npm install
 npm run dev
 ```
 
-> **Nota para usuários Windows/PowerShell:** Se houver bloqueio de script pelo PowerShell, utilize `npm.cmd run dev` ou execute `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`.
-
 O terminal exibirá a URL local do servidor (por padrão: `http://localhost:3000/`).
 
 ---
 
-## 🔗 Rotas e Telas Disponíveis
+## Rotas e Telas Disponíveis
 
 - **Login:** [http://localhost:3000/](http://localhost:3000/)
   - *Credenciais de teste (Mock):* **`admin@petwalk.com`** / **`123456`**
@@ -41,7 +39,7 @@ O terminal exibirá a URL local do servidor (por padrão: `http://localhost:3000
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **React** (v18)
 - **Vite**
@@ -50,7 +48,7 @@ O terminal exibirá a URL local do servidor (por padrão: `http://localhost:3000
 
 ---
 
-## 📁 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 PetWalk
