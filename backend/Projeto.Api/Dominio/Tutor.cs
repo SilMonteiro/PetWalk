@@ -22,7 +22,7 @@ public class Tutor
             throw new InvalidOperationException("A data e hora do passeio devem ser futuras.");
         }
 
-        Passeio passeio = new Passeio(this, passeador, DataHora, Duracao, Local);
+        Passeio passeio = new Passeio(this, passeador, pet, DataHora, Duracao, Local);
         return passeio;
     }
 

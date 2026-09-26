@@ -4,6 +4,16 @@ Plataforma Web para intermediação de passeios com pets.
 
 ---
 
+## Integrante
+
+- GUILHERME INÁCIO DOS SANTOS MOREIRA - Matrícula: 06014499
+- DANIEL MORAES DELGADO - Matrícula: 06014751
+- RAFAELLA ALVES GUERRA - Matrícula: 06015406
+- SARAH LETÍCIA DOMINGUES DOS SANTOS - Matrícula: 06014748
+- SILVIA MARIA ALBUQUERQUE MONTEIRO - Matrícula: 06011524
+
+---
+
 ##  Requisitos para execução do projeto
 
 - **Node.js** >= 18 (versão LTS recomendada).

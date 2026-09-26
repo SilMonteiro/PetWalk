@@ -8,4 +8,9 @@ public class Notificacao
     public DateTime DataEnvio { get; set; } = DateTime.UtcNow;
     public int PasseioId { get; set; }
 
+     public void MarcarComoLida()
+    {
+        Lida = true;
+    }
+
 }
