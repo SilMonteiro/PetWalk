@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState }  from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/home.css';
 
 const HomeScreen = () => {
     const navigate = useNavigate();
+
+    const [mensagemApi, setMensagemApi] = useState('');
+
+    useEffect(() => {
+        fetch('http://localhost:5229/teste')
+            .then((resposta) => resposta.text())
+            .then((dados) => setMensagemApi(dados));
+    }, []);
 
     return (
         <div className="container-home">
@@ -17,6 +25,7 @@ const HomeScreen = () => {
             <main className="main-home">
                 <h2>Bem-vindo ao PetWalk!</h2>
                 <p>Plataforma de intermediação de passeios com pets</p>
+                <p>{mensagemApi}</p>
 
                 <div className="cards-home">
                     <div className="card" onClick={() => navigate('/registro-pet')}>
