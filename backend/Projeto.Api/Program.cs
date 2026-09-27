@@ -47,9 +47,24 @@ app.MapGet("/weatherforecast", () =>
 
 app.MapGet("/teste", () => "API PetWalk funcionando!");
 
+app.MapPost("/cadastro", (UsuarioRequest req) =>
+{
+    try
+    {
+        var usuarioCriado = Usuario.Cadastrar(req.Nome, req.Email, req.Telefone, req.Endereco, req.TipoPerfil, req.Senha);
+        return Results.Ok(new { mensagem = "Usuário cadastrado com sucesso!", id = usuarioCriado.Id });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+});
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
+record UsuarioRequest(string Nome, string Email, string Telefone, string Endereco, TipoPerfil TipoPerfil, string Senha);
