@@ -52,6 +52,12 @@ const LoginScreen = () => {
                 <p className="dica-login">
                     Credenciais de teste: <strong>admin@petwalk.com</strong> / <strong>123456</strong>
                 </p>
+                <p>
+    Você ainda não possui cadastro?{' '}
+    <button type="button" onClick={() => navigate('/cadastro')}>
+        Cadastre-se aqui
+    </button>
+</p>
             </form>
         </div>
     );

@@ -40,5 +40,10 @@ public class Usuario
     {
         return listaUsuarios;
     }
-
+    
+public static Usuario? Login(string email, string senha)
+{
+    return listaUsuarios.FirstOrDefault(u =>
+        u.Email == email && u.Senha == senha);
+}
 }

@@ -59,6 +59,23 @@ app.MapPost("/cadastro", (UsuarioRequest req) =>
         return Results.BadRequest(ex.Message);
     }
 });
+app.MapPost("/login", (LoginRequest req) =>
+{
+    var usuario = Usuario.Login(req.Email, req.Senha);
+
+    if (usuario == null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(new
+    {
+        mensagem = "Login realizado com sucesso!",
+        id = usuario.Id,
+        nome = usuario.Nome,
+        email = usuario.Email
+    });
+});
 
 app.Run();
 
@@ -68,3 +85,4 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 }
 
 record UsuarioRequest(string Nome, string Email, string Telefone, string Endereco, TipoPerfil TipoPerfil, string Senha);
+record LoginRequest(string Email, string Senha);
