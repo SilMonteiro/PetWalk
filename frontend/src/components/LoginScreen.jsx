@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/login.css';
 
-// Credenciais mockadas para acesso
 const MOCK_EMAIL = 'admin@petwalk.com';
 const MOCK_SENHA = '123456';
 

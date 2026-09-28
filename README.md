@@ -14,31 +14,53 @@ Plataforma Web para intermediação de passeios com pets.
 
 ---
 
-##  Requisitos para execução do projeto
+## Requisitos
 
-- **Node.js** >= 18 (versão LTS recomendada).
-- **npm** (instalado junto com o Node.js).
+- **Node.js** 18 ou superior e **npm** para o frontend.
+- **.NET SDK 10** para a API. O SDK inclui o runtime necessário para executar o projeto.
 
----
-
-## Como Executar o Projeto
-
-No terminal, estando na raiz do projeto:
+Confira se as ferramentas estão instaladas:
 
 ```bash
-# 1. Entrar na pasta do frontend
+node --version
+npm --version
+dotnet --version
+```
+
+## Como Executar
+
+Clone o repositório e abra um terminal na raiz do projeto. O frontend e a API devem ser executados em **terminais separados**.
+
+
+### 1. Iniciar a API
+
+No primeiro terminal:
+
+```bash
+cd backend/Projeto.Api
+dotnet restore
+dotnet run --launch-profile http
+```
+
+A API ficará disponível em `http://localhost:5229`. 
+Para confirmar que está respondendo, acesse `http://localhost:5229/teste`.
+
+
+### 2. Iniciar o frontend
+
+No segundo terminal, a partir da raiz do repositório:
+
+```bash
 cd frontend
-
-# 2. Instalar as dependências
 npm install
-
-# 3. Iniciar o servidor de desenvolvimento
 npm run dev
 ```
 
-O terminal exibirá a URL local do servidor (por padrão: `http://localhost:3000/`).
+Abra `http://localhost:3000` no navegador. Mantenha os dois terminais abertos enquanto estiver usando o projeto.
 
----
+### Encerrar os servidores
+
+Em cada terminal, pressione `Ctrl+C`.
 
 ## Rotas e Telas Disponíveis
 
@@ -47,16 +69,6 @@ O terminal exibirá a URL local do servidor (por padrão: `http://localhost:3000
 - **Home (Página Inicial):** [http://localhost:3000/home](http://localhost:3000/home)
 - **Cadastro de Pets:** [http://localhost:3000/registro-pet](http://localhost:3000/registro-pet)
 
----
-
-## Tecnologias Utilizadas
-
-- **React** (v18)
-- **Vite**
-- **React Router DOM** (v6)
-- **CSS3**
-
----
 
 ## Estrutura do Projeto
 
@@ -64,7 +76,9 @@ O terminal exibirá a URL local do servidor (por padrão: `http://localhost:3000
 PetWalk
 ├── backend
 │   └── Projeto.Api
-│       └── Dominio/         # Modelos de domínio em C#
+│       └── Dominio         
+│       └── Properties
+├── docs
 ├── frontend
 │   ├── index.html           # Ponto de entrada HTML do Vite
 │   ├── package.json         # Dependências do projeto frontend
@@ -75,6 +89,7 @@ PetWalk
 │       ├── components
 │       │   ├── LoginScreen.jsx
 │       │   ├── HomeScreen.jsx
+│       │   ├── RegisterScreen.jsx
 │       │   └── PetRegistrationScreen.jsx
 │       └── styles
 │           ├── login.css
