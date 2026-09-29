@@ -54,7 +54,7 @@ const LoginScreen = () => {
                 </p>
                 <p>
     Você ainda não possui cadastro?{' '}
-    <button type="button" onClick={() => navigate('/cadastro')}>
+    <button class="cadastro-pet" type="button" onClick={() => navigate('/cadastro')}>
         Cadastre-se aqui
     </button>
 </p>

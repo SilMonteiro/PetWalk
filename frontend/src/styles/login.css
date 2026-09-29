@@ -89,3 +89,17 @@
   color: #9ca3af;
   text-align: center;
 }
+
+.cadastro-pet {
+  background-color: #893dbb;
+  text-align: center;
+  color: white;
+  align-items: center;
+  padding: 5px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(238, 235, 235, 0.1);
+}
+
+.cadastro-pet:hover{
+  background-color: #ae6adb
+}
