@@ -1,6 +1,30 @@
 @Projeto.Api_HostAddress = http://localhost:5229
 
-GET {{Projeto.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+GET {{Projeto.Api_HostAddress}}/teste
+
+###
+
+# TipoPerfil: 0 = TUTOR, 1 = PASSEADOR, 2 = AMBOS
+POST {{Projeto.Api_HostAddress}}/cadastro
+Content-Type: application/json
+
+{
+  "nome": "Maria",
+  "email": "maria@petwalk.com",
+  "telefone": "11999999999",
+  "endereco": "Rua das Flores, 10",
+  "tipoPerfil": 0,
+  "senha": "123456"
+}
+
+###
+
+POST {{Projeto.Api_HostAddress}}/login
+Content-Type: application/json
+
+{
+  "email": "maria@petwalk.com",
+  "senha": "123456"
+}
 
 ###
