@@ -46,6 +46,13 @@ A API ficará disponível em `http://localhost:5229`.
 Para confirmar que está respondendo, acesse `http://localhost:5229/teste`.
 
 
+### Executar os testes do backend
+
+```bash
+cd backend
+dotnet test
+```
+
 ### 2. Iniciar o frontend
 
 No segundo terminal, a partir da raiz do repositório:
@@ -75,9 +82,14 @@ Em cada terminal, pressione `Ctrl+C`.
 ```
 PetWalk
 ├── backend
-│   └── Projeto.Api
-│       └── Dominio         
-│       └── Properties
+│   ├── PetWalk.slnx         # Solution (API + testes)
+│   ├── Projeto.Api
+│   │   ├── Contratos        # DTOs de entrada/saída da API
+│   │   ├── Dominio          # Entidades e regras de negócio
+│   │   ├── Endpoints        # Rotas HTTP (finas, delegam ao domínio)
+│   │   ├── Repositorios     # Armazenamento (atrás de interfaces)
+│   │   └── Properties
+│   └── Projeto.Tests        # Testes xUnit das regras do domínio
 ├── docs
 ├── frontend
 │   ├── index.html           # Ponto de entrada HTML do Vite
