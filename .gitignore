@@ -25,3 +25,10 @@ bin/
 obj/
 *.user
 *.suo
+
+AGENTS.md 
+dscode
+dscode-v4.2.0-linux-x64.tar.gz
+LICENSE
+NOTICE
+.dscode/

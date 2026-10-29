@@ -30,3 +30,10 @@ public enum TipoNotificacao
     PASSEIO_FINALIZADO,
     PASSEIO_CANCELADO
 }
+
+public enum Porte
+{
+    PEQUENO,
+    MEDIO,
+    GRANDE
+}
