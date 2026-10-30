@@ -2,11 +2,11 @@ public static class UsuarioEndpoints
 {
     public static void MapUsuarioEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/cadastro", (UsuarioRequest req) =>
+        app.MapPost("/cadastro", (UsuarioRequest req, UsuarioRepositorioEmMemoria usuarios) =>
         {
             try
             {
-                var usuarioCriado = Usuario.Cadastrar(req.Nome, req.Email, req.Telefone, req.Endereco, req.TipoPerfil, req.Senha);
+                var usuarioCriado = usuarios.Adicionar(req.Nome, req.Email, req.Telefone, req.Endereco, req.TipoPerfil, req.Senha);
                 return Results.Ok(new { mensagem = "Usuário cadastrado com sucesso!", id = usuarioCriado.Id });
             }
             catch (ArgumentException ex)
@@ -15,9 +15,9 @@ public static class UsuarioEndpoints
             }
         });
 
-        app.MapPost("/login", (LoginRequest req) =>
+        app.MapPost("/login", (LoginRequest req, UsuarioRepositorioEmMemoria usuarios) =>
         {
-            var usuario = Usuario.Login(req.Email, req.Senha);
+            var usuario = usuarios.Autenticar(req.Email, req.Senha);
 
             if (usuario == null)
             {
