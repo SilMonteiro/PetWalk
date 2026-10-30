@@ -1,49 +1,47 @@
-
 public class Usuario
 {
-    public int Id { get; set; }
-    public string Nome { get; set; } = "";
-    public string Email { get; set; } = "";
-    public string Telefone { get; set; } = "";
-    public string Endereco { get; set; } = ""; 
-    public TipoPerfil TipoPerfil { get; set; } = TipoPerfil.TUTOR;
-    public StatusUsuario Status { get; set; } = StatusUsuario.ATIVO;
-    public string Senha { get; set; } = "";
+    private readonly List<Pet> _pets = new();
+    private string _endereco = string.Empty;
 
-    private static List<Usuario> listaUsuarios = new List<Usuario>();
+    public int Id { get; private set; }
+    public string Nome { get; private set; } = string.Empty;
+    public string Email { get; private set; } = string.Empty;
+    public string Telefone { get; private set; } = string.Empty;
+    public TipoPerfil TipoPerfil { get; private set; }
+    public StatusUsuario Status { get; private set; } = StatusUsuario.ATIVO;
+    public string SenhaHash { get; private set; } = string.Empty;
 
-    public static Usuario Cadastrar(string nome, string email, string telefone, string endereco, TipoPerfil tipoPerfil, string senha)
+    public IReadOnlyList<Pet> Pets => _pets;
+
+    public bool EhTutor => TipoPerfil is TipoPerfil.TUTOR or TipoPerfil.AMBOS;
+    public bool EhPasseador => TipoPerfil is TipoPerfil.PASSEADOR or TipoPerfil.AMBOS;
+
+    public Usuario(string nome, string email, string telefone, string endereco, TipoPerfil tipoPerfil, string senhaHash)
     {
-        if (string.IsNullOrEmpty(nome) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(senha))
+        if (string.IsNullOrWhiteSpace(nome) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(senhaHash))
         {
             throw new ArgumentException("Nome, e-mail e senha são obrigatórios.");
         }
 
-        Usuario novoUsuario = new Usuario
-        {
-            Id = listaUsuarios.Count + 1,
-            Nome = nome,
-            Email = email,
-            Telefone = telefone,
-            Endereco = endereco,
-            TipoPerfil = tipoPerfil,
-            Senha = senha,
-            Status = StatusUsuario.ATIVO
-        };
-
-        listaUsuarios.Add(novoUsuario);
-
-        return novoUsuario;
+        Nome = nome;
+        Email = email;
+        Telefone = telefone ?? string.Empty;
+        _endereco = endereco ?? string.Empty;
+        TipoPerfil = tipoPerfil;
+        SenhaHash = senhaHash;
+        Status = StatusUsuario.ATIVO;
     }
 
-    public static List<Usuario> ObterTodos()
+    // REG-007: o endereço é privado e só o próprio usuário pode consultá-lo.
+    public string ObterEnderecoPara(Usuario solicitante)
     {
-        return listaUsuarios;
+        if (solicitante != this)
+        {
+            throw new InvalidOperationException("Acesso não autorizado ao endereço do perfil");
+        }
+
+        return _endereco;
     }
-    
-public static Usuario? Login(string email, string senha)
-{
-    return listaUsuarios.FirstOrDefault(u =>
-        u.Email == email && u.Senha == senha);
-}
+
+    internal void DefinirId(int id) => Id = id;
 }
