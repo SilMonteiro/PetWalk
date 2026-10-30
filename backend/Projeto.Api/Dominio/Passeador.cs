@@ -11,18 +11,6 @@ public class Passeador
     public TipoPerfil TipoPerfil { get; set; } = TipoPerfil.PASSEADOR;
     public StatusUsuario Status { get; set; } = StatusUsuario.ATIVO;
 
-    public void AceitarPasseio(Passeio passeio)
-    {
-        if (passeio.PasseadorId != this.Id)
-        {
-            throw new InvalidOperationException("O passeio não pertence a este passeador.");
-        }
-
-        if (passeio.Status != StatusPasseio.SOLICITADO)
-        {
-            throw new InvalidOperationException("O passeio não está em estado de solicitação.");
-        }
-
-        passeio.Status = StatusPasseio.ACEITO;
-    }
+    // AceitarPasseio saiu daqui: o Status do Passeio só muda pela própria classe agora.
+    // O comportamento volta em Passeio.Aceitar(Usuario) na Etapa 3, quando Tutor e Passeador forem removidos.
 }

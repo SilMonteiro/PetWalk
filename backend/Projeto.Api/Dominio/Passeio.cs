@@ -1,31 +1,32 @@
 public class Passeio
 {
-    public int Id { get; set; }
-    public DateTime DataHora { get; set; } 
-    public TimeSpan Duracao { get; set; } 
-    public string Local { get; set; } = "";
+    public int Id { get; private set; }
+    public DateTime DataHora { get; private set; }
+    public TimeSpan Duracao { get; private set; }
+    public string Local { get; private set; } = string.Empty;
 
-    public int TutorId { get; set; }
-    public int PasseadorId { get; set; }
-    public int PetId { get; set; }
+    public Usuario Tutor { get; }
+    public Usuario Passeador { get; }
+    public Pet Pet { get; }
 
-    public StatusPasseio Status { get; set; } = StatusPasseio.SOLICITADO;
+    public StatusPasseio Status { get; private set; } = StatusPasseio.SOLICITADO;
 
-    public Passeio(Tutor tutor, Passeador passeador, Pet pet, DateTime dataHora, TimeSpan duracao, string local)
+    internal Passeio(Usuario tutor, Usuario passeador, Pet pet, DateTime dataHora, TimeSpan duracao, string local)
     {
-        TutorId = tutor.Id;
-        PasseadorId = passeador.Id;
-        PetId = pet.Id;
+        Tutor = tutor ?? throw new ArgumentNullException(nameof(tutor));
+        Passeador = passeador ?? throw new ArgumentNullException(nameof(passeador));
+        Pet = pet ?? throw new ArgumentNullException(nameof(pet));
+
         DataHora = dataHora;
         Duracao = duracao;
-        Local = local;
+        Local = local ?? string.Empty;
         Status = StatusPasseio.SOLICITADO;
     }
 
-    // Stub até a fatia 1.5 (Passeio referenciando Usuario): compara apenas os Ids.
-    public bool Participou(Usuario usuario)
-        => usuario is not null && (usuario.Id == TutorId || usuario.Id == PasseadorId);
+    public bool Participou(Usuario u) => u is not null && (u == Tutor || u == Passeador);
 
-    internal int ObterOutroParticipanteId(Usuario usuario)
-        => usuario.Id == TutorId ? PasseadorId : TutorId;
+    // Usado pela Avaliacao para derivar o avaliado enquanto `Avaliacao.Avaliado` ainda é um Id.
+    internal int ObterOutroParticipanteId(Usuario usuario) => usuario == Tutor ? Passeador.Id : Tutor.Id;
+
+    internal void DefinirId(int id) => Id = id;
 }
