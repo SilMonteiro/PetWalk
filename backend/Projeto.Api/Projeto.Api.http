@@ -28,3 +28,32 @@ Content-Type: application/json
 }
 
 ###
+
+# Esperado: 409 Conflict — {"erro":"E-mail já cadastrado"} (REG-010)
+POST {{Projeto.Api_HostAddress}}/cadastro
+Content-Type: application/json
+
+{
+  "nome": "Maria",
+  "email": "maria@petwalk.com",
+  "telefone": "11999999999",
+  "endereco": "Rua das Flores, 10",
+  "tipoPerfil": 0,
+  "senha": "123456"
+}
+
+###
+
+# Esperado: 401 Unauthorized — {"erro":"E-mail ou senha inválidos"}
+POST {{Projeto.Api_HostAddress}}/login
+Content-Type: application/json
+
+{
+  "email": "maria@petwalk.com",
+  "senha": "senha-errada"
+}
+
+###
+
+# REG-011 (usuário bloqueado → 403 {"erro":"Usuário está bloqueado"}) não aparece aqui:
+# não existe endpoint para bloquear usuário. A regra fica coberta por teste unitário (Prompt 7).
