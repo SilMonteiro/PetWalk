@@ -5,17 +5,13 @@ public class Avaliacao
     public string Comentario { get; private set; } = string.Empty;
     public DateTime Data { get; private set; }
     public Usuario Avaliador { get; }
-
-    // Temporário: vira `Passeio Passeio { get; }` quando a classe Passeio for protegida.
-    public int PasseioId { get; private set; }
-
-    // Temporário: vira `Usuario Avaliado { get; }` quando o Passeio referenciar Usuario.
-    public int AvaliadoId { get; private set; }
+    public Passeio Passeio { get; }
+    public Usuario Avaliado { get; }
 
     public Avaliacao(Usuario avaliador, Passeio passeio, int nota, string comentario)
     {
         Avaliador = avaliador ?? throw new ArgumentNullException(nameof(avaliador));
-        PasseioId = (passeio ?? throw new ArgumentNullException(nameof(passeio))).Id;
+        Passeio = passeio ?? throw new ArgumentNullException(nameof(passeio));
 
         if (passeio.Status != StatusPasseio.FINALIZADO)
         {
@@ -35,7 +31,7 @@ public class Avaliacao
         Nota = nota;
         Comentario = comentario ?? string.Empty;
         Data = DateTime.UtcNow;
-        AvaliadoId = passeio.ObterOutroParticipanteId(avaliador);
+        Avaliado = passeio.ObterOutroParticipante(avaliador);
     }
 
     internal void DefinirId(int id) => Id = id;

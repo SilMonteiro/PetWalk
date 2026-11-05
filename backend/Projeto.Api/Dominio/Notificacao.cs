@@ -7,13 +7,12 @@ public class Notificacao
     public bool Lida { get; private set; }
     public DateTime DataEnvio { get; private set; }
 
-    // Temporário: vira `Passeio Passeio { get; }` quando a classe Passeio for protegida.
-    public int PasseioId { get; private set; }
+    public Passeio Passeio { get; }
 
     public Notificacao(Usuario destinatario, Passeio passeio, TipoNotificacao tipo)
     {
         Destinatario = destinatario ?? throw new ArgumentNullException(nameof(destinatario));
-        PasseioId = (passeio ?? throw new ArgumentNullException(nameof(passeio))).Id;
+        Passeio = passeio ?? throw new ArgumentNullException(nameof(passeio));
 
         Tipo = tipo;
         Mensagem = GerarMensagem(tipo);

@@ -1,5 +1,7 @@
 public class Passeio
 {
+    private readonly List<Avaliacao> _avaliacoes = new();
+
     public int Id { get; private set; }
     public DateTime DataHora { get; private set; }
     public TimeSpan Duracao { get; private set; }
@@ -10,6 +12,8 @@ public class Passeio
     public Pet Pet { get; }
 
     public StatusPasseio Status { get; private set; } = StatusPasseio.SOLICITADO;
+
+    public IReadOnlyList<Avaliacao> Avaliacoes => _avaliacoes;
 
     internal Passeio(Usuario tutor, Usuario passeador, Pet pet, DateTime dataHora, TimeSpan duracao, string local)
     {
@@ -77,6 +81,22 @@ public class Passeio
         Status = StatusPasseio.CANCELADO;
     }
 
+    // REG-001: cada participante pode avaliar o outro uma única vez, após FINALIZADO.
+    public void Avaliar(Usuario avaliador, int nota, string comentario)
+    {
+        foreach (var existente in _avaliacoes)
+        {
+            if (existente.Avaliador == avaliador)
+            {
+                throw new InvalidOperationException("Passeio já avaliado por este usuário");
+            }
+        }
+
+        var avaliacao = new Avaliacao(avaliador, this, nota, comentario);
+        _avaliacoes.Add(avaliacao);
+        avaliacao.Avaliado.RecalcularMedia(_avaliacoes);
+    }
+
     // REG-003: somente o passeador escolhido, com perfil de passeador e ativo, pode agir no passeio.
     private void ExigirPasseadorAtivo(Usuario quem)
     {
@@ -109,8 +129,7 @@ public class Passeio
         }
     }
 
-    // Usado pela Avaliacao para derivar o avaliado enquanto `Avaliacao.Avaliado` ainda é um Id.
-    internal int ObterOutroParticipanteId(Usuario usuario) => usuario == Tutor ? Passeador.Id : Tutor.Id;
+    internal Usuario ObterOutroParticipante(Usuario usuario) => usuario == Tutor ? Passeador : Tutor;
 
     internal void DefinirId(int id) => Id = id;
 }

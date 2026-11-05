@@ -168,7 +168,7 @@ public class ProtecaoDeEstadoTests
     [Fact]
     public void Passeio_EstadoNaoMudaPorSetterPublico()
     {
-        foreach (var nome in new[] { nameof(Passeio.Id), nameof(Passeio.DataHora), nameof(Passeio.Duracao), nameof(Passeio.Local), nameof(Passeio.Status), nameof(Passeio.Tutor), nameof(Passeio.Passeador), nameof(Passeio.Pet) })
+        foreach (var nome in new[] { nameof(Passeio.Id), nameof(Passeio.DataHora), nameof(Passeio.Duracao), nameof(Passeio.Local), nameof(Passeio.Status), nameof(Passeio.Tutor), nameof(Passeio.Passeador), nameof(Passeio.Pet), nameof(Passeio.Avaliacoes) })
         {
             AssertSemSetterPublico(typeof(Passeio), nome);
         }
@@ -187,6 +187,7 @@ public class ProtecaoDeEstadoTests
         Assert.Equal(TipoNotificacao.PASSEIO_ACEITO, notificacao.Tipo);
         Assert.False(string.IsNullOrWhiteSpace(notificacao.Mensagem));
         Assert.Same(tutor, notificacao.Destinatario);
+        Assert.Same(passeio, notificacao.Passeio);
     }
 
     [Fact]
@@ -203,7 +204,7 @@ public class ProtecaoDeEstadoTests
     [Fact]
     public void Notificacao_LidaNaoMudaPorSetterPublico()
     {
-        foreach (var nome in new[] { nameof(Notificacao.Id), nameof(Notificacao.Lida), nameof(Notificacao.Mensagem), nameof(Notificacao.Tipo), nameof(Notificacao.DataEnvio), nameof(Notificacao.Destinatario), nameof(Notificacao.PasseioId) })
+        foreach (var nome in new[] { nameof(Notificacao.Id), nameof(Notificacao.Lida), nameof(Notificacao.Mensagem), nameof(Notificacao.Tipo), nameof(Notificacao.DataEnvio), nameof(Notificacao.Destinatario), nameof(Notificacao.Passeio) })
         {
             AssertSemSetterPublico(typeof(Notificacao), nome);
         }

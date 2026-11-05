@@ -10,6 +10,7 @@ public class Usuario
     public TipoPerfil TipoPerfil { get; private set; }
     public StatusUsuario Status { get; private set; } = StatusUsuario.ATIVO;
     public string SenhaHash { get; private set; } = string.Empty;
+    public double MediaAvaliacao { get; private set; }
 
     public IReadOnlyList<Pet> Pets => _pets;
 
@@ -96,6 +97,13 @@ public class Usuario
         }
 
         return new Passeio(this, passeador, pet, dataHora, duracao, local);
+    }
+
+    // REG-001: média das avaliações em que este usuário é o avaliado.
+    internal void RecalcularMedia(IEnumerable<Avaliacao> avaliacoes)
+    {
+        var notas = avaliacoes.Where(a => a.Avaliado == this).Select(a => a.Nota).ToList();
+        MediaAvaliacao = notas.Count == 0 ? 0d : notas.Average();
     }
 
     internal void DefinirId(int id) => Id = id;
