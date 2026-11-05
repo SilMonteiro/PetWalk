@@ -63,8 +63,21 @@ public class Usuario
         }
     }
 
+    public void RemoverPet(Pet pet)
+    {
+        if (pet is null)
+        {
+            throw new ArgumentNullException(nameof(pet));
+        }
+
+        if (!_pets.Remove(pet))
+        {
+            throw new InvalidOperationException("O pet informado não pertence ao tutor solicitante");
+        }
+    }
+
     // Veio de Tutor.SolicitarPasseio (arquivo removido). Regras: REG-002, REG-005, REG-008 e REG-009.
-    public Passeio SolicitarPasseio(Pet pet, Usuario passeador, DateTime dataHora, TimeSpan duracao, string local)
+    public Passeio SolicitarPasseio(Pet pet, Usuario passeador, DateTime dataHora, TimeSpan duracao, string local, DateTime agora)
     {
         if (!EhTutor)
         {
@@ -91,7 +104,7 @@ public class Usuario
             throw new InvalidOperationException("Usuário está bloqueado");
         }
 
-        if (dataHora.ToUniversalTime() <= DateTime.UtcNow)
+        if (dataHora.ToUniversalTime() <= agora.ToUniversalTime())
         {
             throw new InvalidOperationException("A data e hora do passeio devem ser futuras");
         }

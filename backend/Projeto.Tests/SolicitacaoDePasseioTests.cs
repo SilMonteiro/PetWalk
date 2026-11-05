@@ -16,7 +16,7 @@ public class SolicitacaoDePasseioTests
         var pet = CriarPet(tutor);
         tutor.AdicionarPet(pet);
 
-        var passeio = tutor.SolicitarPasseio(pet, passeador, DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10");
+        var passeio = tutor.SolicitarPasseio(pet, passeador, Fabrica.Agora.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10", Fabrica.Agora);
 
         Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
         Assert.Same(tutor, passeio.Tutor);
@@ -33,7 +33,7 @@ public class SolicitacaoDePasseioTests
         var pet = CriarPet(tutor);
 
         var erro = Assert.Throws<InvalidOperationException>(
-            () => passeador.SolicitarPasseio(pet, passeador, DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10"));
+            () => passeador.SolicitarPasseio(pet, passeador, Fabrica.Agora.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10", Fabrica.Agora));
 
         Assert.Equal("Usuário não possui perfil de tutor", erro.Message);
     }
@@ -47,7 +47,7 @@ public class SolicitacaoDePasseioTests
         var petDoOutro = CriarPet(outroTutor);
 
         var erro = Assert.Throws<InvalidOperationException>(
-            () => tutor.SolicitarPasseio(petDoOutro, passeador, DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10"));
+            () => tutor.SolicitarPasseio(petDoOutro, passeador, Fabrica.Agora.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10", Fabrica.Agora));
 
         Assert.Equal("O pet informado não pertence ao tutor solicitante", erro.Message);
     }
@@ -61,7 +61,21 @@ public class SolicitacaoDePasseioTests
         tutor.AdicionarPet(pet);
 
         var erro = Assert.Throws<InvalidOperationException>(
-            () => tutor.SolicitarPasseio(pet, passeador, DateTime.UtcNow.AddDays(-1), TimeSpan.FromHours(1), "Rua A, 10"));
+            () => tutor.SolicitarPasseio(pet, passeador, Fabrica.Agora.AddDays(-1), TimeSpan.FromHours(1), "Rua A, 10", Fabrica.Agora));
+
+        Assert.Equal("A data e hora do passeio devem ser futuras", erro.Message);
+    }
+
+    [Fact]
+    public void DataIgualAAgora_NaoPodeSerSolicitada()
+    {
+        var tutor = CriarUsuario(TipoPerfil.TUTOR);
+        var passeador = CriarUsuario(TipoPerfil.PASSEADOR);
+        var pet = CriarPet(tutor);
+        tutor.AdicionarPet(pet);
+
+        var erro = Assert.Throws<InvalidOperationException>(
+            () => tutor.SolicitarPasseio(pet, passeador, Fabrica.Agora, TimeSpan.FromHours(1), "Rua A, 10", Fabrica.Agora));
 
         Assert.Equal("A data e hora do passeio devem ser futuras", erro.Message);
     }
@@ -75,7 +89,7 @@ public class SolicitacaoDePasseioTests
         tutor.AdicionarPet(pet);
 
         var erro = Assert.Throws<InvalidOperationException>(
-            () => tutor.SolicitarPasseio(pet, outroTutor, DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10"));
+            () => tutor.SolicitarPasseio(pet, outroTutor, Fabrica.Agora.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10", Fabrica.Agora));
 
         Assert.Equal("Usuário não possui perfil de passeador", erro.Message);
     }
@@ -344,12 +358,7 @@ public class SolicitacaoDePasseioTests
 
     private static (Passeio passeio, Usuario passeador) CriarPasseioSolicitado()
     {
-        var tutor = CriarUsuario(TipoPerfil.TUTOR);
-        var passeador = CriarUsuario(TipoPerfil.PASSEADOR);
-        var pet = CriarPet(tutor);
-        tutor.AdicionarPet(pet);
-
-        var passeio = tutor.SolicitarPasseio(pet, passeador, DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10");
+        var (_, passeador, _, passeio) = Fabrica.CriarPasseioSolicitado();
 
         return (passeio, passeador);
     }

@@ -5,17 +5,10 @@ public class AvaliacaoTests
     private static Usuario CriarUsuario(TipoPerfil tipoPerfil, string nome, string email) =>
         new(nome, email, "11999999999", "Rua A, 10", tipoPerfil, "hash-irrelevante");
 
-    private static Pet CriarPet(Usuario tutor) =>
-        new(tutor, "Rex", "Cachorro", "Vira-lata", Porte.MEDIO, 3, "Muito dócil");
-
     private static (Passeio passeio, Usuario tutor, Usuario passeador) CriarPasseioSolicitado()
     {
-        var tutor = CriarUsuario(TipoPerfil.TUTOR, "Ana", "ana@petwalk.com");
-        var passeador = CriarUsuario(TipoPerfil.PASSEADOR, "Bia", "bia@petwalk.com");
-        var pet = CriarPet(tutor);
-        tutor.AdicionarPet(pet);
+        var (tutor, passeador, _, passeio) = Fabrica.CriarPasseioSolicitado();
 
-        var passeio = tutor.SolicitarPasseio(pet, passeador, DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10");
         return (passeio, tutor, passeador);
     }
 

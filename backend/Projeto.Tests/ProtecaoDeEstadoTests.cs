@@ -12,17 +12,8 @@ public class ProtecaoDeEstadoTests
     private static Pet CriarPet(Usuario tutor) =>
         new(tutor, "Rex", "Cachorro", "Vira-lata", Porte.MEDIO, 3, "Muito dócil");
 
-    private static (Usuario tutor, Usuario passeador, Pet pet, Passeio passeio) CriarPasseioSolicitado()
-    {
-        var tutor = CriarTutor();
-        var passeador = CriarPasseador();
-        var pet = CriarPet(tutor);
-        tutor.AdicionarPet(pet);
-
-        var passeio = tutor.SolicitarPasseio(pet, passeador, DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10");
-
-        return (tutor, passeador, pet, passeio);
-    }
+    private static (Usuario tutor, Usuario passeador, Pet pet, Passeio passeio) CriarPasseioSolicitado() =>
+        Fabrica.CriarPasseioSolicitado();
 
     // ---------- Pet ----------
 
