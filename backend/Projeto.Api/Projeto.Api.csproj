@@ -10,4 +10,9 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
   </ItemGroup>
 
+  <!-- Os testes precisam de DefinirId (internal) para atribuir Ids às entidades. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Projeto.Tests" />
+  </ItemGroup>
+
 </Project>
