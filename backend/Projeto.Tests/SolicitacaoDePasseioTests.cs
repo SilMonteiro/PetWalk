@@ -235,6 +235,75 @@ public class SolicitacaoDePasseioTests
     }
 
     [Fact]
+    public void TutorEPasseador_CancelamPasseioSolicitadoOuAceito()
+    {
+        var porTutorSolicitado = CriarPasseioSolicitado();
+        porTutorSolicitado.passeio.Cancelar(porTutorSolicitado.passeio.Tutor);
+        Assert.Equal(StatusPasseio.CANCELADO, porTutorSolicitado.passeio.Status);
+
+        var porPasseadorSolicitado = CriarPasseioSolicitado();
+        porPasseadorSolicitado.passeio.Cancelar(porPasseadorSolicitado.passeador);
+        Assert.Equal(StatusPasseio.CANCELADO, porPasseadorSolicitado.passeio.Status);
+
+        var porTutorAceito = CriarPasseioSolicitado();
+        porTutorAceito.passeio.Aceitar(porTutorAceito.passeador);
+        porTutorAceito.passeio.Cancelar(porTutorAceito.passeio.Tutor);
+        Assert.Equal(StatusPasseio.CANCELADO, porTutorAceito.passeio.Status);
+
+        var porPasseadorAceito = CriarPasseioSolicitado();
+        porPasseadorAceito.passeio.Aceitar(porPasseadorAceito.passeador);
+        porPasseadorAceito.passeio.Cancelar(porPasseadorAceito.passeador);
+        Assert.Equal(StatusPasseio.CANCELADO, porPasseadorAceito.passeio.Status);
+    }
+
+    [Fact]
+    public void UsuarioQueNaoParticipou_NaoPodeCancelar()
+    {
+        var (passeio, _) = CriarPasseioSolicitado();
+        var estranho = CriarUsuario(TipoPerfil.PASSEADOR);
+
+        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Cancelar(estranho));
+
+        Assert.Equal("Usuário não participou deste passeio.", erro.Message);
+        Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
+    }
+
+    [Fact]
+    public void PasseioForaDeSolicitadoOuAceito_NaoPodeSerCancelado()
+    {
+        var (emAndamento, passeadorEmAndamento) = CriarPasseioSolicitado();
+        emAndamento.Aceitar(passeadorEmAndamento);
+        emAndamento.Iniciar(passeadorEmAndamento);
+
+        var erroEmAndamento = Assert.Throws<InvalidOperationException>(() => emAndamento.Cancelar(passeadorEmAndamento));
+        Assert.Equal("Passeio não pode ser cancelado no estado atual.", erroEmAndamento.Message);
+        Assert.Equal(StatusPasseio.EM_ANDAMENTO, emAndamento.Status);
+
+        var (finalizado, passeadorFinalizado) = CriarPasseioSolicitado();
+        finalizado.Aceitar(passeadorFinalizado);
+        finalizado.Iniciar(passeadorFinalizado);
+        finalizado.Finalizar(passeadorFinalizado);
+
+        var erroFinalizado = Assert.Throws<InvalidOperationException>(() => finalizado.Cancelar(passeadorFinalizado));
+        Assert.Equal("Passeio não pode ser cancelado no estado atual.", erroFinalizado.Message);
+        Assert.Equal(StatusPasseio.FINALIZADO, finalizado.Status);
+
+        var (recusado, passeadorRecusado) = CriarPasseioSolicitado();
+        recusado.Recusar(passeadorRecusado);
+
+        var erroRecusado = Assert.Throws<InvalidOperationException>(() => recusado.Cancelar(passeadorRecusado));
+        Assert.Equal("Passeio não pode ser cancelado no estado atual.", erroRecusado.Message);
+        Assert.Equal(StatusPasseio.RECUSADO, recusado.Status);
+
+        var (cancelado, passeadorCancelado) = CriarPasseioSolicitado();
+        cancelado.Cancelar(passeadorCancelado);
+
+        var erroCancelado = Assert.Throws<InvalidOperationException>(() => cancelado.Cancelar(passeadorCancelado));
+        Assert.Equal("Passeio não pode ser cancelado no estado atual.", erroCancelado.Message);
+        Assert.Equal(StatusPasseio.CANCELADO, cancelado.Status);
+    }
+
+    [Fact]
     public void PasseioSoParticipaQuemEhTutorOuPasseador()
     {
         var (passeio, passeador) = CriarPasseioSolicitado();

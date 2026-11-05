@@ -61,6 +61,22 @@ public class Passeio
         Status = StatusPasseio.FINALIZADO;
     }
 
+    // REG-004: tutor ou passeador podem cancelar, mas só enquanto SOLICITADO ou ACEITO.
+    public void Cancelar(Usuario quem)
+    {
+        if (!Participou(quem))
+        {
+            throw new InvalidOperationException("Usuário não participou deste passeio.");
+        }
+
+        if (Status is not (StatusPasseio.SOLICITADO or StatusPasseio.ACEITO))
+        {
+            throw new InvalidOperationException("Passeio não pode ser cancelado no estado atual.");
+        }
+
+        Status = StatusPasseio.CANCELADO;
+    }
+
     // REG-003: somente o passeador escolhido, com perfil de passeador e ativo, pode agir no passeio.
     private void ExigirPasseadorAtivo(Usuario quem)
     {
