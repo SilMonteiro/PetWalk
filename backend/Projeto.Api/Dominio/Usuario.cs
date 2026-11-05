@@ -99,6 +99,10 @@ public class Usuario
         return new Passeio(this, passeador, pet, dataHora, duracao, local);
     }
 
+    public void Bloquear() => Status = StatusUsuario.BLOQUEADO;
+
+    public void Desbloquear() => Status = StatusUsuario.ATIVO;
+
     // REG-001: média das avaliações em que este usuário é o avaliado.
     internal void RecalcularMedia(IEnumerable<Avaliacao> avaliacoes)
     {

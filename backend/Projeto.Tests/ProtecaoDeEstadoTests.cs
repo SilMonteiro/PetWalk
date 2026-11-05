@@ -139,6 +139,19 @@ public class ProtecaoDeEstadoTests
         Assert.Equal("Acesso não autorizado ao endereço do perfil", erro.Message);
     }
 
+    [Fact]
+    public void Usuario_BloquearEDesbloquear_AlteramStatus()
+    {
+        var usuario = CriarTutor();
+        Assert.Equal(StatusUsuario.ATIVO, usuario.Status);
+
+        usuario.Bloquear();
+        Assert.Equal(StatusUsuario.BLOQUEADO, usuario.Status);
+
+        usuario.Desbloquear();
+        Assert.Equal(StatusUsuario.ATIVO, usuario.Status);
+    }
+
     // ---------- Passeio ----------
 
     [Fact]

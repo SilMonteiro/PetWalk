@@ -137,12 +137,39 @@ public class SolicitacaoDePasseioTests
     public void PasseadorBloqueado_NaoPodeRecusar()
     {
         var (passeio, passeador) = CriarPasseioSolicitado();
-        typeof(Usuario).GetProperty(nameof(Usuario.Status))!.SetValue(passeador, StatusUsuario.BLOQUEADO);
+        passeador.Bloquear();
 
         var erro = Assert.Throws<InvalidOperationException>(() => passeio.Recusar(passeador));
 
         Assert.Equal("Usuário está bloqueado", erro.Message);
         Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
+    }
+
+    [Fact]
+    public void PasseadorBloqueado_NaoPodeAceitarIniciarNemFinalizar()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+        passeador.Bloquear();
+
+        var erroAceitar = Assert.Throws<InvalidOperationException>(() => passeio.Aceitar(passeador));
+        Assert.Equal("Usuário está bloqueado", erroAceitar.Message);
+        Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
+
+        passeador.Desbloquear();
+        passeio.Aceitar(passeador);
+        passeador.Bloquear();
+
+        var erroIniciar = Assert.Throws<InvalidOperationException>(() => passeio.Iniciar(passeador));
+        Assert.Equal("Usuário está bloqueado", erroIniciar.Message);
+        Assert.Equal(StatusPasseio.ACEITO, passeio.Status);
+
+        passeador.Desbloquear();
+        passeio.Iniciar(passeador);
+        passeador.Bloquear();
+
+        var erroFinalizar = Assert.Throws<InvalidOperationException>(() => passeio.Finalizar(passeador));
+        Assert.Equal("Usuário está bloqueado", erroFinalizar.Message);
+        Assert.Equal(StatusPasseio.EM_ANDAMENTO, passeio.Status);
     }
 
     [Fact]
