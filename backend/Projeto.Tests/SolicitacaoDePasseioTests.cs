@@ -113,6 +113,62 @@ public class SolicitacaoDePasseioTests
     }
 
     [Fact]
+    public void PasseadorEscolhido_RecusaPasseio()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+
+        passeio.Recusar(passeador);
+
+        Assert.Equal(StatusPasseio.RECUSADO, passeio.Status);
+    }
+
+    [Fact]
+    public void UsuarioQueNaoEhOPasseador_NaoPodeRecusar()
+    {
+        var (passeio, _) = CriarPasseioSolicitado();
+        var estranho = CriarUsuario(TipoPerfil.PASSEADOR);
+
+        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Recusar(estranho));
+
+        Assert.Equal("Passeio não pertence a este passeador", erro.Message);
+    }
+
+    [Fact]
+    public void PasseadorBloqueado_NaoPodeRecusar()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+        typeof(Usuario).GetProperty(nameof(Usuario.Status))!.SetValue(passeador, StatusUsuario.BLOQUEADO);
+
+        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Recusar(passeador));
+
+        Assert.Equal("Usuário está bloqueado", erro.Message);
+        Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
+    }
+
+    [Fact]
+    public void PasseioJaAceito_NaoPodeSerRecusado()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+        passeio.Aceitar(passeador);
+
+        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Recusar(passeador));
+
+        Assert.Equal("Transição não permitida a partir do estado atual", erro.Message);
+        Assert.Equal(StatusPasseio.ACEITO, passeio.Status);
+    }
+
+    [Fact]
+    public void PasseioRecusado_NaoPermiteNovasTransicoes()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+        passeio.Recusar(passeador);
+
+        Assert.Throws<InvalidOperationException>(() => passeio.Aceitar(passeador));
+        Assert.Throws<InvalidOperationException>(() => passeio.Recusar(passeador));
+        Assert.Equal(StatusPasseio.RECUSADO, passeio.Status);
+    }
+
+    [Fact]
     public void PasseioSoParticipaQuemEhTutorOuPasseador()
     {
         var (passeio, passeador) = CriarPasseioSolicitado();

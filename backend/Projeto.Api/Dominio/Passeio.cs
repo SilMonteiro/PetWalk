@@ -34,6 +34,15 @@ public class Passeio
         Status = StatusPasseio.ACEITO;
     }
 
+    // Veio de Passeador.RecusarPasseio (arquivo removido). REG-003; RECUSADO é terminal.
+    public void Recusar(Usuario quem)
+    {
+        ExigirPasseadorAtivo(quem);
+        ExigirStatus(StatusPasseio.SOLICITADO);
+
+        Status = StatusPasseio.RECUSADO;
+    }
+
     // REG-003: somente o passeador escolhido, com perfil de passeador e ativo, pode agir no passeio.
     private void ExigirPasseadorAtivo(Usuario quem)
     {
