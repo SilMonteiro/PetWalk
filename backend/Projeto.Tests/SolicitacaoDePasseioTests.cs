@@ -169,6 +169,72 @@ public class SolicitacaoDePasseioTests
     }
 
     [Fact]
+    public void CicloCompleto_SolicitadoAceitoEmAndamentoFinalizado()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+        Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
+
+        passeio.Aceitar(passeador);
+        Assert.Equal(StatusPasseio.ACEITO, passeio.Status);
+
+        passeio.Iniciar(passeador);
+        Assert.Equal(StatusPasseio.EM_ANDAMENTO, passeio.Status);
+
+        passeio.Finalizar(passeador);
+        Assert.Equal(StatusPasseio.FINALIZADO, passeio.Status);
+    }
+
+    [Fact]
+    public void SaltosDeEstado_NaoSaoPermitidos()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+
+        Assert.Throws<InvalidOperationException>(() => passeio.Iniciar(passeador));
+        Assert.Throws<InvalidOperationException>(() => passeio.Finalizar(passeador));
+
+        passeio.Aceitar(passeador);
+
+        Assert.Throws<InvalidOperationException>(() => passeio.Finalizar(passeador));
+
+        passeio.Iniciar(passeador);
+
+        Assert.Throws<InvalidOperationException>(() => passeio.Iniciar(passeador));
+        Assert.Equal(StatusPasseio.EM_ANDAMENTO, passeio.Status);
+    }
+
+    [Fact]
+    public void UsuarioQueNaoEhOPasseador_NaoPodeIniciarNemFinalizar()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+        passeio.Aceitar(passeador);
+        var estranho = CriarUsuario(TipoPerfil.PASSEADOR);
+
+        var erroIniciar = Assert.Throws<InvalidOperationException>(() => passeio.Iniciar(estranho));
+        Assert.Equal("Passeio não pertence a este passeador", erroIniciar.Message);
+
+        passeio.Iniciar(passeador);
+
+        var erroFinalizar = Assert.Throws<InvalidOperationException>(() => passeio.Finalizar(estranho));
+        Assert.Equal("Passeio não pertence a este passeador", erroFinalizar.Message);
+        Assert.Equal(StatusPasseio.EM_ANDAMENTO, passeio.Status);
+    }
+
+    [Fact]
+    public void PasseioFinalizado_NaoPermiteNovasTransicoes()
+    {
+        var (passeio, passeador) = CriarPasseioSolicitado();
+        passeio.Aceitar(passeador);
+        passeio.Iniciar(passeador);
+        passeio.Finalizar(passeador);
+
+        Assert.Throws<InvalidOperationException>(() => passeio.Aceitar(passeador));
+        Assert.Throws<InvalidOperationException>(() => passeio.Recusar(passeador));
+        Assert.Throws<InvalidOperationException>(() => passeio.Iniciar(passeador));
+        Assert.Throws<InvalidOperationException>(() => passeio.Finalizar(passeador));
+        Assert.Equal(StatusPasseio.FINALIZADO, passeio.Status);
+    }
+
+    [Fact]
     public void PasseioSoParticipaQuemEhTutorOuPasseador()
     {
         var (passeio, passeador) = CriarPasseioSolicitado();

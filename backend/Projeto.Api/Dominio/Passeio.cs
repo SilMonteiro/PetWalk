@@ -43,6 +43,24 @@ public class Passeio
         Status = StatusPasseio.RECUSADO;
     }
 
+    // Veio de Passeador.IniciarPasseio (arquivo removido). REG-003.
+    public void Iniciar(Usuario quem)
+    {
+        ExigirPasseadorAtivo(quem);
+        ExigirStatus(StatusPasseio.ACEITO);
+
+        Status = StatusPasseio.EM_ANDAMENTO;
+    }
+
+    // Veio de Passeador.FinalizarPasseio (arquivo removido). REG-003; FINALIZADO é terminal.
+    public void Finalizar(Usuario quem)
+    {
+        ExigirPasseadorAtivo(quem);
+        ExigirStatus(StatusPasseio.EM_ANDAMENTO);
+
+        Status = StatusPasseio.FINALIZADO;
+    }
+
     // REG-003: somente o passeador escolhido, com perfil de passeador e ativo, pode agir no passeio.
     private void ExigirPasseadorAtivo(Usuario quem)
     {
