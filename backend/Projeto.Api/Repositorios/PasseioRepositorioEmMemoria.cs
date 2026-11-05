@@ -1,0 +1,18 @@
+// Repositório em memória dos passeios; o Id é atribuído aqui, nunca pela entidade.
+public class PasseioRepositorioEmMemoria : IPasseioRepositorio
+{
+    private readonly List<Passeio> _passeios = new();
+
+    public Passeio Adicionar(Passeio passeio)
+    {
+        passeio.DefinirId(_passeios.Count + 1);
+        _passeios.Add(passeio);
+
+        return passeio;
+    }
+
+    public Passeio? ObterPorId(int id) => _passeios.FirstOrDefault(p => p.Id == id);
+
+    public IReadOnlyList<Passeio> ListarPorUsuario(int usuarioId) =>
+        _passeios.Where(p => p.Tutor.Id == usuarioId || p.Passeador.Id == usuarioId).ToList();
+}

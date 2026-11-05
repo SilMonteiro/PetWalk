@@ -15,8 +15,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<IUsuarioRepositorio, UsuarioRepositorioEmMemoria>();
+builder.Services.AddSingleton<IPasseioRepositorio, PasseioRepositorioEmMemoria>();
+builder.Services.AddSingleton<INotificacaoRepositorio, NotificacaoRepositorioEmMemoria>();
 builder.Services.AddSingleton<AutenticacaoServico>();
-builder.Services.AddSingleton<NotificacaoRepositorioEmMemoria>();
 builder.Services.AddSingleton<NotificacaoServico>();
 
 var app = builder.Build();

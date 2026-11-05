@@ -1,9 +1,9 @@
 // enviarNotificacao() e listarNaoLidas() da proposta, como serviço da Etapa 4.
 public class NotificacaoServico
 {
-    private readonly NotificacaoRepositorioEmMemoria _notificacoes;
+    private readonly INotificacaoRepositorio _notificacoes;
 
-    public NotificacaoServico(NotificacaoRepositorioEmMemoria notificacoes)
+    public NotificacaoServico(INotificacaoRepositorio notificacoes)
     {
         _notificacoes = notificacoes ?? throw new ArgumentNullException(nameof(notificacoes));
     }
