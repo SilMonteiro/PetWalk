@@ -1,16 +1,127 @@
-// Cadastro feliz do AutenticacaoServico; a cobertura completa do serviço entra no Prompt 7.
+// Cadastro e login do AutenticacaoServico (REG-010 e REG-011), com o repositório em memória real.
 public class AutenticacaoServicoTests
 {
+    private static (AutenticacaoServico servico, UsuarioRepositorioEmMemoria repositorio) CriarServico()
+    {
+        var repositorio = new UsuarioRepositorioEmMemoria();
+
+        return (new AutenticacaoServico(repositorio), repositorio);
+    }
+
     [Fact]
     public void Cadastrar_GravaUsuarioComIdEHashDaSenha()
     {
-        var servico = new AutenticacaoServico(new UsuarioRepositorioEmMemoria());
+        var (servico, _) = CriarServico();
 
         var usuario = servico.Cadastrar(
             "Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
 
         Assert.Equal(1, usuario.Id);
         Assert.Equal("ana@petwalk.com", usuario.Email);
-        Assert.NotEqual("senha123", usuario.SenhaHash);
+    }
+
+    // REG-010
+    [Fact]
+    public void Cadastrar_ComEmailJaCadastrado_LancaErro()
+    {
+        var (servico, _) = CriarServico();
+        servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+
+        var erro = Assert.Throws<InvalidOperationException>(
+            () => servico.Cadastrar("Outra", "ana@petwalk.com", "11888888888", "Rua B, 20", TipoPerfil.PASSEADOR, "outraSenha"));
+
+        Assert.Equal("E-mail já cadastrado", erro.Message);
+    }
+
+    // REG-010
+    [Fact]
+    public void Cadastrar_ComEmailEmCaixaDiferente_LancaErro()
+    {
+        var (servico, _) = CriarServico();
+        servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+
+        var erro = Assert.Throws<InvalidOperationException>(
+            () => servico.Cadastrar("Outra", "ANA@PetWalk.com", "11888888888", "Rua B, 20", TipoPerfil.PASSEADOR, "outraSenha"));
+
+        Assert.Equal("E-mail já cadastrado", erro.Message);
+    }
+
+    [Fact]
+    public void Cadastrar_GuardaApenasOHashDaSenha()
+    {
+        var (servico, _) = CriarServico();
+        const string senha = "senha123";
+
+        var usuario = servico.Cadastrar(
+            "Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, senha);
+
+        Assert.NotEqual(senha, usuario.SenhaHash);
+        Assert.DoesNotContain(senha, usuario.SenhaHash);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Cadastrar_ComSenhaEmBranco_LancaErro(string senha)
+    {
+        var (servico, _) = CriarServico();
+
+        var erro = Assert.Throws<ArgumentException>(
+            () => servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, senha));
+
+        Assert.Equal("Nome, e-mail e senha são obrigatórios.", erro.Message);
+    }
+
+    [Fact]
+    public void Autenticar_ComCredenciaisCorretas_DevolveUsuario()
+    {
+        var (servico, _) = CriarServico();
+        var cadastrado = servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+
+        var autenticado = servico.Autenticar("ana@petwalk.com", "senha123");
+
+        Assert.Same(cadastrado, autenticado);
+    }
+
+    [Fact]
+    public void Autenticar_ComSenhaErrada_DevolveNulo()
+    {
+        var (servico, _) = CriarServico();
+        servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+
+        Assert.Null(servico.Autenticar("ana@petwalk.com", "senha-errada"));
+    }
+
+    [Fact]
+    public void Autenticar_ComEmailInexistente_DevolveNulo()
+    {
+        var (servico, _) = CriarServico();
+        servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+
+        Assert.Null(servico.Autenticar("ninguem@petwalk.com", "senha123"));
+    }
+
+    // REG-011
+    [Fact]
+    public void Autenticar_UsuarioBloqueadoComSenhaCerta_LancaErro()
+    {
+        var (servico, _) = CriarServico();
+        var usuario = servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+        usuario.Bloquear();
+
+        var erro = Assert.Throws<InvalidOperationException>(() => servico.Autenticar("ana@petwalk.com", "senha123"));
+
+        Assert.Equal("Usuário está bloqueado", erro.Message);
+    }
+
+    // REG-011: quem erra a senha não descobre que a conta está bloqueada.
+    [Fact]
+    public void Autenticar_UsuarioBloqueadoComSenhaErrada_DevolveNulo()
+    {
+        var (servico, _) = CriarServico();
+        var usuario = servico.Cadastrar("Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+        usuario.Bloquear();
+
+        Assert.Null(servico.Autenticar("ana@petwalk.com", "senha-errada"));
     }
 }
