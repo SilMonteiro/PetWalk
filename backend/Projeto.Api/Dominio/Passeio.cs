@@ -28,6 +28,15 @@ public class Passeio
     // Veio de Passeador.AceitarPasseio (arquivo removido). Regras: REG-003 e o estado do passeio.
     public void Aceitar(Usuario quem)
     {
+        ExigirPasseadorAtivo(quem);
+        ExigirStatus(StatusPasseio.SOLICITADO);
+
+        Status = StatusPasseio.ACEITO;
+    }
+
+    // REG-003: somente o passeador escolhido, com perfil de passeador e ativo, pode agir no passeio.
+    private void ExigirPasseadorAtivo(Usuario quem)
+    {
         if (quem is null)
         {
             throw new ArgumentNullException(nameof(quem));
@@ -43,17 +52,18 @@ public class Passeio
             throw new InvalidOperationException("Usuário não possui perfil de passeador");
         }
 
-        if (quem.Status != StatusUsuario.ATIVO)
+        if (quem.Status == StatusUsuario.BLOQUEADO)
         {
             throw new InvalidOperationException("Usuário está bloqueado");
         }
+    }
 
-        if (Status != StatusPasseio.SOLICITADO)
+    private void ExigirStatus(StatusPasseio esperado)
+    {
+        if (Status != esperado)
         {
-            throw new InvalidOperationException("O passeio não está em estado de solicitação.");
+            throw new InvalidOperationException("Transição não permitida a partir do estado atual");
         }
-
-        Status = StatusPasseio.ACEITO;
     }
 
     // Usado pela Avaliacao para derivar o avaliado enquanto `Avaliacao.Avaliado` ainda é um Id.

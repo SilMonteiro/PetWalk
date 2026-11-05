@@ -109,7 +109,7 @@ public class SolicitacaoDePasseioTests
 
         var erro = Assert.Throws<InvalidOperationException>(() => passeio.Aceitar(passeador));
 
-        Assert.Equal("O passeio não está em estado de solicitação.", erro.Message);
+        Assert.Equal("Transição não permitida a partir do estado atual", erro.Message);
     }
 
     [Fact]
