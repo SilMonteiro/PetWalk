@@ -1,0 +1,172 @@
+<% if (planText) { %>
+The user provided the following brainstorming context:
+<brainstorming>
+<%= planText %>
+</brainstorming>
+<% } else { %>
+The user has been brainstorming in this conversation. Review the conversation history to extract the product ideas, features, and requirements that have been discussed.
+<% } %>
+
+Your task is to plan specs based on the brainstorming and align them with the existing vision document.
+
+Follow these steps:
+
+### Step 1: Read Existing Documents
+
+Read these files (use the `read` tool):
+1. `management/vision.md` — understand the existing value blocks and vision.
+2. `management/roadmap.md` — see existing planned/created specs.
+3. `management/arch.md` — refresh on architectural principles.
+4. `management/adr.md` — note any relevant architecture decisions.
+5. `management/lessons.md` — note any relevant lessons.
+
+### Step 2: Align Brainstorming with Vision
+
+Compare the brainstorming content with `vision.md`:
+
+- If the brainstorming introduces NEW value blocks that are not yet in `vision.md`, add them using the **`vision-value-block` tool** — do NOT use `edit` or `write` directly on `vision.md` for new blocks. Determine the next available V number by reading `vision.md` and finding the highest existing V number, then add 1. Call the tool once per new value block with:
+  - `number`: the next V number (integer, e.g., 54)
+  - `title`: a concise, descriptive title for the value block
+  - `description`: the full description, including markdown formatting as needed
+  - `deliveredBy`: array of spec references that will deliver this value (e.g., `["Spec 720 (spec-verify-prevalidation)"]`)
+
+- If the brainstorming ADDS details to EXISTING value blocks, use the `edit` tool to update those blocks additively. Do NOT remove or rephrase existing content — only add to it.
+
+- If the brainstorming REFINES or CLARIFIES the target audience or value proposition, update those sections additively using the `edit` tool.
+
+**All modifications to vision.md must be additive.** Never delete, renumber, or restructure existing sections. This prevents breaking references from other documents.
+
+### Step 3: Plan Specs
+
+For each value block (existing or newly added) that needs implementation, plan one or more feature specs. **Before assigning final numbers, you MUST estimate each spec's size and split if needed (see Step 4).** Use the rules below for initial planning, then refine in Step 4.
+
+1. Determine tentative SPEC NUMBERS (the plan gate enforces these rules deterministically when the rows are committed):
+   - Feature specs are numbered in increments of 10: 10, 20, 30, 40, ...
+   - Use the next available multiple of 10 that is not already in the roadmap.
+   - Fix specs fill gaps after their feature spec: e.g., 11, 12 after spec 10. A gap with no lane (a base number that does not exist in the roadmap or in the same batch) is rejected with `plan-lane-numbering-invalid`.
+   - A letter suffix extends a base number (e.g. `20A` for `20`) and is rejected with `plan-lane-numbering-invalid` when the base number does not exist in the roadmap or in the same batch.
+   - Execution order comes from the dependencies, never from the lane: every number named in a `depends on` clause MUST be strictly smaller than the row's own number (a row without a letter orders before the lettered rows of the same number). A dependency that is unknown or not strictly smaller is rejected with `plan-execution-order-invalid`.
+   - Do NOT reserve a base number for an umbrella row: a base number submitted together with its lettered children while the base row itself cites nothing is rejected with `plan-umbrella-forbidden`. Every planned number MUST map to exactly one authored specification, so the base row of a split is a real spec with its own references — never a placeholder.
+
+2. Name each spec concisely and descriptively (e.g., "10-user-auth", "20-dashboard-ui", "30-api-layer"). Never label a row `SPEC-<n>`: cite the bare roadmap number instead (e.g. `V2`), otherwise the commit is rejected with `plan-spec-label-forbidden`.
+
+3. For each planned spec, estimate the scope BEFORE adding to the roadmap.
+
+### Step 4: Estimate Size and Split Large Specs
+
+For EACH spec planned in Step 3, estimate how large it would be. A spec is **too large** if the requirements, design, and task documents would each exceed roughly 200–300 lines or if it would take more than ~2 sessions to implement. Concrete signals that a spec is too large:
+
+- **7+ functional requirements (FRs)** that are substantially different from each other
+- **4+ distinct modules or files** that would each need significant changes
+- **Multiple independent user-facing features** bundled into one spec
+- **A value block** that describes a broad, multi-faceted capability rather than a focused deliverable
+
+**If a spec is too large, split it** into 2 or more child specs using letter suffixes:
+
+```
+Original: 20-dashboard-ui
+Split into:
+  20A-dashboard-layout
+  20B-dashboard-charts
+  20C-dashboard-filters
+```
+
+Rules for numbering split specs:
+- Use the base number (e.g., 20) with uppercase letters: **20A**, **20B**, **20C**, etc.
+- The base number (e.g. **20**) belongs to the FIRST authored spec of the split — a real spec with its own references, never an umbrella placeholder — and the split MUST NOT reserve it as a tracking-only entry. Child specs reference the parent: `V2 (child of 20)`.
+- Give each child spec a distinct, focused name that reflects its specific scope.
+- Each child spec MUST be independently implementable — no circular dependencies.
+- If a child spec still looks too large, split it further (20B-1, 20B-2), but prefer to keep the split to one level when possible.
+
+**If a spec is NOT too large**, keep it as-is with the standard multiple-of-10 numbering.
+
+**Do NOT split specs that are too small.** Splitting a spec creates document overhead (`requirements.md`, `design.md`, `task.md` × N children) and forces N complete pipeline cycles (verify → implement → audit). This overhead is only justified when:
+
+- Each child spec would produce **~200+ lines of code** (combined child total justifies the document overhead)
+- **Two or more people/agents** would implement the children in parallel
+- Children touch **substantially different subsystems or modules**
+
+If the answer is **no** to 2 of these 3, keep it as ONE spec with multiple functional requirements. The SDD pipeline already supports sequential tasks within a single spec. Multiple FRs in one spec are better than multiple micro-specs with 15 lines of code each.
+
+**Umbrella rows — a base number reserved only to parent other rows — are forbidden for new plans** (rejected with `plan-umbrella-forbidden`): every planned number must map to exactly one authored specification. If all children would be implemented by the same person in the same session, skip the split entirely and keep the base number for the single spec.
+
+After estimating and splitting, you should have a final list of specs ready for the roadmap.
+
+### Step 5: Commit the Plan to the Roadmap
+
+Do NOT edit `management/roadmap.md` — it is protected. Roadmap rows are written
+deterministically by the `roadmap-plan-commit` tool, which renders canonical rows.
+
+Call the `roadmap-plan-commit` tool ONCE with your complete final plan as an array of
+entries:
+
+```json
+{
+  "entries": [
+    { "number": "20", "name": "dashboard-ui", "status": "planned", "references": "V2: Dashboard & Analytics" },
+    { "number": "20A", "name": "dashboard-layout", "status": "planned", "references": "V2 (child of 20)" },
+    { "number": "20B", "name": "dashboard-charts", "status": "planned", "references": "V2 (child of 20)" },
+    { "number": "20C", "name": "dashboard-filters", "status": "planned", "references": "V2 (child of 20)" }
+  ]
+}
+```
+
+Rules:
+- Every entry `status` MUST be `"planned"` (the tool rejects other statuses).
+- Every entry `name` MUST be spec-new-safe: ASCII letters, digits, `.`, `_`, `-` only, starting with a letter or digit (kebab-case, e.g. `dashboard-ui`). NO spaces, accents, slashes or `!`. The tool rejects unsafe names because `/spec-new` preflight would fail with "unsafe roadmap name" before spending 1 LLM token.
+- `references` must link to the relevant value block(s) in `vision.md` (e.g., "V1: User
+  Authentication"), any relevant ADR entries (e.g., "ADR-001"), any relevant lessons
+  (e.g., "L1"), and for child specs indicate the parent (e.g., "child of 20").
+- The tool rejects duplicate `number` values and names that already exist in the roadmap.
+  If the tool reports an error, correct the entries and call it again.
+- Do NOT use `write` or `edit` on `management/roadmap.md` under any circumstance.
+
+### Step 5.5: Verify End-to-End Completeness (Vertical Slice Check)
+
+Before finalizing, verify that the planned specs form **complete vertical slices** for each value block. A vertical slice means every layer needed to deliver the feature end-to-end is covered:
+
+- **User interface / UX** — what the user sees and interacts with
+- **API / business logic** — what the system does
+- **Data / persistence** — where and how data is stored
+- **Authentication / authorization** — who can access what
+- **Integration points** — how it connects to external systems
+- **Deployment / operations** — how it reaches production
+- **Testing** — how correctness is verified end-to-end
+
+For each value block, mentally walk through a user action from UI → API → data → response → UI. Ask: "Do the planned specs cover every step of this journey?" If a layer is missing, plan an additional spec or extend an existing one to cover it.
+
+**This is the most common failure mode in AI-driven planning: specs that cover one layer perfectly but leave adjacent layers untouched.** A "dashboard API" without a "dashboard UI" spec, or a "chat feature" without a "message persistence" spec, are incomplete by definition.
+
+### Step 6: Plan Quality Gate (mandatory self-verification)
+
+Before reporting, you MUST run this verification loop and fix every failure you find. A plan that fails any check below is incomplete — fix and re-verify until all checks pass (see the convergence loop below). Do not ask the user to verify quality; this gate is part of `/spec-plan`.
+
+Verify each item against the actual files (re-read them; do not trust memory):
+
+<%- planReguaBlock %>
+
+1. **Roadmap integrity:** every planned spec exists as a row in `management/roadmap.md` with the exact `number`, `name` and `status: planned`; numbers are unique and use the next free multiples of 10 (or letter suffixes for children).
+2. **Reference existence:** every reference cited in roadmap rows belongs to the CLOSED domain set — `V<n>` in `management/vision.md`, `ADR-<n>` in `management/adr.md`, `L<n>` and `LL-<n>` in `management/lessons.md`, `PEND-0NN` in `management/pending-items.md` and `arch.md#<section-slug>` in `management/arch.md` — and its target actually exists. A target that does not exist in its document is rejected with `plan-reference-missing`; a notation outside that set (a bare URL, or a retired identifier that no extractor resolves) is rejected with `plan-reference-domain-unknown`. Create the block or fix the reference.
+3. **Vision block integrity:** for every NEW value block: it exists in `vision.md`, is formatted canonically, has exactly ONE `**Delivered by:**` line (duplicated delivery lines are a defect — remove the duplicate), and every spec number it cites exists in the roadmap.
+4. **Additivity:** the `vision.md` diff contains only additions or additive paragraphs to existing blocks — no deletion, renumbering or restructuring of existing content. Confirm with `git diff management/vision.md`.
+5. **Arch self-sufficiency:** for each newly planned spec, either `management/arch.md` has a section describing the spec's objective/rules and a creation checklist for `/spec-new` (pattern: family sections like `## TUI Progressive Architecture`), OR the value block explicitly documents the canonical creation path (`Canonical creation path without chat memory:`). A `/spec-new <N>` must be executable reading ONLY roadmap + vision + arch (+ ADR/lessons referenced) — never the conversation.
+6. **Vertical slice completeness:** for each value block, the planned specs cover every layer needed end-to-end (UI, business logic, persistence, integration, testing). If a layer is missing, plan an additional spec or extend one.
+7. **Spec sizing:** no planned spec bundles 7+ substantially different FRs or 4+ modules with significant changes; splits (if any) are justified by the Step 4 rules; micro-specs that should be one spec were merged.
+8. **Documentary self-sufficiency (plan-scope only — no requirements/design/task):** for each planned spec, confirm that a future `/spec-new <N>` can be executed reading ONLY `roadmap.md` + `vision.md` + `arch.md` (+ cited `ADR`/`lessons` sections) with zero chat memory: the roadmap row's `references` point to real sections (e.g., `V<n>` exists with the cited content, `arch.md` has or the V block carries the canonical creation path), and every cross-document citation is bidirectional where required (roadmap `references` ⇄ vision `Delivered by`). Planning means roadmap + vision + arch/ADR/lessons alignment — `requirements.md`, `design.md` and `task.md` MUST NOT be created or discussed here.
+9. **Closed-domain enumeration:** for every planned spec, enumerate the corpus from the **production authority** — deterministic commands over the repo and the real parser (e.g., every entry of the installable catalog, every file that carries the data or mechanism), never your own regex — and record the **count plus the diff against the declared scope**. Every "TODOS"/"all" claim in the plan MUST carry the **enumeration that sustains it**; without it, it is prose — not fact. Anchor: lesson `L78` — measuring with your own regex `undercounts the corpus`. A zero-count corpus is recorded with its count and diff, never silently reported as "all covered".
+10. **Mandatory falsification:** before Step 7 you MUST try to **invalidate** the plan, not confirm it — walk the canonical path link by link as a `clean-session` (does the file exist? does the URL respond? does the symbol exist?) and grep the repo by **concept** (e.g., `alias|redirect`) for mechanisms the plan did NOT cite, not only for the files you already knew. Reporting the plan as complete `without this attempt is forbidden`: a zero-hit concept probe is recorded as an explicit zero-result probe, distinguishable from a probe never run. Any finding becomes a correction plus a re-run of every check; the gate never reports complete with an open finding.
+
+**Continuity:** checks 9 and 10 extend the plan-quality gate delivered by V126 / Spec 2020 (`plan-quality-gate`, audited) from eight to ten checks; checks 1-8 remain unchanged.
+
+If any check fails, fix the documents (respecting tool boundaries: `vision-value-block` for new V blocks, `roadmap-plan-commit` for roadmap rows, `edit` only for additive changes) and re-run the failed checks.
+
+**Convergence loop (mandatory, at least 3 correction passes):** the loop is mandatory and MUST run at least 3 correction passes over ALL 10 checks. Each pass re-runs all 10 checks from scratch (re-read the files; do not trust memory of what you just wrote — a fix in one check commonly breaks another: e.g., creating a V block without the single `Delivered by` line breaks check 3; citing a non-existent `L<n>` breaks check 2; a roadmap rename without updating the `Delivered by` citation breaks check 3; adding a `Delivered by` spec without a roadmap row breaks the bidirectional citation in check 8). Every pass MUST quote `file:line` evidence for every check (e.g., `roadmap.md:<line> | 790 | name | planned | V...`, `vision.md:<line> **Delivered by:** ...`), and MUST explicitly answer the canonical question `o planejamento ficou realmente autossuficiente e completo, resistindo a uma nova sessão e sem memória desta conversa?`. Every pass MUST end with the round marker line the system counts: `spec-plan-round {"round":N,"checks":[{"checkId":1,"verdict":"pass","evidence":"roadmap.md:<line>"}]}`, where N is the pass number and `checks` lists all 10 checks with their verdict and evidence. If after the minimum number of passes any check still fails, list each remaining failure with its `file:line` and deliver the best plan artifact with reservations — the agent does not stop the flow, does not abandon Step 7, and does not ask the user to repair the plan manually.
+
+### Step 7: Report
+
+After completing all steps, report:
+1. Which brainstorming items were incorporated.
+2. What was added to `vision.md` (new value blocks or enhancements).
+3. How many specs were planned and their numbers/names.
+4. **Which specs were split** (if any): for each split, list the parent spec and its children (e.g., "20-dashboard-ui → 20A-layout, 20B-charts, 20C-filters").
+5. The total specs now in the roadmap with their statuses.

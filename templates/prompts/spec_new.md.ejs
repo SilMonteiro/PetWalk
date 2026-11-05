@@ -1,0 +1,612 @@
+Your task is to create spec #<%= specNumber %> with the highest possible quality WITHIN ITS DECLARED SCOPE. Read the roadmap row and treat it as the complete scope contract: the spec must deliver exactly that outcome, deterministically and with zero human decisions required during implementation. Highest quality means precise, complete and verifiable FOR THAT OUTCOME — never a larger spec than the outcome requires.
+
+### Scope Proportionality (MANDATORY)
+
+- The roadmap row is the scope. Every functional requirement must be necessary to deliver the outcome named there. If an FR could be removed without changing that outcome, remove it.
+- Do NOT invent modules, integrations, migrations, telemetry, dashboards, extra commands or future phases the roadmap row does not name.
+- Do NOT turn a one-sentence request into a multi-subsystem program. A small request yields a small, sharp spec.
+- Explore only the code the declared outcome touches. The tool budgets below are CEILINGS, not targets: a small scope needs only a few reads.
+- Stop authoring as soon as the three documents satisfy the régua. Never add requirements merely to fill a section — a section may be short when the scope is small.
+- **Terse roadmap rows.** When the row is a name rather than a paragraph, take its most direct reading: extend the existing API with the minimum capability that name denotes. Do NOT invent new domain concepts (entry kinds, new record types, lifecycle states) and do NOT redesign existing data structures to justify the feature.
+- **Collapse test.** If you find yourself adding a second or third public function to justify the first, you are over-scoping. Keep the single capability the roadmap row names; a helper that exists only to serve the spec's own narrative is not a deliverable.
+- **Derivation ledger (do this BEFORE writing `requirements.md`).** Extract from the roadmap row ONLY the capabilities it actually names (its nouns and verbs). List them in one internal line each. Every functional requirement MUST implement exactly one capability from that list. An FR whose capability is absent from the ledger is out of scope — delete it. A one-capability row yields ONE functional requirement plus, at most, non-functional constraints; it never yields a subsystem. Supporting helpers, file layout and data shapes are design decisions: they belong in `design.md` and never become extra FRs.
+- **Ambiguity rule.** A terse row is NOT permission to invent a domain. Resolve ambiguity with the most literal reading and the smallest extension of the EXISTING project API. Do NOT introduce a new domain concept (class, module, record kind, lifecycle state) the row does not name. If even the literal reading cannot produce a verifiable criterion, keep the minimum interpretation and record the open question as a `## Constraints` bullet — never fabricate functionality to fill the gap and never pad the spec to look complete.
+- **Missing referenced context.** If a referenced vision block, ADR or lesson does not exist in the project, do NOT fill the gap with invented scope. The roadmap row remains the ENTIRE scope; record the missing reference as a `## Constraints` bullet and continue with the minimum interpretation.
+- **Reuse the existing owner.** Before designing a NEW module, search the source tree for the row's nouns. If an existing module already owns that domain, extend it with the minimum capability; a parallel module for the same domain is over-scoping.
+- **Worked example — terse row.** Row: `disposable-ledger-discount`. BAD: a new `DisposableLedger` class, entry kinds, four FRs (creation, record types, discounting, reporting) and six tasks. GOOD: one FR — the discount helper over the ledger shape the row names — one NFR if genuinely required, and 1–2 tasks (implement + test); the helper's internal shape is decided in `design.md`, not promoted to requirements.
+- **Test scope is mandatory.** Declare the spec test scope in the documents: cite at least one spec test file in the project's own convention — a Node path such as `tests/foo.test.js`, `.test.ts`, `.test.tsx` or `.test.mjs`, or a native shape such as `test_foo.py`, `foo_test.go` or `FooTests.cs` — or add `no-test-scope: <justification>`. A spec without a declared test scope fails the deterministic documents gate — this is checked, not advisory.
+
+### Step 0: Check Existing Documents
+
+**BEFORE ANYTHING ELSE**, list the spec folder with the `glob` tool (this stage has no shell) using the
+pattern `management/specs/<%= specNumber %>-*/` — it also covers the zero-match case of a folder that
+does not exist yet.
+
+**A document counts as ALREADY CREATED only when it carries real content.** Before the turn, the pipeline pre-fills every missing document with a canonical SKELETON that carries the marker `<!-- SPEC-NEW-SKELETON-FILL -->`. A document that still carries that marker is a PLACEHOLDER, not a created document — treat it as MISSING.
+
+- If `requirements.md` **already exists and carries NO skeleton marker**: read it briefly (first 20 lines for frontmatter), then **SKIP directly to the first missing document** (design.md or task.md). Do NOT re-read context docs. Do NOT re-explore the codebase unless essential for the missing document.
+- If the spec folder does not exist: proceed from Step 1.
+- If ALL three documents exist **and none carries the skeleton marker**: report their sizes and stop (spec-new already created them).
+- **If ANY document still carries the skeleton marker: do NOT stop.** Authoring the marker-carrying documents IS this run's work — proceed to Step 1 and write them.
+
+**This check saves 80K+ tokens on re-runs where the LLM stopped mid-execution — but a skeleton-carrying document MUST NEVER be mistaken for a finished one.**
+
+### Step 1: Read Context Documents
+
+**⚡ STEP 1 BUDGET — up to 10 tool calls.** Use grep to find sections, then read only the found lines — never read a file in full. The budget exists to prevent a timeout, and it is a CEILING: spend only what the declared scope requires to know the integration points and failure modes it actually touches. If the roadmap row names a single behaviour, that is the entire surface — do not expand it into adjacent layers. Plan for at most 10: the stage's charged ceiling is **15 tool calls in total before the first document is written**, and the guard hard-stops beyond it. Writing `requirements.md` releases the counter completely, so the design step afterwards is not charged. Only if the budget would be exceeded do you proceed to Step 2 with partial context.
+
+Read ONLY what is referenced for this spec — nothing more:
+
+1. `management/roadmap.md` — find spec #<%= specNumber %>. Extract: name, status, and the exact refs listed (vision blocks, arch sections, ADRs, lessons).
+2. For each **vision block** listed in refs: use `grep -n "^### <ref>"` to find the line, then read only that section (not the full file).
+3. For each **ADR** listed in refs: use `grep -n "^## <ref>"` to find it, then read only that entry.
+4. For each **lesson** listed in refs: use `grep -n "<ref>"` to find it, then read only that entry.
+5. For each **architecture section** listed in refs: read only that section.
+
+**FORBIDDEN in Step 1 — these waste budget and cause timeouts:**
+- Reading `vision.md`, `lessons.md`, or `arch.md` in full — FORBIDDEN. Use grep + targeted read only.
+- Reading spec documents of sibling or parent specs (e.g. `1900A/requirements.md`, `1900A/design.md`) — FORBIDDEN. The roadmap refs are sufficient.
+- Reading source code files (`.ts`, `.tsx`) — FORBIDDEN in Step 1. Source code is only read during Step 4 (Design), and only for the specific integration points the spec needs.
+- Repeating the same file read twice — FORBIDDEN.
+
+If the spec does not exist in the roadmap, report that and stop.
+
+### MCP Support
+If this spec benefits from external data sources (APIs, databases, documentation servers), include an `mcp` frontmatter section in `requirements.md` at spec creation time:
+```yaml
+---
+mcp:
+  servers:
+    name:
+      command: "..."
+      args: [...]
+      env: { ... }
+---
+```
+The MCP servers declared here will be available during `/spec-implement`.
+
+### Step 2: Determine Spec Folder
+
+The spec folder is `management/specs/<%= specNumber %>-<name>/` where `<name>` is the kebab-case name from the roadmap.
+The pipeline has ALREADY created it, and pre-filled every missing document with a skeleton, BEFORE this turn —
+so never create, rename or delete a folder yourself (this stage has no shell and no folder tool): just write each
+document into that path with the `write` tool.
+
+### Step 2.5: Declare Determinism Class
+
+Before writing any requirements, classify this spec:
+
+- **Class D (Deterministic):** behavior whose expected result can be verified deterministically from inputs, outputs and observable project state, independent of programming language or framework.
+- **Class S (Structured LLM):** Uses LLM with Zod schema on output. Content is LLM-generated, structure is enforced by Zod. Test: `schema.parse(llmOutput)` succeeds.
+- **Class I (Integration):** Modifies existing SDD pipeline flows. The risk is in the modification. Test: re-execute reference spec, byte-compare output (L17). Requires: feature flag, anti-regression baseline.
+
+Decide the class NOW and set the `determinism:` field in the YAML frontmatter (Step 3). The class determines:
+- How the spec is TESTED (`assert` vs `schema.parse` vs a byte-diff baseline)
+- How the spec is VERIFIED (structural vs structural+Zod vs baseline comparison)
+- What sections are REQUIRED (Class I requires `## Integration Context` in design.md)
+
+**Class I specs require Integration Context.** If you chose Class I, the `design.md` template (Step 4) will include a mandatory `## Integration Context` section mapping entry points, types, feature flag, and baseline.
+
+### Step 2.9: THE SPEC RÉGUA — everything you must deliver
+
+This is the COMPLETE list of what the three documents must contain. It is the same list the
+deterministic gate measures (items marked GATE) and the same list the pipeline authorises: you are the
+ONLY author — nobody completes these documents after this stage. So author each document ONCE, then
+VERIFY it against this list using the pass count stated at the end of the list. A verification pass
+checks YOUR OWN DRAFT before writing it — never re-read a document you have just written. The
+deterministic gate validates the file after the turn; re-reading your own output burns context
+without changing the result.
+
+<%- typeof specRegua === "undefined" ? "_(spec régua unavailable: the running app predates this template — restart to load the current renderer)_" : specRegua %>
+
+**Never invent an item that is not here, and never omit one that is.** A GATE item that is
+missing or malformed fails this stage and the loop sends the document back to you.
+
+### Step 2.95: Write Discipline — one document per response (mandatory)
+
+The provider aborts a single response that grows too large mid-flight, and when that happens the
+whole response is lost — including any document that existed only inside it and was never written
+to disk. Four rules, to be obeyed literally:
+
+- Ground with a few targeted reads only, then WRITE `requirements.md` immediately — do not accumulate more context first.
+- Produce ONE canonical document per response: `requirements.md`, then `design.md`, then `task.md`. Each document is written by its own separate write tool call, in its own response, as soon as its inputs are ready.
+- NEVER accumulate two or more documents in a single response. Very long single responses are the stream pattern the provider aborts mid-flight, losing everything not yet written.
+- Documents already on disk are durable. If this is a retry, verify what exists and write ONLY the first missing document next; never rewrite an existing document.
+
+**Reconnaissance budget (mandatory).** The best token is the one you do not spend:
+
+- Read the roadmap row, then ONLY the entry-point module(s) the outcome names and the existing
+  tests that import them. Do not survey the repository.
+- **Project conventions first.** Before choosing file names, extensions or validation commands,
+  read the project manifest (`package.json`, `*.csproj`, `pyproject.toml`, …) and the module the
+  roadmap row names. Use the language, extension and test runner the project ALREADY uses. Plain
+  JavaScript projects never receive TypeScript files; a project without `tsconfig.json` or a
+  TypeScript dependency never gets `tsc`/`npx tsc` as a validation command. Extend the existing
+  owner instead of creating a parallel module for the same domain.
+- Never re-read a file you already read in this run — its content is in context.
+- Do not reopen or re-validate a document after writing it. The deterministic finalizer checks it
+  and returns the exact diagnosis if something is wrong.
+- Do not run "final checks" after `task.md`. Once the three documents are on disk, finish the turn.
+
+### Step 3: Create `requirements.md`
+
+**AC rules (do NOT copy this section into the file — these are your writing instructions):**
+
+Every acceptance criterion MUST end with a `.` and MUST use exactly ONE verify tag per criterion in this exact syntax:
+
+<%- typeof verifyTagTable === "undefined" ? "_(verify tag table unavailable: the running app predates this template — restart to load the current renderer)_" : verifyTagTable %>
+
+**FORBIDDEN — these will fail contract genesis:**
+- `[verify: file-exists]` without a path — FORBIDDEN
+- `[verify: grep-present list]` — narrative inside tag — FORBIDDEN
+- `[verify: (covered by...)]` — parenthetical inside tag — FORBIDDEN
+- `[verify: grep-absent \`from "@\`] in src/...` — text AFTER the closing `]` — FORBIDDEN
+- `[verify: grep-absent \`X\` in \`file.ts\`]` — "in `path`" as part of the argument — FORBIDDEN (R13)
+- `[verify: grep-present \`keys: string[]\`]` — `[]` brackets inside the backtick argument — FORBIDDEN (confuses parser)
+- `[verify: grep-absent \`return []\` \`src/\`]` — `[]` brackets inside the backtick needle — FORBIDDEN (the tag parser truncates at `]`; cite a named symbol instead)
+- `[verify: grep-present \`expr && expr2\`]` — long/compound expressions in argument — FORBIDDEN (must be a single short symbol)
+- `[verify: grep-absent across \`file1.ts\` and \`file2.ts\` for changes]` — narrative + multiple files — FORBIDDEN
+- `[verify: grep-absent \`X\` \`src\`]` — bare-word scope without `/` or extension — FORBIDDEN (use `src/` for the whole tree)
+- `[verify: grep-absent]` with a regex-shaped needle — `(`, `)`, `.*`, `.+`, `.?`, `^`, `$` inside a backtick argument — FORBIDDEN (the scanner is literal `includes`, never RegExp; cite the closest literal symbol instead)
+- `[verify: npm-test-passes]`, `[verify: tsc-passes]`, `[verify: eslint-passes]` — LEGACY, FORBIDDEN
+- Multiple verify tags on the same AC line — FORBIDDEN (one AC = one verify tag)
+- Narrative text inside verify tag brackets — FORBIDDEN
+
+**VERIFY TAG ARGUMENT RULE:** The argument after the pattern name MUST be a single short backtick-quoted symbol, string literal, or path. Never an expression, never `in`, `as`, `across`, `for` as part of the argument. If you need to check two things, write two bullets.
+
+**VERIFY TAG SEMANTIC RULES — these decide whether the tag PASSES at audit time (not just whether genesis accepts it). A syntactically-valid tag that names a wrong target still fails the spec later:**
+
+1. **`grep-absent` = ABSENCE.** The needle MUST be something genuinely absent (or that THIS spec removes). NEVER assert absence of something that already exists and must stay. Example of a BUG: `[verify: grep-absent \`setInterval\` \`src/ui/components/PromptFooter.tsx\`]` when the design says "preserve the existing `setInterval` timer" — that tag FAILS at audit because `setInterval` is legitimately present.
+2. **"Preserve X" is POSITIVE, not Anti-Scope.** If the requirement is "X must remain / be kept", write `[verify: grep-present \`X\` \`scope\`]` or `[verify: function-exists \`X\`]` in `## Constraints` or an NFR — NEVER `grep-absent` in `## Anti-Scope`. `## Anti-Scope` accepts ONLY `file-absent` and `grep-absent` (things that must NOT exist).
+3. **`function-exists` / `function-called` cite a FUNCTION.** The referent MUST be a function declaration, a function/arrow initializer, or a class method. A TYPE ALIAS, INTERFACE, CLASS, ENUM or NAMESPACE is NOT a function — just like a data field or prop (e.g. `screenWidth`, `visualVersion`) — and the tag can NEVER pass on any of them: no implementation can turn a type into a function under the same name, so a sealed contract carrying one is doomed to the same audit FAIL forever. grep alone is NOT proof of KIND — it finds a type alias as happily as a function — so check the DECLARATION itself. To assert that a TYPE keeps existing, use a grep-present on its declaration keyword. Never use `function-called` on it. **Scope:** when the destination file is already known, cite it as the second backtick argument — `[verify: function-exists \`runPreflight\` \`scripts/release-gate.mjs\`]` — because an explicit scope is honored strictly (the claim is proven against that path and nowhere else). The scope stays OPTIONAL: without one, the checker searches the project's whole code tree (`src/`, `scripts/`, `lib/`, `app/`, …), skipping dependencies, compiled output and metadata, so `scripts/` is searched exactly like `src/`. Never invent a path for code that does not exist yet — an unscoped tag is legitimate, not a documentation defect.
+4. **`grep-present` forward-looking vs already-exists.** For a criterion like "the file WILL reference `V3_SYMBOLS.promptMarker`", `grep-present` may cite a symbol that does not exist YET (the spec will add it). For a "preserve existing behavior" criterion, the cited symbol MUST already exist today.
+5. **Gate precision criteria use the gate vocabulary, not the discard rule.** If the spec introduces a fail-closed gate (block, barrier, policy), add a `## Fail-Closed Gate Declaration` section to `requirements.md` with the eight-column table (`Gate ID`, `Gate Symbol`, `Kind`, `Corpus Roots`, `Exclusions`, `Block Code`, `Harness Test`, `Wiring Test`) and one row per gate. Express the gate's precision with the gate patterns below — the criterion-discard guidance above applies ONLY to criteria that are not gate precision criteria.
+6. **Executable coverage.** When the spec declares an executable Test Scope, at least one FR/NFR acceptance criterion MUST cite the declared test file OR use `[verify: project-validation]`. Presence-only criteria (`file-exists`, `grep-present`, `function-exists`) prove that code EXISTS, not that it BEHAVES — they cannot prove a functional requirement on their own. This is checked deterministically at authoring; a spec with a justified `no-test-scope:` is exempt. For `function-called`, name the caller test as the tag's second argument when the claim is about that test: an unscoped call is attributable only when the name has a single declaration or the caller imports it.
+
+**GATE PRECISION VERIFY TAGS — use exactly this syntax (pattern + backtick argument):**
+
+<%- typeof gateVerifyTagTable === "undefined" ? "_(gate verify tag table unavailable: the running app predates this template — restart to load the current renderer)_" : gateVerifyTagTable %>
+
+The argument is the gate identifier declared in the `Fail-Closed Gate Declaration` table (e.g. GATE-001). A gate tag without its backtick argument fails genesis (arity requires exactly 1 argument).
+
+Do NOT use: `tsc-passes`, `eslint-passes`, `npm-test-passes` — these are LEGACY and will fail contract genesis.
+Do NOT copy explanatory or instructional text into the generated file.
+
+Create `management/specs/<%= specNumber %>-<name>/requirements.md` with this structure:
+
+**CRITICAL OUTPUT RULES — do NOT violate:**
+- Do NOT write `...` (ellipsis) anywhere in the generated file — not in tables, not in examples, not as placeholders. Write actual content or nothing.
+- Verify tag format: use the exact argument count from the table above. `[verify: grep-present ...]` is valid; `[verify: grep-absent ...]` is NOT a one-argument tag — `grep-absent` requires a second backtick argument naming the scope.
+- Every verify tag declares exactly the arguments its pattern requires (see the table above). `grep-absent` requires BOTH the needle and an explicit scope; a single-argument `grep-absent` fails genesis. To check multiple files, write one bullet per file.
+
+```yaml
+---
+name: <spec-name>
+status: verified
+determinism: D  # ← REQUIRED: D, S, or I (see Step 2.5)
+references: [V-refs from roadmap, e.g. V1, V2, ADR-001]
+---
+```
+
+```markdown
+# Spec <%= specNumber %>: [Spec Name] — Requirements
+
+## Determinism Classification
+
+**Class:** [D | S | I] — [Deterministic | Structured LLM | Integration]
+
+[Explain WHY this class was chosen — what about the spec's nature makes it this class?]
+
+## Value Delivery
+
+[Which value block(s) from vision.md does this spec deliver? Copy the relevant value block description here verbatim.]
+
+## Functional Requirements
+
+### FR-001: [Requirement Name]
+
+**What:** [Precise description of what the system must do.]
+**Why:** [Why this requirement exists — trace back to the value block.]
+**Acceptance Criteria:**
+- [ ] [Deterministic, testable criterion 1.] [verify: file-exists `src/example.ts`]
+- [ ] [Behavioral criterion: the declared Test Scope proves it end-to-end.] [verify: project-validation]
+**Failure modes:**
+- [What happens when input is invalid, absent, or corrupted?]
+
+<!-- Every "- [ ]" line above MUST end with its own [verify: ...] tag — same rule
+     as Constraints/Anti-Scope below. There is no "narrative-only" AC. If you
+     cannot express a criterion with one of the 8 tags, it does not belong in
+     Acceptance Criteria — move it to Failure modes/Edge Cases or reclassify
+     the spec. THIS COMMENT IS AN INSTRUCTION — DO NOT COPY IT INTO THE FILE. -->
+
+### FR-002: [Requirement Name]
+
+(Add more FR-### sections for ALL functional requirements — be exhaustive. Each must have What, Why, Acceptance Criteria, and Failure modes.)
+
+## Non-Functional Requirements
+
+### NFR-001: [Requirement Name]
+
+**What:** [e.g., performance, security, accessibility, reliability, maintainability.]
+**Acceptance Criteria:**
+- [ ] [Deterministic, measurable criterion.] [verify: project-validation]
+
+## Constraints
+
+- [constraint 1 with verify tag.] [verify: grep-present `ExistingSymbol`]
+- [constraint 2: if checking across multiple files, write ONE bullet per file]
+- Full project validation passes [verify: project-validation]
+
+## Edge Cases & Error States
+
+- [What happens when...? List every edge case and the expected behavior.]
+
+## Anti-Scope
+
+- Nenhum módulo de guarda é criado; a lógica vive no compilador existente. [verify: file-absent `src/assurance/prose-guard-2140-absent.ts`]
+- Nenhuma chamada de rede é adicionada ao caminho de compilação. [verify: grep-absent `fetch` `src/assurance/source-compiler.ts`]
+
+## Dependencies
+
+- [Other specs, external services, libraries, or systems this spec depends on.]
+
+## Out of Scope
+
+- [Explicitly list what this spec does NOT cover, to prevent scope creep.]
+
+## Test Scope
+
+- `[project-native test-file path, e.g. tests/foo.test.js]` — the spec test file that proves the acceptance criteria. If the spec has no executable test surface, replace this bullet with `no-test-scope: <justification>` on the same line.
+```
+
+<!-- R8-FIX-5 / R10-FIX-1: Integration Context instructions moved outside the
+     requirements.md template block so nested code fences no longer corrupt the
+     outer ```markdown block. Now always visible as plain-text instruction. -->
+**CLASS I ONLY — Add this section to requirements.md if you chose Class I:**
+
+If determinism class is **I (Integration)**, include a `## Integration Context` section in `requirements.md` with the following content (exact format — the pipeline validator checks this):
+
+```
+## Integration Context
+
+Integration Context table format rules (machine-readable, required):
+- File column: raw relative path only — no backticks, no Markdown links, no text decorations, one file per row.
+  WRONG: `src/foo.ts`  CORRECT: src/foo.ts
+- Function/Section column: descriptive metadata — a symbol name for traceability, or (section)/(call-sites)/(test); not mechanically verified (only the File column's existence is checked). Never two entries in one cell.
+- One file per row: if a change touches two files, write two rows. Never "src/a.ts and src/b.ts".
+
+Entry Points Modified
+| Entry Point | File | Function/Section | Change |
+|---|---|---|---|
+| EP-001 | src/path/to/file.ts | functionName | [describe the change made] |
+
+Types Extended
+| Type | File | New Fields |
+|---|---|---|
+| TypeName | src/path/to/types.ts | fieldName: type |
+
+Feature Flag
+- Flag: featureFlagName
+- Default: true
+- Behavior when ON: [what changes]
+- Behavior when OFF: [identical to pre-spec behavior]
+
+Anti-Regression Baseline
+- Reference Spec: N
+- Baseline SHA: abc123
+- Expected behavior with flag OFF: byte-identical output to baseline
+```
+
+**Quality requirements for requirements.md:**
+- Write exclusively for AI engines (DeepSeek V4 Pro). Human readability is secondary.
+- Every requirement must have clear, deterministic acceptance criteria.
+- **No vague terms.** The FORBIDDEN set is the deterministic authority (`VAGUE_WORDS`, injected below) — a term from this list blocks contract genesis. Use precise, measurable language instead: <%= vagueWords.join(", ") %>.
+- Be exhaustive. If you think of a requirement, include it. Underspecification is failure.
+- **Vertical slice check.** This spec, combined with its dependencies, MUST form a complete end-to-end feature. Walk the layers (entry point → API/interface → data → response → consumer) and, if this spec covers only one layer, NAME in `## Dependencies` the other specs that cover the missing layers; if none exist, expand this spec until every layer is covered.
+- **Sufficiency litmus test.** Two different AI engines must be able to read this spec and produce IDENTICAL implementations. If any requirement admits two different implementations, add the missing detail NOW — never leave the choice to the implementer.
+- **Granularity (measured deterministically — the stage's own gate fails otherwise).** EVERY requirement (FR and NFR) MUST declare **at least 2 verifiable acceptance criteria**, each on its own `- [ ]` line carrying a `[verify:]` tag. One criterion cannot distinguish "implemented" from "partially implemented". This document is the LAST authoring pass — after it there is no reviewer to add criteria for you. A requirement below the threshold is sent back to YOU; decompose it until every piece is individually provable.
+
+**CRITICAL — where ACs must live (the genesis parser reads ONLY these locations):**
+- ACs for each FR/NFR live inside their `### FR-001:` block under `**Acceptance Criteria:**` as `- [ ]` checkboxes. EVERY `- [ ]` line MUST have a verify tag — this is the EXACT SAME rule as Constraints/Anti-Scope below, no exception for FR/NFR. An AC with no tag, or with narrative instead of a tag, fails genesis with `contract-compile-failed: ... has a REQUIRED uncheckable criterion`.
+- Constraints live as bullet points in `## Constraints`. EVERY bullet MUST have a verify tag or it fails genesis.
+- Anti-Scope items live as bullet points in `## Anti-Scope`. EVERY bullet MUST carry a negative-polarity tag with its FULL argument list: `[verify: file-absent ...]` or `[verify: grep-absent ...]` — and `grep-absent` requires an explicit scope as its second backtick argument. An unscoped `grep-absent` fails genesis.
+- **Before moving to Step 4, re-read every `- [ ]` line you just wrote across ALL FR/NFR blocks and confirm each one ends with `[verify: ...]`. This is the single most common genesis failure — check it now, not after genesis rejects it.**
+- DO NOT add a separate `## Acceptance Criteria` section — it is ignored by the parser and creates confusion.
+- DO NOT add a `<!-- lineage -->` block — it is injected automatically by the pipeline.
+
+---
+
+### Step 4: Create `design.md`
+
+**Before writing design.md:** Read ONLY the source files directly needed to design the integration points. Use `grep` to locate the exact functions/types — do NOT read entire provider or session files. Read only the specific sections (20-30 lines around each integration point).
+
+**Design budget — up to 20 tool calls.** Use targeted `grep` to find exact symbols — do NOT read full files; if you already read a source file earlier in this session, do NOT read it again. Within that budget you MUST consult every integration point the design touches. The budget prevents a timeout; it is NOT a reason to underspecify the design. This phase is NOT charged against the exploration budget — the counter was released when `requirements.md` was written; the number is a self-discipline limit against timeouts, not a guard limit.
+
+Create `management/specs/<%= specNumber %>-<name>/design.md` with this structure:
+
+```markdown
+# Spec <%= specNumber %>: [Spec Name] — Design
+
+## Design Approach
+
+[High-level approach: what patterns, strategies, or architectural decisions guide this design?]
+
+## Architecture Decisions
+
+[Any decisions made specifically for this spec. Reference ADR entries if applicable.]
+
+## Component / Module Breakdown
+
+### Component: [Name]
+
+**Purpose:** [What this component does.]
+**Interface:** [Exact API signature — function names, parameters, return types.]
+**Internal Logic:** [Step-by-step description of how this component works internally.]
+**Dependencies:** [What other components or external libraries this component uses.]
+**Error Handling:** [How errors are handled — exact behavior for each error scenario.]
+
+### Component: [Name]
+
+(Add more Component: sections for ALL components — be exhaustive.)
+
+## Data Flow
+
+[Step-by-step description of how data flows through the system for each operation.]
+
+## Data Structures
+
+[Exact data types, schemas, database tables, or data models. Include all fields, types, constraints, and defaults.]
+
+## File / Module Layout
+
+[Where new files go, what they contain, how they relate to existing code.]
+
+## Testing Strategy
+
+[How each component and requirement should be tested. Include specific test scenarios.]
+
+**Test-scope declaration (REQUIRED — review blocks without it):** cite at
+least one spec test-file path (e.g. `src/tests/foo.test.ts`) OR write a
+`no-test-scope: <justification>` line (same-line justification) in
+requirements.md, design.md, or task.md when the spec has no executable test
+surface. `validateSpecStructure()` fails the review without one of the two;
+a docs-only spec without the marker discovers the block only later at audit
+(`audit-scope-empty`).
+
+## Migration / Rollback
+
+[If this spec modifies existing behavior, how is migration handled? How is rollback handled?]
+```
+
+**Quality requirements for design.md:**
+- The design must implement ALL requirements from requirements.md — nothing less.
+- The design must follow KISS and DRY principles from arch.md.
+- The design MUST satisfy EVERY principle of the `karpathy-guidelines` skill document — that document is the SINGLE source (already in your system context and deliberately NOT repeated here), in addition to KISS/DRY.
+- Every function, class, module, route, and component must be specified exactly — no "create a service" without specifying the exact interface.
+- Include file paths for new files and specify where modifications go in existing files.
+- Every `src/**` path cited in design.md MUST either exist on disk TODAY or be declared in task.md (as a created module in a Task action, or as an ephemeral fixture under `## Planned Scaffolds`). The deterministic reconciler (`unrepairable-document-reference`) blocks otherwise — no LLM judgment exempts an undeclared path. Ephemeral test/example fixtures (temp-dir files, throwaway illustrations like `src/a.ts`) MUST be declared under `## Planned Scaffolds`, never cited bare.
+
+**MANDATORY for Class I specs — Integration Context section in design.md:**
+
+If you chose **Class I (Integration)** in Step 2.5, you MUST add a `## Integration Context` section to `design.md` with the following MACHINE-READABLE format (the pipeline validator checks this deterministically):
+
+```markdown
+## Integration Context
+
+**Integration Context table format rules (REQUIRED, machine-readable):**
+- File column: raw relative path only — no backticks, no Markdown links, one file per row.
+  WRONG: `` `src/foo.ts` ``  CORRECT: `src/foo.ts`
+- Function/Section column: descriptive metadata — a symbol name for traceability, or (section)/(call-sites)/(test); not mechanically verified (only the File column's existence is checked). Never two entries in one cell.
+- File column rule: every path here MUST exist on disk TODAY, EXCEPT a file this spec creates during implement — which MUST ALSO be declared in task.md (as a created module in a Task action, or under `## Planned Scaffolds`). A new test suite (e.g. `src/tests/foo.test.ts`) goes in the table AND in task.md. The validator exempts task.md-declared paths; undeclared future paths block with `Integration Context references non-existent file`.
+- One file per row: if a change touches two files, write two rows. Never `src/a.ts and src/b.ts`.
+
+### Entry Points Modified
+
+| Entry Point | File | Function/Section | Change |
+|---|---|---|---|
+| EP-001 | src/path/to/file.ts | functionName | [describe the change] |
+
+### Types Extended
+
+| Type | File | New Fields |
+|---|---|---|
+| TypeName | src/path/to/types.ts | fieldName: type |
+
+### Feature Flag
+
+- **Flag:** `<featureFlagName>`
+- **Default:** `true`
+- **Behavior when ON:** [what changes]
+- **Behavior when OFF:** [identical to pre-spec behavior]
+
+### Anti-Regression Baseline
+
+- **Reference Spec:** `<N>`
+- **Baseline SHA:** `<abc123>`
+- **Expected behavior with flag OFF:** byte-identical output to baseline
+```
+
+Validation failure message if Integration Context is missing or malformed: `Integration Context references non-existent file` or `Class I spec missing required section`. The pipeline will block the roadmap transition with `transition-failed` until this is fixed.
+
+---
+
+### Step 5: Create `task.md`
+
+Create `management/specs/<%= specNumber %>-<name>/task.md` with this structure:
+
+```markdown
+<!-- PIPELINE-CONTRACT: Task completion is determined by "**Status:** [x] done" at the end of each "### Task N" section.
+     Checkboxes "- [ ]" under "**Validation:**" are human verification guides — the pipeline ignores them completely.
+     To mark a task as done, add "**Status:** [x] done". To mark it as pending, use "**Status:** [ ] pending". -->
+# Spec <%= specNumber %>: [Spec Name] — Implementation Tasks
+
+## Planned Scaffolds
+
+<!-- CREATOR-VALIDATOR CONTRACT (AGENTS.md: creator and validator MUST follow the same source of truth).
+     task.md is the authority for every src path that does not exist yet at spec-new time.
+     List HERE every path this spec creates during implement (new modules, new tests, baseline
+     fixtures) AND any ephemeral test/example fixture (temp-dir file, throwaway example that will
+     NEVER exist in the repo), ONE PATH PER LINE wrapped in backticks, so the deterministic
+     validators (producer finalizers phantom-expected-files, stage-reconciler loadPlannedModules,
+     spec-structural-validator FIX-2) exempt it WITHOUT any LLM judgment. A src path in design.md or
+     task.md that neither exists on disk TODAY nor is declared here fails the gate
+     (unrepairable-document-reference / phantom-expected-files). Deterministic rule: presence in
+     this section exempts, absence blocks. NEVER delete this section — when the spec creates no new
+     file, replace the placeholder below with the exact line
+     "No new files — every cited path exists on disk TODAY." and keep the section.
+     NEVER leave an EXAMPLE path in this section: the extractor counts EVERY backtick-wrapped token
+     inside the section as a declaration, so an example path would exempt a file that nothing
+     creates. Describe the shape in words instead. -->
+[No new files — every cited path exists on disk TODAY — OR list one path per line, each wrapped in backticks, for a path this spec creates during implement.]
+
+## Task Order
+
+Tasks MUST be executed sequentially in numerical order. Each task depends on the completion of all preceding tasks.
+
+## Tasks
+
+### Task 1: [Task Name]
+
+**Objective:** [What this task accomplishes.]
+**Requirements Covered:** [FR-001, FR-002, ...]
+**Design References:** [Relevant sections from design.md.]
+**Actions:**
+1. [Exact action — what file to create/modify, what code to write.]
+2. [Exact action.]
+**Expected Files:**
+- [One backticked repo-relative path per line — the files this task creates or modifies.]
+**Validation:** [How to verify this task is complete — what to test, what to check.]
+**Status:** [ ] pending
+
+### Task 2: [Task Name]
+
+(Add more Task N: sections for ALL implementation tasks. Cover 100% of requirements.)
+
+### Task N: [Task Name]
+
+**Objective:** [What this task accomplishes.]
+**Requirements Covered:** [FR-001, FR-002, ...]
+**Design References:** [Relevant sections from design.md.]
+**Actions:**
+1. [Exact action — what file to create/modify, what code to write.]
+**Expected Files:**
+- [One backticked repo-relative path per line — the files this task creates or modifies.]
+**Validation:** [How to verify this task is complete.]
+**Status:** [ ] pending
+```
+
+**Quality requirements for task.md:**
+
+- **Expected Files are MANDATORY for every task that creates or modifies code.**
+  Declare one backticked repo-relative path per line under `**Expected Files:**`.
+  That list is the task's write scope and the boundary `spec-implement` enforces.
+  A recognized **Validation** command is ADDITIONAL proof — it is never a
+  substitute for the declared paths. A non-documental task without Expected
+  Files is rejected (`spec-new task-verifiability`) before implement.
+  Documentation or analysis tasks MUST name their document path in Expected
+  Files as well (e.g. `docs/usage.md`).
+- **Existing tests are part of the scope.** Before writing `task.md`, find every
+  existing test that imports a module this spec changes (search `tests/` and
+  `src/tests/`) and declare that test file in the Expected Files of the task that
+  changes the module. The finalizer rejects a spec whose changed module is
+  imported by an undeclared existing test (`spec-new existing-test-coverage`).
+- **Declare the spec test scope.** `requirements.md` MUST cite at least one spec
+  test file in the project's own convention (`.test.js`, `.test.ts`, `.test.tsx`,
+  `.test.mjs`, `test_*.py`, `*_test.go`, `*Tests.cs`, …) or carry
+  `no-test-scope: <justification>`.
+  Without it the finalizer rejects the spec with `No test scope declared` and the
+  spec can never reach audit.
+- Tasks must be small enough that each can be completed in a single tool call sequence.
+- Each task must have a clear, verifiable completion criterion.
+- MACHINE-READABILITY (2540A incident — the implement gate CANNOT verify prose):
+  EVERY task MUST declare at least one backtick artifact path (e.g.
+  `src/foo/bar.ts` under Expected Files) that the expected-files extractor
+  accepts. A recognized validation command in backticks (e.g. `npx tsc --noEmit`)
+  is additional proof, never the scope itself. Prose like "Typecheck passes"
+  WITHOUT a backtick path does NOT count. Documental tasks (title containing
+  "doc") remain exempt from the code-path requirement, but must still name the
+  document they write.
+- The task list must cover 100% of requirements.md as designed in design.md.
+- **Proportional task count.** Create the MINIMUM number of tasks that covers every FR exactly once. Do not split one FR into several tasks unless each split has its own independently verifiable outcome (a distinct file or command). A one-FR spec normally needs 1–2 tasks (implement + test); a task whose only purpose is to restate or "review" another task is padding and must be removed.
+- Tasks must be ordered correctly — no task can depend on a later task.
+- Mark ALL tasks as `[ ] pending` initially.
+
+---
+
+### Step 6: Update Roadmap Status
+
+Do NOT edit `management/roadmap.md` — it is protected, and the PIPELINE owns the roadmap row: it
+advances this spec to `verified` after the folder and documents are verified on disk. Two different
+statuses are in play and they must not be confused:
+
+- the ROADMAP status (`management/roadmap.md`) — written by the pipeline, never by you;
+- the DOCUMENT status (the `status:` field in `requirements.md` frontmatter) — written by you, and it
+  MUST be exactly `verified`: the stage's output status, and the only non-retired value that describes
+  a document authored by this stage. A retired value such as `created` is a vocabulary violation.
+
+### Step 6.5: Validate Verify Tags Before Reporting
+
+**You cannot run the validator — this stage has no shell.** The deterministic validator is the SAME code that gates the `planned → verified` transition, and it runs in this stage's OWN finalizer the moment you finish: if it finds a violation, the stage is re-run with the exact diagnosis attached. Nothing is asked of you here except to make the rules below true BEFORE you finish — that is the whole reason they are stated in this step.
+
+Self-inspection is therefore not wanted as validation, and not offered as a substitute: the measurable rules are enforced mechanically after your turn. What follows is the exact checklist that enforcement applies, so you can satisfy it while writing:
+
+Checklist the validator applies (satisfy each while writing):
+
+1. Every `grep-absent` that names a needle also names a scope (second backtick argument) AND the scope contains `/` or a file extension — bare `src` is invalid, write `src/`.
+2. Every `grep-absent` needle is genuinely ABSENT (or removed by this spec). If the thing already exists and must stay, rewrite it as `grep-present` / `function-exists` in Constraints/NFR.
+3. Every Anti-Scope bullet uses `file-absent` or `grep-absent` ONLY. "Preserve X" is NOT Anti-Scope.
+4. Every `function-exists` / `function-called` cites a REAL FUNCTION (you checked the declaration KIND, not merely that the name appears — a type alias, interface, class, enum, namespace, field or prop is NOT a function and the tag can never pass on it).
+5. Every "preserve existing behavior" `grep-present` / `function-exists` cites a symbol that exists TODAY.
+6. No backtick argument contains regex-shaped characters — `(`, `)`, `.*`, `.+`, `.?`, `^`, `$`, `(?`, `A|B`. The scanner is literal (`includes`, never RegExp): a needle like `if (skip)` can NEVER match and fails genesis. Cite the closest literal symbol instead (e.g. `skip-proof-bypass`).
+7. Every `grep-present` whose deliverable is a DOCUMENT (docs/, management/, genesis/) names that document as scope (second backtick argument, e.g. `[verify: grep-present `ID-` `docs/indice.md`]`). An unscoped `grep-present` searches ONLY the code tree (`src/`) — on a docs-only spec it FAILs at audit even when the document is correct (lex-tmp spec-audit 1 incident: needles present 11x in docs, 0x in src).
+
+Only once every rule above holds proceed to Step 7.
+
+**CLASS D — LLM/AI WORDING RULE (2320 incident, zero-friction):**
+- In `requirements.md`, `- [ ]` acceptance-criterion lines are scanned for the bare words `LLM`/`AI` AFTER stripping `` `code spans` ``. Bare `LLM`/`AI` in AC prose = violation (blocks transition).
+- Rule of thumb: if the AC must NAME the model, the layer, or a module path, put that token INSIDE backticks — `` `NUNCA LLM decidindo` ``, `` `src/sdd-contract/canonicalization.js` ``. Code-span content is never scanned.
+- Bare prose like `The LLM validates the output` in an AC ALWAYS fails. Either wrap the token (`` `LLM` ``) or rephrase as a deterministic check (`output passes XSchema.safeParse`).
+- `**What:**`/`**Why:**`/`**Failure modes:**` prose is NOT scanned — only `- [ ]` lines. No need to wrap there.
+
+**DESIGN PATH RULE (2320 incident, zero-friction):**
+- Every `src/**` path in `design.md` must exist on disk OR be declared in `task.md`. `.js`-for-`.ts` import spellings (NodeNext, e.g. `src/sdd-contract/canonicalization.js` for the existing `.ts`) are accepted by the validator — but PREFER citing the on-disk `.ts` path or describing the module without a literal path to avoid all ambiguity.
+- A genuinely NEW file this spec creates (e.g. `src/tests/foo-2320.test.ts`) MUST be declared in `task.md` (Task action + `## Planned Scaffolds`). Undeclared future paths block with `unrepairable-document-reference`.
+- NEVER cite an ephemeral/throwaway example path (e.g. `src/a.ts`) without declaring it under `## Planned Scaffolds`.
+
+### Step 6.7: SELF-AUDIT — the régua items no predicate can check
+
+The gate verifies every `[GATE]` item mechanically. It CANNOT verify the `[REQUIRED]` items —
+those are specification quality. **That does not make them optional:** they are the reason this
+spec exists, and NO later stage will write them for you. A thin `[REQUIRED]` item is an
+INCOMPLETE document, not a finished one.
+
+**Re-read all three documents from disk (Read tool) before this audit, and fix in place.**
+Auditing from memory is not auditing — the measured failure mode is documents that pass every
+mechanical gate while a verifier still has to sharpen them. This audit IS the régua verification loop
+and it is BOUNDED: run the passes named at the end of Step 2.9, stop early when a pass finds nothing,
+and after the last pass deliver your BEST document and finish — a residual imperfection is a
+reservation the pipeline carries forward, never a reason to stop or to leave the stage open. Apply the
+SELF-TEST printed with each régua item in Step 2.9, and additionally confirm for each document:
+
+- `**What:**` — one or more full lines; names the artifact (path or symbol) AND states the
+  observable change. A bare topic label fails.
+- Detail bullets — an implementer could build that requirement from what you wrote alone, and
+  every failure mode and edge state in `requirements.md` has a matching acceptance criterion.
+- `design.md` components — one block per behavior the spec delivers: `**Purpose:**` states the
+  mechanism in one sharp line; `**Interface:**` names the exact symbols and files; error
+  handling states what happens on failure. Scan the FR list against the component list — a
+  behavior with no component block is missing.
+- `## Testing Strategy` — names the test files and what each scenario proves.
+
+If any check fails, correct that part NOW — this stage provides no partial-edit tool, so a
+correction means writing THAT document again in full with the `write` tool, changing only the
+part that failed — then re-read the corrected section to confirm the fix, and only then proceed
+to Step 7.
+
+### Step 7: Report
+
+Report:
+1. The spec folder created and its absolute path.
+2. The 3 documents created with their sizes.
+3. The pipeline sets the roadmap status after this command completes (do NOT report it here).
+4. A brief summary of what this spec covers.
