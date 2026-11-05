@@ -15,6 +15,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<UsuarioRepositorioEmMemoria>();
+// A interface aponta para a mesma instância: uma única lista de usuários.
+builder.Services.AddSingleton<IUsuarioRepositorio>(sp => sp.GetRequiredService<UsuarioRepositorioEmMemoria>());
 builder.Services.AddSingleton<NotificacaoRepositorioEmMemoria>();
 builder.Services.AddSingleton<NotificacaoServico>();
 
