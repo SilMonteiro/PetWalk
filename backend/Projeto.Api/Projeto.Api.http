@@ -19,6 +19,40 @@ Content-Type: application/json
 
 ###
 
+# Passeador com cobrança configurada: TipoCobranca 0 = POR_HORA, 1 = POR_HORA_COM_ADICIONAL_DE_PORTE
+POST {{Projeto.Api_HostAddress}}/cadastro
+Content-Type: application/json
+
+{
+  "nome": "Bia",
+  "email": "bia@petwalk.com",
+  "telefone": "11888888888",
+  "endereco": "Rua B, 20",
+  "tipoPerfil": 1,
+  "senha": "123456",
+  "valorHora": 30,
+  "tipoCobranca": 1
+}
+
+###
+
+# Esperado: 409 Conflict — {"erro":"Usuário não possui perfil de passeador"}
+# TUTOR com valorHora: DefinirCobranca recusa porque o perfil não é de passeador.
+POST {{Projeto.Api_HostAddress}}/cadastro
+Content-Type: application/json
+
+{
+  "nome": "Tutor com cobrança",
+  "email": "tutor-cobranca@petwalk.com",
+  "telefone": "11777777777",
+  "endereco": "Rua C, 30",
+  "tipoPerfil": 0,
+  "senha": "123456",
+  "valorHora": 30
+}
+
+###
+
 POST {{Projeto.Api_HostAddress}}/login
 Content-Type: application/json
 

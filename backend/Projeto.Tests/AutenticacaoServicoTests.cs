@@ -124,4 +124,81 @@ public class AutenticacaoServicoTests
 
         Assert.Null(servico.Autenticar("ana@petwalk.com", "senha-errada"));
     }
+
+    [Fact]
+    public void Cadastrar_PasseadorComValorHoraETipo_GravaACobranca()
+    {
+        var (servico, _) = CriarServico();
+
+        var usuario = servico.Cadastrar(
+            "Bia", "bia@petwalk.com", "11888888888", "Rua B, 20", TipoPerfil.PASSEADOR, "senha123",
+            45.5m, TipoCobranca.POR_HORA_COM_ADICIONAL_DE_PORTE);
+
+        Assert.Equal(45.5m, usuario.ValorHora);
+        Assert.Equal(TipoCobranca.POR_HORA_COM_ADICIONAL_DE_PORTE, usuario.TipoCobranca);
+    }
+
+    [Fact]
+    public void Cadastrar_PasseadorSoComValorHora_UsaPorHora()
+    {
+        var (servico, _) = CriarServico();
+
+        var usuario = servico.Cadastrar(
+            "Bia", "bia@petwalk.com", "11888888888", "Rua B, 20", TipoPerfil.PASSEADOR, "senha123", 30m);
+
+        Assert.Equal(30m, usuario.ValorHora);
+        Assert.Equal(TipoCobranca.POR_HORA, usuario.TipoCobranca);
+    }
+
+    [Fact]
+    public void Cadastrar_SoComTipoSemValorHora_IgnoraOTipo()
+    {
+        var (servico, _) = CriarServico();
+
+        var usuario = servico.Cadastrar(
+            "Bia", "bia@petwalk.com", "11888888888", "Rua B, 20", TipoPerfil.PASSEADOR, "senha123",
+            tipoCobranca: TipoCobranca.POR_HORA_COM_ADICIONAL_DE_PORTE);
+
+        Assert.Equal(0m, usuario.ValorHora);
+        Assert.Equal(TipoCobranca.POR_HORA, usuario.TipoCobranca);
+    }
+
+    [Fact]
+    public void Cadastrar_SemCamposDeCobranca_MantemOPadrao()
+    {
+        var (servico, repositorio) = CriarServico();
+
+        var usuario = servico.Cadastrar(
+            "Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123");
+
+        Assert.Equal(0m, usuario.ValorHora);
+        Assert.Equal(TipoCobranca.POR_HORA, usuario.TipoCobranca);
+        Assert.Same(usuario, repositorio.ObterPorEmail("ana@petwalk.com"));
+    }
+
+    [Fact]
+    public void Cadastrar_TutorComValorHora_LancaErroENaoSalva()
+    {
+        var (servico, repositorio) = CriarServico();
+
+        var erro = Assert.Throws<InvalidOperationException>(
+            () => servico.Cadastrar(
+                "Ana", "ana@petwalk.com", "11999999999", "Rua A, 10", TipoPerfil.TUTOR, "senha123", 30m));
+
+        Assert.Equal("Usuário não possui perfil de passeador", erro.Message);
+        Assert.Null(repositorio.ObterPorEmail("ana@petwalk.com"));
+    }
+
+    [Fact]
+    public void Cadastrar_ComValorHoraNegativo_LancaErroENaoSalva()
+    {
+        var (servico, repositorio) = CriarServico();
+
+        var erro = Assert.Throws<ArgumentException>(
+            () => servico.Cadastrar(
+                "Bia", "bia@petwalk.com", "11888888888", "Rua B, 20", TipoPerfil.PASSEADOR, "senha123", -10m));
+
+        Assert.Equal("Valor por hora deve ser maior que zero.", erro.Message);
+        Assert.Null(repositorio.ObterPorEmail("bia@petwalk.com"));
+    }
 }

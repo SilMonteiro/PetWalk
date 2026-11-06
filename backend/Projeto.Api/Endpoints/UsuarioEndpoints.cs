@@ -6,7 +6,9 @@ public static class UsuarioEndpoints
         {
             try
             {
-                var usuarioCriado = autenticacao.Cadastrar(req.Nome, req.Email, req.Telefone, req.Endereco, req.TipoPerfil, req.Senha);
+                var usuarioCriado = autenticacao.Cadastrar(
+                    req.Nome, req.Email, req.Telefone, req.Endereco, req.TipoPerfil, req.Senha,
+                    req.ValorHora, req.TipoCobranca);
                 return Results.Ok(new { mensagem = "Usuário cadastrado com sucesso!", id = usuarioCriado.Id });
             }
             catch (ArgumentException ex)

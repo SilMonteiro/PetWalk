@@ -11,7 +11,15 @@ public class AutenticacaoServico
         _usuarios = usuarios ?? throw new ArgumentNullException(nameof(usuarios));
     }
 
-    public Usuario Cadastrar(string nome, string email, string telefone, string endereco, TipoPerfil tipoPerfil, string senha)
+    public Usuario Cadastrar(
+        string nome,
+        string email,
+        string telefone,
+        string endereco,
+        TipoPerfil tipoPerfil,
+        string senha,
+        decimal? valorHora = null,
+        TipoCobranca? tipoCobranca = null)
     {
         if (string.IsNullOrWhiteSpace(senha))
         {
@@ -27,6 +35,12 @@ public class AutenticacaoServico
         // PasswordHasher ignora a instância recebida: o hash depende só da senha.
         var senhaHash = _hasher.HashPassword(null!, senha);
         var usuario = new Usuario(nome, email, telefone, endereco, tipoPerfil, senhaHash);
+
+        // Configura a cobrança antes de salvar: se DefinirCobranca falhar, nada fica no repositório.
+        if (valorHora is not null)
+        {
+            usuario.DefinirCobranca(valorHora.Value, tipoCobranca ?? TipoCobranca.POR_HORA);
+        }
 
         return _usuarios.Adicionar(usuario);
     }
