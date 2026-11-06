@@ -12,18 +12,27 @@ public static class Fabrica
             tipoPerfil,
             "hash-irrelevante");
 
-    public static Pet CriarPet(Usuario tutor) =>
-        new(tutor, "Rex", "Cachorro", "Vira-lata", Porte.MEDIO, 3, "Muito dócil");
+    public static Pet CriarPet(Usuario tutor, Porte porte = Porte.MEDIO) =>
+        new(tutor, "Rex", "Cachorro", "Vira-lata", porte, 3, "Muito dócil");
 
-    public static (Usuario tutor, Usuario passeador, Pet pet, Passeio passeio) CriarPasseioSolicitado()
+    public static (Usuario tutor, Usuario passeador, Pet pet, Passeio passeio) CriarPasseioSolicitado(
+        TimeSpan? duracao = null,
+        Porte porte = Porte.MEDIO,
+        decimal? valorHora = null)
     {
         var tutor = CriarUsuario(TipoPerfil.TUTOR);
         var passeador = CriarUsuario(TipoPerfil.PASSEADOR);
-        var pet = CriarPet(tutor);
+
+        if (valorHora is not null)
+        {
+            passeador.DefinirCobranca(valorHora.Value, TipoCobranca.POR_HORA);
+        }
+
+        var pet = CriarPet(tutor, porte);
         tutor.AdicionarPet(pet);
 
         var passeio = tutor.SolicitarPasseio(
-            pet, passeador, Agora.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10", Agora);
+            pet, passeador, Agora.AddDays(1), duracao ?? TimeSpan.FromHours(1), "Rua A, 10", Agora);
 
         return (tutor, passeador, pet, passeio);
     }
