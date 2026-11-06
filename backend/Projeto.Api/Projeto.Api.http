@@ -150,3 +150,85 @@ GET {{Projeto.Api_HostAddress}}/usuarios/999/pets
 # Esperado: 200 — só usuários PASSEADOR/AMBOS com status ATIVO (o tutor Maria fica de fora)
 # Cada item traz apenas id, nome, mediaAvaliacao, valorHora e tipoCobranca (REG-007).
 GET {{Projeto.Api_HostAddress}}/passeadores
+
+###
+
+# ---------- Solicitação de passeio (FLX-002) ----------
+# Ordem para reproduzir: POST /cadastro (Maria, TUTOR = id 1), POST /cadastro (Bia, PASSEADOR = id 2),
+# POST /usuarios/1/pets (pet = id 1) e então a solicitação abaixo.
+
+# Esperado: 201 Created — PasseioResponse com status SOLICITADO, valor calculado na solicitação
+# e local igual ao informado (REG-007: nunca o endereço do perfil).
+# Também grava uma notificação PASSEIO_SOLICITADO para o passeador (id 2).
+POST {{Projeto.Api_HostAddress}}/passeios
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "petId": 1,
+  "passeadorId": 2,
+  "dataHora": "2027-01-01T10:00:00Z",
+  "duracaoMinutos": 60,
+  "local": "Rua das Flores, 10"
+}
+
+###
+
+# Esperado: 404 {"erro":"Usuário não encontrado"}
+POST {{Projeto.Api_HostAddress}}/passeios
+Content-Type: application/json
+
+{
+  "usuarioId": 999,
+  "petId": 1,
+  "passeadorId": 2,
+  "dataHora": "2027-01-01T10:00:00Z",
+  "duracaoMinutos": 60,
+  "local": "Rua das Flores, 10"
+}
+
+###
+
+# Esperado: 404 {"erro":"Passeador não encontrado"}
+POST {{Projeto.Api_HostAddress}}/passeios
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "petId": 1,
+  "passeadorId": 999,
+  "dataHora": "2027-01-01T10:00:00Z",
+  "duracaoMinutos": 60,
+  "local": "Rua das Flores, 10"
+}
+
+###
+
+# Esperado: 422 {"erro":"O pet informado não pertence ao tutor solicitante"} (REG-005)
+# Vale para petId inexistente ou de outro tutor.
+POST {{Projeto.Api_HostAddress}}/passeios
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "petId": 999,
+  "passeadorId": 2,
+  "dataHora": "2027-01-01T10:00:00Z",
+  "duracaoMinutos": 60,
+  "local": "Rua das Flores, 10"
+}
+
+###
+
+# Esperado: 422 {"erro":"A data e hora do passeio devem ser futuras"} (REG-008)
+POST {{Projeto.Api_HostAddress}}/passeios
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "petId": 1,
+  "passeadorId": 2,
+  "dataHora": "2020-01-01T10:00:00Z",
+  "duracaoMinutos": 60,
+  "local": "Rua das Flores, 10"
+}
