@@ -353,3 +353,56 @@ Content-Type: application/json
 {
   "usuarioId": 1
 }
+
+###
+
+# ---------- Avaliação (FLX-005, REG-001) ----------
+# O passeio 1 está FINALIZADO pelos exemplos acima; o passeio 2 continua SOLICITADO.
+
+# Esperado: 422 {"erro":"Passeio não finalizado"}
+POST {{Projeto.Api_HostAddress}}/passeios/2/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nota": 5,
+  "comentario": "Ainda não aconteceu"
+}
+
+###
+
+# Esperado: 400 {"erro":"Nota deve estar entre 1 e 5"}
+POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nota": 6,
+  "comentario": "Nota inválida"
+}
+
+###
+
+# Esperado: 201 Created — { nota, comentario, data, avaliado: { id, nome }, mediaAvaliacao }
+# Sem "id" de avaliação: não existe repositório de avaliações, o Id seria sempre 0.
+# A média do passeador (2) é recalculada na hora.
+POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nota": 5,
+  "comentario": "Muito atenciosa com o Rex"
+}
+
+###
+
+# Esperado: 422 {"erro":"Passeio já avaliado por este usuário"}
+POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nota": 3,
+  "comentario": "Segunda tentativa"
+}

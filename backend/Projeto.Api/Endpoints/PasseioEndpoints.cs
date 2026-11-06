@@ -41,6 +41,42 @@ public static class PasseioEndpoints
             IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
             ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
                 (passeio, quem) => passeio.Cancelar(quem), TipoNotificacao.PASSEIO_CANCELADO));
+
+        // FLX-005: cada participante avalia a outra parte depois do passeio finalizado (REG-001).
+        app.MapPost("/passeios/{id:int}/avaliacoes", (int id, AvaliacaoRequest req, IPasseioRepositorio passeios,
+            IUsuarioRepositorio usuarios, TimeProvider time) =>
+            Avaliar(id, req, passeios, usuarios, time.GetUtcNow().UtcDateTime));
+    }
+
+    // REG-001: passeio FINALIZADO, uma avaliação por usuário, nota 1..5 e participação continuam
+    // sendo decididos pelo domínio; aqui só se resolvem as partes e se monta a resposta.
+    internal static IResult Avaliar(int passeioId, AvaliacaoRequest req, IPasseioRepositorio passeios,
+        IUsuarioRepositorio usuarios, DateTime agora)
+    {
+        var passeio = passeios.ObterPorId(passeioId);
+
+        if (passeio is null)
+        {
+            return ErroHttp.NaoEncontrado("Passeio não encontrado");
+        }
+
+        var avaliador = usuarios.ObterPorId(req.UsuarioId);
+
+        if (avaliador is null)
+        {
+            return ErroHttp.NaoEncontrado("Usuário não encontrado");
+        }
+
+        try
+        {
+            var avaliacao = passeio.Avaliar(avaliador, req.Nota, req.Comentario, agora);
+
+            return Results.Json(ParaResposta(avaliacao), statusCode: StatusCodes.Status201Created);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return ErroHttp.Erro(ex);
+        }
     }
 
     // Fluxo comum às ações do passeador: localiza as partes, deixa o domínio decidir (REG-003),
@@ -151,4 +187,13 @@ public static class PasseioEndpoints
             new ParticipantePasseioResponse(passeio.Passeador.Id, passeio.Passeador.Nome),
             // Comparação de referência: o mesmo passeio visto pelo tutor ou pelo passeador.
             passeio.Tutor == perspectiva ? nameof(TipoPerfil.TUTOR) : nameof(TipoPerfil.PASSEADOR));
+
+    // Avaliacao.Id fica fora do contrato: não existe repositório de avaliações, então DefinirId
+    // nunca é chamado e o Id seria sempre 0. Quando houver repositório, o Id entra aqui.
+    internal static AvaliacaoResponse ParaResposta(Avaliacao avaliacao) =>
+        new(avaliacao.Nota,
+            avaliacao.Comentario,
+            avaliacao.Data,
+            new ParticipantePasseioResponse(avaliacao.Avaliado.Id, avaliacao.Avaliado.Nome),
+            avaliacao.Avaliado.MediaAvaliacao);
 }

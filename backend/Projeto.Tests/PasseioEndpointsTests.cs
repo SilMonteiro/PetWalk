@@ -307,6 +307,98 @@ public class PasseioEndpointsTests
             notificacoes.ListarPorDestinatario(passeador.Id), n => n.Tipo == TipoNotificacao.PASSEIO_CANCELADO);
     }
 
+    [Fact]
+    public void Avaliar_PasseioFinalizado_Devolve201ComAMediaAtualizada()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        passeio.Aceitar(passeador);
+        passeio.Iniciar(passeador);
+        passeio.Finalizar(passeador);
+
+        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, "Ótimo passeio"),
+            passeios, usuarios, Fabrica.Agora);
+
+        Assert.Equal(201, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+
+        var resposta = Assert.IsType<AvaliacaoResponse>(Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value);
+
+        Assert.Equal(5, resposta.Nota);
+        Assert.Equal("Ótimo passeio", resposta.Comentario);
+        Assert.Equal(Fabrica.Agora, resposta.Data);
+        Assert.Equal(passeador.Id, resposta.Avaliado.Id);
+        Assert.Equal(passeador.Nome, resposta.Avaliado.Nome);
+        Assert.Equal(5d, resposta.MediaAvaliacao);
+    }
+
+    [Fact]
+    public void Avaliar_PasseioNaoFinalizado_Devolve422()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        passeio.Aceitar(passeador);
+
+        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, Fabrica.Agora);
+
+        Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal("Passeio não finalizado", MensagemDe(resultado));
+        Assert.Empty(passeio.Avaliacoes);
+    }
+
+    [Fact]
+    public void Avaliar_DuasVezes_Devolve422()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioFinalizado(usuarios, passeios, servico, tutor, pet, passeador);
+        PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, Fabrica.Agora);
+
+        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 3, ""), passeios, usuarios, Fabrica.Agora);
+
+        Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal("Passeio já avaliado por este usuário", MensagemDe(resultado));
+        Assert.Single(passeio.Avaliacoes);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    public void Avaliar_NotaForaDoIntervalo_Devolve400(int nota)
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioFinalizado(usuarios, passeios, servico, tutor, pet, passeador);
+
+        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, nota, ""), passeios, usuarios, Fabrica.Agora);
+
+        Assert.Equal(400, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal("Nota deve estar entre 1 e 5", MensagemDe(resultado));
+    }
+
+    [Fact]
+    public void AvaliacaoResponse_NaoTemCampoId()
+    {
+        // Sem repositório de avaliações o Id seria sempre 0, então não entra no contrato.
+        Assert.Null(typeof(AvaliacaoResponse).GetProperty("Id"));
+    }
+
+    private static string? MensagemDe(IResult resultado)
+    {
+        var corpo = Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value;
+
+        return corpo?.GetType().GetProperty("erro")?.GetValue(corpo) as string;
+    }
+
+    private static Passeio CriarPasseioFinalizado(
+        IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, NotificacaoServico servico,
+        Usuario tutor, Pet pet, Usuario passeador)
+    {
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        passeio.Aceitar(passeador);
+        passeio.Iniciar(passeador);
+        passeio.Finalizar(passeador);
+
+        return passeio;
+    }
+
     private static Passeio CriarPasseioPersistido(
         IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, NotificacaoServico servico,
         Usuario tutor, Pet pet, Usuario passeador)
