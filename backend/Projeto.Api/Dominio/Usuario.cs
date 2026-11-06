@@ -10,6 +10,8 @@ public class Usuario
     public TipoPerfil TipoPerfil { get; private set; }
     public StatusUsuario Status { get; private set; } = StatusUsuario.ATIVO;
     public string SenhaHash { get; private set; } = string.Empty;
+    public decimal ValorHora { get; private set; }
+    public TipoCobranca TipoCobranca { get; private set; } = TipoCobranca.POR_HORA;
     public double MediaAvaliacao { get; private set; }
 
     public IReadOnlyList<Pet> Pets => _pets;
@@ -110,6 +112,28 @@ public class Usuario
         }
 
         return new Passeio(this, passeador, pet, dataHora, duracao, local);
+    }
+
+    // Etapa 6: única forma de configurar a cobrança usada pela política de preço.
+    public void DefinirCobranca(decimal valorHora, TipoCobranca tipoCobranca)
+    {
+        if (!EhPasseador)
+        {
+            throw new InvalidOperationException("Usuário não possui perfil de passeador");
+        }
+
+        if (valorHora <= 0)
+        {
+            throw new ArgumentException("Valor por hora deve ser maior que zero.");
+        }
+
+        if (!Enum.IsDefined(tipoCobranca))
+        {
+            throw new ArgumentException("Tipo de cobrança inválido.");
+        }
+
+        ValorHora = valorHora;
+        TipoCobranca = tipoCobranca;
     }
 
     public void Bloquear() => Status = StatusUsuario.BLOQUEADO;

@@ -37,3 +37,9 @@ public enum Porte
     MEDIO,
     GRANDE
 }
+
+public enum TipoCobranca
+{
+    POR_HORA,
+    POR_HORA_COM_ADICIONAL_DE_PORTE
+}

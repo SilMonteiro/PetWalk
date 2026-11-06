@@ -26,4 +26,12 @@ public class VocabularioDaPropostaTests
 
         Assert.Equal(esperado, Enum.GetNames<TipoNotificacao>());
     }
+
+    [Fact]
+    public void TipoCobranca_TemAsDuasFormasDeCobrancaDaPoliticaDePreco()
+    {
+        var esperado = new[] { "POR_HORA", "POR_HORA_COM_ADICIONAL_DE_PORTE" };
+
+        Assert.Equal(esperado, Enum.GetNames<TipoCobranca>());
+    }
 }
