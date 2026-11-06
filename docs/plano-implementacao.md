@@ -356,6 +356,8 @@ Dica: criem um `Fabrica` (test helper) com métodos como `CriarTutorComPet()` e 
 
 **Dimensões:** I, J, D · **Item da correção:** "O domínio está desconectado da API"
 
+**Status:** concluída (endpoints em `Endpoints/` com `MapXxxEndpoints`, `Program.cs` só com configuração, `ErroHttp` centralizando 400/422/404, `TimeProvider` fornecendo o `agora`, `Projeto.Api.http` percorrendo FLX-001 a FLX-009 e teste de integração com `WebApplicationFactory` cobrindo o ciclo completo).
+
 Separar os endpoints em arquivos em `Endpoints/` (`UsuarioEndpoints.cs` já existe; criar `PetEndpoints.cs`, `PasseioEndpoints.cs` e `NotificacaoEndpoints.cs`) usando métodos de extensão `MapXxxEndpoints(this IEndpointRouteBuilder app)`. O `Program.cs` fica só com configuração.
 
 Os endpoints devem ser **finos**: buscar no repositório, chamar o método de domínio e salvar. Nenhuma regra fica no endpoint.
@@ -484,7 +486,7 @@ Uma divisão possível para 5 pessoas: (1) entidades e Usuario, (2) Passeio, Ava
 - [x] 2. Nenhum `{ get; set; }` público no domínio; coleções como `IReadOnlyList`; construtores exigindo o essencial
 - [x] 3. `Tutor.cs` e `Passeador.cs` removidos; `Usuario` único com `TipoPerfil`
 - [x] 4. `Passeio` guarda `Usuario Tutor`, `Usuario Passeador` e `Pet Pet`
-- [ ] 5. Endpoints de pet (CRUD) e de passeio (ciclo de vida) ligados ao domínio; template de clima removido
+- [x] 5. Endpoints de pet (CRUD) e de passeio (ciclo de vida) ligados ao domínio; template de clima removido
 - [x] 6. Persistência em repositórios; senha com hash; e-mail único e usuário bloqueado recusado no login
 - [ ] 7. `/cadastro` roteado; login chamando a API; pet com CRUD pela API; `services/api.js` com `VITE_API_URL`
 - [x] 8. Testes cobrindo REG-001 a REG-011 e as transições proibidas

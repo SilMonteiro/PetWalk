@@ -1,6 +1,36 @@
 @Projeto.Api_HostAddress = http://localhost:5229
 
-# TipoPerfil: 0 = TUTOR, 1 = PASSEADOR, 2 = AMBOS
+# ============================================================================
+# Roteiro completo da API PetWalk — FLX-001 a FLX-009 da proposta.
+#
+# Como usar: suba a API (`dotnet run --launch-profile http` em backend/Projeto.Api)
+# e execute as requisições de cima para baixo, em ordem. Os ids citados nas
+# requisições seguintes são os que a API devolve nos passos anteriores.
+#
+# Ordem de execução:
+#   0. FLX-006 (cadastro e login) e FLX-007 (pets) — pré-requisitos de tudo
+#   1. FLX-001  listar passeadores ativos
+#   2. FLX-002  solicitar passeio
+#   3. FLX-003  aceitar passeio
+#   4. FLX-008  iniciar passeio      (vem antes do FLX-004: o ciclo exige ACEITO → EM_ANDAMENTO)
+#   5. FLX-004  finalizar passeio
+#   6. FLX-005  avaliar o passeador
+#   7. FLX-009  recusar e cancelar
+#   8. Histórico e notificações (decorrem dos fluxos acima)
+#
+# Enums: TipoPerfil 0 = TUTOR, 1 = PASSEADOR, 2 = AMBOS | StatusUsuario 0 = ATIVO, 1 = BLOQUEADO
+#        Porte 0 = PEQUENO, 1 = MEDIO, 2 = GRANDE | TipoCobranca 0 = POR_HORA, 1 = POR_HORA_COM_ADICIONAL_DE_PORTE
+#        StatusPasseio 0 = SOLICITADO, 1 = ACEITO, 2 = EM_ANDAMENTO, 3 = FINALIZADO, 4 = RECUSADO, 5 = CANCELADO
+#        TipoNotificacao 0 = SOLICITADO, 1 = ACEITO, 2 = RECUSADO, 3 = INICIADO, 4 = FINALIZADO, 5 = CANCELADO
+# ============================================================================
+
+
+# ============================================================================
+# 0. PRÉ-REQUISITOS
+# ============================================================================
+
+# ---------- FLX-006: cadastro e login ----------
+# Tutor Maria (id 1). Esperado: 200 {"mensagem":"Usuário cadastrado com sucesso!","id":1}
 POST {{Projeto.Api_HostAddress}}/cadastro
 Content-Type: application/json
 
@@ -15,7 +45,7 @@ Content-Type: application/json
 
 ###
 
-# Passeador com cobrança configurada: TipoCobranca 0 = POR_HORA, 1 = POR_HORA_COM_ADICIONAL_DE_PORTE
+# Passeador Bia (id 2) com cobrança configurada. Esperado: 200 com "id": 2
 POST {{Projeto.Api_HostAddress}}/cadastro
 Content-Type: application/json
 
@@ -32,23 +62,7 @@ Content-Type: application/json
 
 ###
 
-# Esperado: 409 Conflict — {"erro":"Usuário não possui perfil de passeador"}
-# TUTOR com valorHora: DefinirCobranca recusa porque o perfil não é de passeador.
-POST {{Projeto.Api_HostAddress}}/cadastro
-Content-Type: application/json
-
-{
-  "nome": "Tutor com cobrança",
-  "email": "tutor-cobranca@petwalk.com",
-  "telefone": "11777777777",
-  "endereco": "Rua C, 30",
-  "tipoPerfil": 0,
-  "senha": "123456",
-  "valorHora": 30
-}
-
-###
-
+# Esperado: 200 {"mensagem":"Login realizado com sucesso!","id":1,"nome":"Maria","email":"maria@petwalk.com"}
 POST {{Projeto.Api_HostAddress}}/login
 Content-Type: application/json
 
@@ -59,48 +73,9 @@ Content-Type: application/json
 
 ###
 
-# Esperado: 409 Conflict — {"erro":"E-mail já cadastrado"} (REG-010)
-POST {{Projeto.Api_HostAddress}}/cadastro
-Content-Type: application/json
+# ---------- FLX-007: pets do tutor (CRUD) ----------
 
-{
-  "nome": "Maria",
-  "email": "maria@petwalk.com",
-  "telefone": "11999999999",
-  "endereco": "Rua das Flores, 10",
-  "tipoPerfil": 0,
-  "senha": "123456"
-}
-
-###
-
-# Esperado: 401 Unauthorized — {"erro":"E-mail ou senha inválidos"}
-POST {{Projeto.Api_HostAddress}}/login
-Content-Type: application/json
-
-{
-  "email": "maria@petwalk.com",
-  "senha": "senha-errada"
-}
-
-###
-
-# REG-011 (usuário bloqueado → 403 {"erro":"Usuário está bloqueado"}) não aparece aqui:
-# não existe endpoint para bloquear usuário. A regra fica coberta por teste unitário (Prompt 7).
-
-###
-
-# ---------- Pets do tutor (FLX-007) ----------
-# Os exemplos usam o usuário 1 (Maria, TUTOR) criado no primeiro POST /cadastro acima.
-
-# Esperado: 200 — lista com os pets do usuário ([] quando ele ainda não tem nenhum)
-GET {{Projeto.Api_HostAddress}}/usuarios/1/pets
-
-###
-
-# Esperado: 201 Created — PetResponse com id, vacinas: [] e tutorId: 1
-# Porte: 0 = PEQUENO, 1 = MEDIO, 2 = GRANDE
-# Usuário sem perfil de tutor: 422 {"erro":"Usuário não possui perfil de tutor"} (REG-002)
+# Pet do tutor. Esperado: 201 {"id":1,"nome":"Rex",...,"vacinas":[],"tutorId":1}
 POST {{Projeto.Api_HostAddress}}/usuarios/1/pets
 Content-Type: application/json
 
@@ -108,14 +83,19 @@ Content-Type: application/json
   "nome": "Rex",
   "especie": "Cachorro",
   "raca": "Vira-lata",
-  "porte": 1,
+  "porte": 2,
   "idade": 3,
   "observacoes": "Muito dócil"
 }
 
 ###
 
-# Esperado: 200 com o pet; 404 {"erro":"Pet não encontrado"} para pet inexistente ou de outro tutor (REG-005)
+# Esperado: 200 com a lista de pets do tutor
+GET {{Projeto.Api_HostAddress}}/usuarios/1/pets
+
+###
+
+# Esperado: 200 com o pet 1
 GET {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
 
 ###
@@ -135,31 +115,27 @@ Content-Type: application/json
 
 ###
 
-# Esperado: 204 No Content; repetir a chamada devolve 404 {"erro":"Pet não encontrado"}
-DELETE {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
+# O DELETE remove o pet do perfil. Fica comentado para não quebrar os fluxos seguintes:
+# recrie o pet (POST acima) antes de rodar o FLX-002 se descomentar.
+# Esperado: 204 No Content; repetir devolve 404 {"erro":"Pet não encontrado"}
+#DELETE {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
 
-###
 
-# Esperado: 404 {"erro":"Usuário não encontrado"}
-GET {{Projeto.Api_HostAddress}}/usuarios/999/pets
+# ============================================================================
+# 1. FLX-001 — tutor lista os passeadores ativos e escolhe um
+# ============================================================================
 
-###
-
-# ---------- Passeadores (FLX-001) ----------
-
-# Esperado: 200 — só usuários PASSEADOR/AMBOS com status ATIVO (o tutor Maria fica de fora)
-# Cada item traz apenas id, nome, mediaAvaliacao, valorHora e tipoCobranca (REG-007).
+# Esperado: 200 — só PASSEADOR/AMBOS com status ATIVO; cada item só com
+# id, nome, mediaAvaliacao, valorHora e tipoCobranca (REG-007: sem endereço, e-mail ou telefone)
 GET {{Projeto.Api_HostAddress}}/passeadores
 
-###
 
-# ---------- Solicitação de passeio (FLX-002) ----------
-# Ordem para reproduzir: POST /cadastro (Maria, TUTOR = id 1), POST /cadastro (Bia, PASSEADOR = id 2),
-# POST /usuarios/1/pets (pet = id 1) e então a solicitação abaixo.
+# ============================================================================
+# 2. FLX-002 — tutor solicita o passeio
+# ============================================================================
 
-# Esperado: 201 Created — PasseioResponse com status SOLICITADO, valor calculado na solicitação
-# e local igual ao informado (REG-007: nunca o endereço do perfil).
-# Também grava uma notificação PASSEIO_SOLICITADO para o passeador (id 2).
+# Esperado: 201 — status 0 (SOLICITADO), valor calculado na solicitação (1h × 30 × 1,3 = 39,0),
+# local igual ao informado (REG-007, nunca o endereço do perfil) e notificação PASSEIO_SOLICITADO para a Bia (2).
 POST {{Projeto.Api_HostAddress}}/passeios
 Content-Type: application/json
 
@@ -172,55 +148,249 @@ Content-Type: application/json
   "local": "Rua das Flores, 10"
 }
 
-###
 
-# Esperado: 404 {"erro":"Usuário não encontrado"}
-POST {{Projeto.Api_HostAddress}}/passeios
+# ============================================================================
+# 3. FLX-003 — passeador aceita a solicitação
+# ============================================================================
+
+# Esperado: 200 — status 1 (ACEITO), papel "PASSEADOR" e notificação PASSEIO_ACEITO para o tutor (1)
+POST {{Projeto.Api_HostAddress}}/passeios/1/aceitar
 Content-Type: application/json
 
 {
-  "usuarioId": 999,
-  "petId": 1,
-  "passeadorId": 2,
-  "dataHora": "2027-01-01T10:00:00Z",
-  "duracaoMinutos": 60,
-  "local": "Rua das Flores, 10"
+  "usuarioId": 2
 }
 
-###
 
-# Esperado: 404 {"erro":"Passeador não encontrado"}
+# ============================================================================
+# 4. FLX-008 — passeador inicia o passeio (antes do FLX-004: o ciclo exige EM_ANDAMENTO)
+# ============================================================================
+
+# Esperado: 200 — status 2 (EM_ANDAMENTO) e notificação PASSEIO_INICIADO para o tutor (1)
+POST {{Projeto.Api_HostAddress}}/passeios/1/iniciar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+
+# ============================================================================
+# 5. FLX-004 — passeador finaliza o passeio
+# ============================================================================
+
+# Esperado: 200 — status 3 (FINALIZADO) e notificação PASSEIO_FINALIZADO para o tutor (1)
+POST {{Projeto.Api_HostAddress}}/passeios/1/finalizar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+
+# ============================================================================
+# 6. FLX-005 — tutor avalia o passeador
+# ============================================================================
+
+# Esperado: 201 — { nota, comentario, data, avaliado: { id, nome }, mediaAvaliacao }
+# Sem "id" de avaliação: não existe repositório de avaliações, o Id seria sempre 0.
+# A média da Bia é recalculada na hora e aparece em GET /passeadores.
+POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nota": 5,
+  "comentario": "Muito atenciosa com o Rex"
+}
+
+
+# ============================================================================
+# 7. FLX-009 — recusar e cancelar
+# ============================================================================
+
+# Crie um segundo passeio para recusar. Esperado: 201 (passeio 2, SOLICITADO)
 POST {{Projeto.Api_HostAddress}}/passeios
 Content-Type: application/json
 
 {
   "usuarioId": 1,
   "petId": 1,
-  "passeadorId": 999,
-  "dataHora": "2027-01-01T10:00:00Z",
+  "passeadorId": 2,
+  "dataHora": "2027-01-02T10:00:00Z",
   "duracaoMinutos": 60,
   "local": "Rua das Flores, 10"
 }
 
 ###
 
-# Esperado: 422 {"erro":"O pet informado não pertence ao tutor solicitante"} (REG-005)
-# Vale para petId inexistente ou de outro tutor.
+# Esperado: 200 — status 4 (RECUSADO) e notificação PASSEIO_RECUSADO para o tutor (1)
+POST {{Projeto.Api_HostAddress}}/passeios/2/recusar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+###
+
+# Crie um terceiro passeio para cancelar pelo tutor. Esperado: 201 (passeio 3, SOLICITADO)
 POST {{Projeto.Api_HostAddress}}/passeios
 Content-Type: application/json
 
 {
   "usuarioId": 1,
-  "petId": 999,
+  "petId": 1,
   "passeadorId": 2,
-  "dataHora": "2027-01-01T10:00:00Z",
-  "duracaoMinutos": 60,
+  "dataHora": "2027-01-03T10:00:00Z",
+  "duracaoMinutos": 30,
   "local": "Rua das Flores, 10"
 }
 
 ###
 
-# Esperado: 422 {"erro":"A data e hora do passeio devem ser futuras"} (REG-008)
+# Esperado: 200 — status 5 (CANCELADO) e notificação PASSEIO_CANCELADO para a Bia (2)
+POST {{Projeto.Api_HostAddress}}/passeios/3/cancelar
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+
+# ============================================================================
+# 8. HISTÓRICO E NOTIFICAÇÕES (decorrem dos fluxos acima)
+# ============================================================================
+
+# Esperado: 200 — os três passeios do tutor, cada um com papel "TUTOR" e sem dados sensíveis
+GET {{Projeto.Api_HostAddress}}/usuarios/1/passeios
+
+###
+
+# Esperado: 200 — os mesmos passeios vistos pela Bia, com papel "PASSEADOR"
+GET {{Projeto.Api_HostAddress}}/usuarios/2/passeios
+
+###
+
+# Esperado: 200 — notificações pendentes da Bia: PASSEIO_SOLICITADO dos passeios 1, 2 e 3 e
+# PASSEIO_CANCELADO do passeio 3 (as de aceite/início/fim vão para o tutor)
+GET {{Projeto.Api_HostAddress}}/usuarios/2/notificacoes?naoLidas=true
+
+###
+
+# Esperado: 200 — histórico completo da Bia, incluindo as já lidas (sem o filtro)
+GET {{Projeto.Api_HostAddress}}/usuarios/2/notificacoes
+
+###
+
+# Esperado: 404 {"erro":"Notificação não encontrada"} — a notificação 1 é da Bia; o tutor não é
+# o destinatário, e o 404 evita revelar que ela existe
+POST {{Projeto.Api_HostAddress}}/notificacoes/1/lida
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+###
+
+# Esperado: 204 No Content — a notificação 2 (PASSEIO_ACEITO) é do tutor, que a marca como lida
+POST {{Projeto.Api_HostAddress}}/notificacoes/2/lida
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+
+# ============================================================================
+# 9. ERROS ESPERADOS (não alteram o estado; podem ser executados ao final)
+# ============================================================================
+
+# 409 {"erro":"E-mail já cadastrado"} (REG-010)
+POST {{Projeto.Api_HostAddress}}/cadastro
+Content-Type: application/json
+
+{
+  "nome": "Maria",
+  "email": "maria@petwalk.com",
+  "telefone": "11999999999",
+  "endereco": "Rua das Flores, 10",
+  "tipoPerfil": 0,
+  "senha": "123456"
+}
+
+###
+
+# 401 {"erro":"E-mail ou senha inválidos"}
+POST {{Projeto.Api_HostAddress}}/login
+Content-Type: application/json
+
+{
+  "email": "maria@petwalk.com",
+  "senha": "senha-errada"
+}
+
+###
+
+# 422 {"erro":"Passeio não pertence a este passeador"} (REG-003)
+POST {{Projeto.Api_HostAddress}}/passeios/1/aceitar
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+###
+
+# 422 {"erro":"Passeio não pode ser cancelado no estado atual."} (REG-004)
+POST {{Projeto.Api_HostAddress}}/passeios/1/cancelar
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+###
+
+# 422 {"erro":"Passeio já avaliado por este usuário"} (REG-001)
+POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nota": 3,
+  "comentario": "Segunda tentativa"
+}
+
+###
+
+# 400 {"erro":"Nota deve estar entre 1 e 5"} (REG-001)
+# Aqui quem avalia é a Bia (2): ela ainda não avaliou o passeio 1, então a nota inválida é o erro que aparece.
+POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 2,
+  "nota": 6,
+  "comentario": "Nota inválida"
+}
+
+###
+
+# 422 {"erro":"Passeio não finalizado"} (REG-001) — o passeio 2 foi recusado
+POST {{Projeto.Api_HostAddress}}/passeios/2/avaliacoes
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nota": 5,
+  "comentario": "Não aconteceu"
+}
+
+###
+
+# 422 {"erro":"A data e hora do passeio devem ser futuras"} (REG-008)
 POST {{Projeto.Api_HostAddress}}/passeios
 Content-Type: application/json
 
@@ -235,214 +405,30 @@ Content-Type: application/json
 
 ###
 
-# ---------- Histórico do usuário ----------
-# Depois de criar o passeio acima, o mesmo passeio aparece para as duas partes,
-# cada uma com o seu papel (comparação de referência com o participante).
-
-# Esperado: 200 — lista com papel "TUTOR" e sem endereço/e-mail/telefone/senha (REG-007)
-GET {{Projeto.Api_HostAddress}}/usuarios/1/passeios
-
-###
-
-# Esperado: 200 — o mesmo passeio, agora com papel "PASSEADOR"
-GET {{Projeto.Api_HostAddress}}/usuarios/2/passeios
-
-###
-
-# Esperado: 404 {"erro":"Usuário não encontrado"}
-GET {{Projeto.Api_HostAddress}}/usuarios/999/passeios
-
-###
-
-# ---------- Aceite e recusa do passeio (FLX-003 / FLX-009) ----------
-# O passeio 1 foi criado pelo POST /passeios acima (tutor 1, passeador 2).
-
-# Esperado: 200 — status 1 (ACEITO), papel "PASSEADOR" e a notificação PASSEIO_ACEITO criada para o tutor (1)
-POST {{Projeto.Api_HostAddress}}/passeios/1/aceitar
+# 422 {"erro":"O pet informado não pertence ao tutor solicitante"} (REG-005)
+POST {{Projeto.Api_HostAddress}}/passeios
 Content-Type: application/json
 
 {
-  "usuarioId": 2
+  "usuarioId": 1,
+  "petId": 999,
+  "passeadorId": 2,
+  "dataHora": "2027-01-04T10:00:00Z",
+  "duracaoMinutos": 60,
+  "local": "Rua das Flores, 10"
 }
 
 ###
 
-# Esperado: 422 {"erro":"Passeio não pertence a este passeador"} (REG-003)
-# O tutor (1) não é o passeador escolhido. Vale também para passeador bloqueado ou sem perfil.
-POST {{Projeto.Api_HostAddress}}/passeios/1/aceitar
-Content-Type: application/json
-
-{
-  "usuarioId": 1
-}
+# 404 {"erro":"Usuário não encontrado"}
+GET {{Projeto.Api_HostAddress}}/usuarios/999/notificacoes?naoLidas=true
 
 ###
 
-# Esperado: 200 — status 4 (RECUSADO) e notificação PASSEIO_RECUSADO para o tutor.
-# A recusa só vale a partir de SOLICITADO: crie outro passeio com POST /passeios antes de testar.
-POST {{Projeto.Api_HostAddress}}/passeios/2/recusar
-Content-Type: application/json
-
-{
-  "usuarioId": 2
-}
-
-###
-
-# Esperado: 404 {"erro":"Passeio não encontrado"}
+# 404 {"erro":"Passeio não encontrado"}
 POST {{Projeto.Api_HostAddress}}/passeios/999/aceitar
 Content-Type: application/json
 
 {
   "usuarioId": 2
 }
-
-###
-
-# ---------- Ciclo de vida: iniciar e finalizar (FLX-008 / FLX-004) ----------
-# Continuando do passeio 1, que ficou ACEITO no exemplo de aceite acima.
-
-# Esperado: 200 — status 2 (EM_ANDAMENTO) e notificação PASSEIO_INICIADO para o tutor (1)
-POST {{Projeto.Api_HostAddress}}/passeios/1/iniciar
-Content-Type: application/json
-
-{
-  "usuarioId": 2
-}
-
-###
-
-# Esperado: 200 — status 3 (FINALIZADO) e notificação PASSEIO_FINALIZADO para o tutor (1)
-POST {{Projeto.Api_HostAddress}}/passeios/1/finalizar
-Content-Type: application/json
-
-{
-  "usuarioId": 2
-}
-
-###
-
-# Esperado: 422 {"erro":"Transição não permitida a partir do estado atual"}
-POST {{Projeto.Api_HostAddress}}/passeios/1/iniciar
-Content-Type: application/json
-
-{
-  "usuarioId": 2
-}
-
-###
-
-# ---------- Cancelamento (FLX-009, REG-004) ----------
-
-# Caminho feliz: crie um passeio novo (3), aceite-o e cancele pelo tutor.
-# Esperado: 200 — status 5 (CANCELADO) e notificação PASSEIO_CANCELADO para o passeador (2)
-POST {{Projeto.Api_HostAddress}}/passeios/3/cancelar
-Content-Type: application/json
-
-{
-  "usuarioId": 1
-}
-
-###
-
-# Cancelar depois de iniciado não é permitido (REG-004): use um passeio aceito e iniciado (ex.: 4).
-# Esperado: 422 {"erro":"Passeio não pode ser cancelado no estado atual."}
-POST {{Projeto.Api_HostAddress}}/passeios/4/cancelar
-Content-Type: application/json
-
-{
-  "usuarioId": 1
-}
-
-###
-
-# ---------- Avaliação (FLX-005, REG-001) ----------
-# O passeio 1 está FINALIZADO pelos exemplos acima; o passeio 2 continua SOLICITADO.
-
-# Esperado: 422 {"erro":"Passeio não finalizado"}
-POST {{Projeto.Api_HostAddress}}/passeios/2/avaliacoes
-Content-Type: application/json
-
-{
-  "usuarioId": 1,
-  "nota": 5,
-  "comentario": "Ainda não aconteceu"
-}
-
-###
-
-# Esperado: 400 {"erro":"Nota deve estar entre 1 e 5"}
-POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
-Content-Type: application/json
-
-{
-  "usuarioId": 1,
-  "nota": 6,
-  "comentario": "Nota inválida"
-}
-
-###
-
-# Esperado: 201 Created — { nota, comentario, data, avaliado: { id, nome }, mediaAvaliacao }
-# Sem "id" de avaliação: não existe repositório de avaliações, o Id seria sempre 0.
-# A média do passeador (2) é recalculada na hora.
-POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
-Content-Type: application/json
-
-{
-  "usuarioId": 1,
-  "nota": 5,
-  "comentario": "Muito atenciosa com o Rex"
-}
-
-###
-
-# Esperado: 422 {"erro":"Passeio já avaliado por este usuário"}
-POST {{Projeto.Api_HostAddress}}/passeios/1/avaliacoes
-Content-Type: application/json
-
-{
-  "usuarioId": 1,
-  "nota": 3,
-  "comentario": "Segunda tentativa"
-}
-
-###
-
-# ---------- Notificações ----------
-# Cada transição do passeio cria uma notificação para a outra parte.
-# Aqui o passeador (2) já tem PASSEIO_SOLICITADO, PASSEIO_CANCELADO e as do ciclo de vida do passeio 1.
-
-# Esperado: 200 — notificações pendentes do passeador (id, tipo, mensagem, lida, dataEnvio, passeioId)
-GET {{Projeto.Api_HostAddress}}/usuarios/2/notificacoes?naoLidas=true
-
-###
-
-# Esperado: 200 — histórico completo do passeador, incluindo as já lidas (sem o filtro)
-GET {{Projeto.Api_HostAddress}}/usuarios/2/notificacoes
-
-###
-
-# Esperado: 404 {"erro":"Notificação não encontrada"} — o tutor (1) não é o destinatário,
-# e o 404 evita revelar que a notificação existe.
-POST {{Projeto.Api_HostAddress}}/notificacoes/1/lida
-Content-Type: application/json
-
-{
-  "usuarioId": 1
-}
-
-###
-
-# Esperado: 204 No Content — o destinatário marca a própria notificação como lida
-POST {{Projeto.Api_HostAddress}}/notificacoes/1/lida
-Content-Type: application/json
-
-{
-  "usuarioId": 2
-}
-
-###
-
-# Esperado: 404 {"erro":"Usuário não encontrado"}
-GET {{Projeto.Api_HostAddress}}/usuarios/999/notificacoes?naoLidas=true

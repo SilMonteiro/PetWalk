@@ -101,7 +101,7 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 ## Escopo da AV2
 - Evoluções previstas: ciclo completo do passeio (iniciar, finalizar e cancelar), avaliações com média do passeador, notificações, política de preço (variação polimórfica) e testes automatizados das regras.
 - Três fluxos completos: FLX-002 (solicitar passeio), FLX-004 (finalizar passeio) e FLX-005 (avaliar passeador).
-- Falhas tratadas: mensagens das REG-001 a REG-011 devolvidas pela API (400, 404 ou 409) e exibidas no frontend; transições proibidas do ciclo de vida.
+- Falhas tratadas: mensagens das REG-001 a REG-011 devolvidas pela API e exibidas no frontend, com este contrato de status: 400 para entrada inválida (ex.: "Nota deve estar entre 1 e 5"), 422 para regra de negócio violada (ex.: "Passeio não finalizado", REG-003, REG-004 e REG-008), 404 para recurso inexistente ("Usuário não encontrado", "Passeador não encontrado", "Pet não encontrado", "Passeio não encontrado", "Notificação não encontrada"), 409 para e-mail já cadastrado (REG-010), 403 para usuário bloqueado no login (REG-011) e 401 para credenciais inválidas; transições proibidas do ciclo de vida cobertas pelos mesmos erros.
 - Testes esperados: testes xUnit para REG-001 a REG-011, para o ciclo de vida do Passeio (caminho feliz e transições proibidas) e para as duas políticas de preço.
 
 
