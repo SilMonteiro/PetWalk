@@ -15,6 +15,14 @@ public class NotificacaoServico
         return _notificacoes.Adicionar(notificacao);
     }
 
+    // Histórico do destinatário; apenasNaoLidas filtra o que ainda não foi lido.
+    public IReadOnlyList<Notificacao> ListarPorUsuario(int usuarioId, bool apenasNaoLidas)
+    {
+        var notificacoes = _notificacoes.ListarPorDestinatario(usuarioId);
+
+        return apenasNaoLidas ? notificacoes.Where(n => !n.Lida).ToList() : notificacoes;
+    }
+
     public IReadOnlyList<Notificacao> ListarNaoLidas(int usuarioId) =>
-        _notificacoes.ListarPorDestinatario(usuarioId).Where(n => !n.Lida).ToList();
+        ListarPorUsuario(usuarioId, apenasNaoLidas: true);
 }

@@ -30,6 +30,20 @@ public class NotificacaoServicoTests
     }
 
     [Fact]
+    public void ListarPorUsuario_SemFiltro_DevolveLidasENaoLidas()
+    {
+        var (_, passeador, passeio) = CriarParticipantes();
+        var servico = CriarServico();
+
+        var lida = servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, Fabrica.Agora);
+        servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_ACEITO, Fabrica.Agora);
+        lida.MarcarComoLida();
+
+        Assert.Equal(2, servico.ListarPorUsuario(passeador.Id, apenasNaoLidas: false).Count);
+        Assert.Single(servico.ListarPorUsuario(passeador.Id, apenasNaoLidas: true));
+    }
+
+    [Fact]
     public void ListarNaoLidas_NaoDevolveNotificacoesLidas()
     {
         var (_, passeador, passeio) = CriarParticipantes();

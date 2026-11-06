@@ -43,4 +43,6 @@ app.MapPasseadorEndpoints();
 
 app.MapPasseioEndpoints();
 
+app.MapNotificacaoEndpoints();
+
 app.Run();

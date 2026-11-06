@@ -406,3 +406,43 @@ Content-Type: application/json
   "nota": 3,
   "comentario": "Segunda tentativa"
 }
+
+###
+
+# ---------- Notificações ----------
+# Cada transição do passeio cria uma notificação para a outra parte.
+# Aqui o passeador (2) já tem PASSEIO_SOLICITADO, PASSEIO_CANCELADO e as do ciclo de vida do passeio 1.
+
+# Esperado: 200 — notificações pendentes do passeador (id, tipo, mensagem, lida, dataEnvio, passeioId)
+GET {{Projeto.Api_HostAddress}}/usuarios/2/notificacoes?naoLidas=true
+
+###
+
+# Esperado: 200 — histórico completo do passeador, incluindo as já lidas (sem o filtro)
+GET {{Projeto.Api_HostAddress}}/usuarios/2/notificacoes
+
+###
+
+# Esperado: 404 {"erro":"Notificação não encontrada"} — o tutor (1) não é o destinatário,
+# e o 404 evita revelar que a notificação existe.
+POST {{Projeto.Api_HostAddress}}/notificacoes/1/lida
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+###
+
+# Esperado: 204 No Content — o destinatário marca a própria notificação como lida
+POST {{Projeto.Api_HostAddress}}/notificacoes/1/lida
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+###
+
+# Esperado: 404 {"erro":"Usuário não encontrado"}
+GET {{Projeto.Api_HostAddress}}/usuarios/999/notificacoes?naoLidas=true
