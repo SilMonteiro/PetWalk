@@ -111,7 +111,10 @@ public class Usuario
             throw new InvalidOperationException("A data e hora do passeio devem ser futuras");
         }
 
-        return new Passeio(this, passeador, pet, dataHora, duracao, local);
+        // Única escolha da política a partir do TipoCobranca do passeador.
+        var politica = PoliticaDePrecoFabrica.Para(passeador.TipoCobranca);
+
+        return new Passeio(this, passeador, pet, dataHora, duracao, local, politica);
     }
 
     // Etapa 6: única forma de configurar a cobrança usada pela política de preço.

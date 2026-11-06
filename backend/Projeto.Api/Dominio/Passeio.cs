@@ -6,6 +6,7 @@ public class Passeio
     public DateTime DataHora { get; private set; }
     public TimeSpan Duracao { get; private set; }
     public string Local { get; private set; } = string.Empty;
+    public decimal Valor { get; }
 
     public Usuario Tutor { get; }
     public Usuario Passeador { get; }
@@ -15,16 +16,24 @@ public class Passeio
 
     public IReadOnlyList<Avaliacao> Avaliacoes => _avaliacoes;
 
-    internal Passeio(Usuario tutor, Usuario passeador, Pet pet, DateTime dataHora, TimeSpan duracao, string local)
+    internal Passeio(Usuario tutor, Usuario passeador, Pet pet, DateTime dataHora, TimeSpan duracao, string local, IPoliticaDePreco politica)
     {
         Tutor = tutor ?? throw new ArgumentNullException(nameof(tutor));
         Passeador = passeador ?? throw new ArgumentNullException(nameof(passeador));
         Pet = pet ?? throw new ArgumentNullException(nameof(pet));
 
+        if (politica is null)
+        {
+            throw new ArgumentNullException(nameof(politica));
+        }
+
         DataHora = dataHora;
         Duracao = duracao;
         Local = local ?? string.Empty;
         Status = StatusPasseio.SOLICITADO;
+
+        // Retrato do momento da solicitação: a política lê os campos já atribuídos.
+        Valor = politica.Calcular(this);
     }
 
     public bool Participou(Usuario u) => u is not null && (u == Tutor || u == Passeador);
