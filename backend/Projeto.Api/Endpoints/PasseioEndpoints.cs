@@ -11,6 +11,59 @@ public static class PasseioEndpoints
 
         app.MapGet("/usuarios/{id:int}/passeios", (int id, IUsuarioRepositorio usuarios, IPasseioRepositorio passeios) =>
             Listar(id, usuarios, passeios));
+
+        // FLX-003: o passeador escolhido aceita; o tutor é notificado (REG-003).
+        app.MapPost("/passeios/{id:int}/aceitar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+                (passeio, quem) => passeio.Aceitar(quem), TipoNotificacao.PASSEIO_ACEITO));
+
+        // FLX-009: o passeador escolhido recusa; o tutor é notificado (REG-003).
+        app.MapPost("/passeios/{id:int}/recusar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+                (passeio, quem) => passeio.Recusar(quem), TipoNotificacao.PASSEIO_RECUSADO));
+    }
+
+    // Fluxo comum às ações do passeador: localiza as partes, deixa o domínio decidir (REG-003),
+    // notifica o outro participante e devolve o passeio atualizado.
+    internal static IResult ExecutarAcao(
+        int passeioId,
+        AcaoPasseioRequest req,
+        IPasseioRepositorio passeios,
+        IUsuarioRepositorio usuarios,
+        NotificacaoServico notificacoes,
+        DateTime agora,
+        Action<Passeio, Usuario> acao,
+        TipoNotificacao tipoNotificacao)
+    {
+        var passeio = passeios.ObterPorId(passeioId);
+
+        if (passeio is null)
+        {
+            return ErroHttp.NaoEncontrado("Passeio não encontrado");
+        }
+
+        var usuario = usuarios.ObterPorId(req.UsuarioId);
+
+        if (usuario is null)
+        {
+            return ErroHttp.NaoEncontrado("Usuário não encontrado");
+        }
+
+        try
+        {
+            acao(passeio, usuario);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return ErroHttp.Erro(ex);
+        }
+
+        // Só chega aqui quem passou pela REG-003, então o outro participante é a parte a notificar.
+        notificacoes.Enviar(passeio.ObterOutroParticipante(usuario), passeio, tipoNotificacao, agora);
+
+        return Results.Ok(ParaResposta(passeio, usuario));
     }
 
     // Histórico do usuário: os passeios em que ele é tutor ou passeador, com o papel de cada um.

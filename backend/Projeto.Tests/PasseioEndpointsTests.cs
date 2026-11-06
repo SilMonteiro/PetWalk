@@ -149,4 +149,84 @@ public class PasseioEndpointsTests
         Assert.Equal("O pet informado não pertence ao tutor solicitante", resposta?.GetType().GetProperty("erro")?.GetValue(resposta));
         Assert.Empty(passeios.ListarPorUsuario(tutor.Id));
     }
+
+    [Fact]
+    public void Aceitar_PasseadorCerto_NotificaOTutor()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+
+        var resultado = ExecutarAcao(passeio.Id, passeador, passeios, usuarios, servico,
+            (p, quem) => p.Aceitar(quem), TipoNotificacao.PASSEIO_ACEITO);
+
+        Assert.Equal(200, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(StatusPasseio.ACEITO, passeio.Status);
+
+        var notificacao = Assert.Single(notificacoes.ListarPorDestinatario(tutor.Id));
+        Assert.Equal(TipoNotificacao.PASSEIO_ACEITO, notificacao.Tipo);
+        Assert.Same(passeio, notificacao.Passeio);
+    }
+
+    [Fact]
+    public void Recusar_PasseadorCerto_NotificaOTutor()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+
+        var resultado = ExecutarAcao(passeio.Id, passeador, passeios, usuarios, servico,
+            (p, quem) => p.Recusar(quem), TipoNotificacao.PASSEIO_RECUSADO);
+
+        Assert.Equal(200, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(StatusPasseio.RECUSADO, passeio.Status);
+
+        var notificacao = Assert.Single(notificacoes.ListarPorDestinatario(tutor.Id));
+        Assert.Equal(TipoNotificacao.PASSEIO_RECUSADO, notificacao.Tipo);
+    }
+
+    [Fact]
+    public void Aceitar_PasseadorErrado_Devolve422SemNotificar()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        var outroPasseador = usuarios.Adicionar(Fabrica.CriarUsuario(TipoPerfil.PASSEADOR, "outro-passeador@petwalk.com"));
+
+        var resultado = ExecutarAcao(passeio.Id, outroPasseador, passeios, usuarios, servico,
+            (p, quem) => p.Aceitar(quem), TipoNotificacao.PASSEIO_ACEITO);
+
+        Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+
+        var resposta = Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value;
+        Assert.Equal("Passeio não pertence a este passeador", resposta?.GetType().GetProperty("erro")?.GetValue(resposta));
+
+        Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
+        Assert.Empty(notificacoes.ListarPorDestinatario(tutor.Id));
+    }
+
+    [Fact]
+    public void Aceitar_PasseioInexistente_Devolve404()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+
+        var resultado = ExecutarAcao(999, passeador, passeios, usuarios, servico,
+            (p, quem) => p.Aceitar(quem), TipoNotificacao.PASSEIO_ACEITO);
+
+        Assert.Equal(404, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+
+        var resposta = Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value;
+        Assert.Equal("Passeio não encontrado", resposta?.GetType().GetProperty("erro")?.GetValue(resposta));
+    }
+
+    private static Passeio CriarPasseioPersistido(
+        IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, NotificacaoServico servico,
+        Usuario tutor, Pet pet, Usuario passeador)
+    {
+        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+
+        return Assert.Single(passeios.ListarPorUsuario(tutor.Id));
+    }
+
+    private static IResult ExecutarAcao(int passeioId, Usuario quem, IPasseioRepositorio passeios,
+        IUsuarioRepositorio usuarios, NotificacaoServico servico, Action<Passeio, Usuario> acao, TipoNotificacao tipo) =>
+        PasseioEndpoints.ExecutarAcao(passeioId, new AcaoPasseioRequest(quem.Id), passeios, usuarios, servico, Fabrica.Agora, acao, tipo);
 }

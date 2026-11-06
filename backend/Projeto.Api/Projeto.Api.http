@@ -251,3 +251,48 @@ GET {{Projeto.Api_HostAddress}}/usuarios/2/passeios
 
 # Esperado: 404 {"erro":"Usuário não encontrado"}
 GET {{Projeto.Api_HostAddress}}/usuarios/999/passeios
+
+###
+
+# ---------- Aceite e recusa do passeio (FLX-003 / FLX-009) ----------
+# O passeio 1 foi criado pelo POST /passeios acima (tutor 1, passeador 2).
+
+# Esperado: 200 — status 1 (ACEITO), papel "PASSEADOR" e a notificação PASSEIO_ACEITO criada para o tutor (1)
+POST {{Projeto.Api_HostAddress}}/passeios/1/aceitar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+###
+
+# Esperado: 422 {"erro":"Passeio não pertence a este passeador"} (REG-003)
+# O tutor (1) não é o passeador escolhido. Vale também para passeador bloqueado ou sem perfil.
+POST {{Projeto.Api_HostAddress}}/passeios/1/aceitar
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+###
+
+# Esperado: 200 — status 4 (RECUSADO) e notificação PASSEIO_RECUSADO para o tutor.
+# A recusa só vale a partir de SOLICITADO: crie outro passeio com POST /passeios antes de testar.
+POST {{Projeto.Api_HostAddress}}/passeios/2/recusar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+###
+
+# Esperado: 404 {"erro":"Passeio não encontrado"}
+POST {{Projeto.Api_HostAddress}}/passeios/999/aceitar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
