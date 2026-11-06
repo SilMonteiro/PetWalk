@@ -54,6 +54,8 @@ Os maiores ganhos estão no CRUD do frontend (I) e no encapsulamento e nas respo
 
 ## Etapa 1 — Proteger o estado de todas as entidades
 
+**Status:** concluída (`dotnet build`/`dotnet test` sem erros; nenhum `{ get; set; }` público em `Dominio/` e coleções expostas como `IReadOnlyList`).
+
 **Dimensões:** C, B · **Itens da correção:** "Setters públicos generalizados" e "Coleções expostas como mutáveis"
 
 Regra geral, aplicada a **todas** as classes de `Dominio/`:
@@ -113,6 +115,8 @@ Ajustes de modelagem do `Pet`, alinhando-o ao formulário do frontend e à propo
 
 ## Etapa 2 — Unificar a identidade do usuário
 
+**Status:** concluída (um único `Usuario` com `TipoPerfil`; `Tutor.cs` e `Passeador.cs` não existem; o fluxo cadastro → pet → solicitação está coberto por testes).
+
 **Dimensões:** A, D, E, C · **Itens da correção:** "Três modelos para o mesmo usuário" e "`Tutor.Pets` nunca é preenchida"
 
 Decisão: **um único `Usuario` com `TipoPerfil`**, como já descrito na `proposta.md`. As classes `Tutor` e `Passeador` são **excluídas**, e o comportamento delas passa para `Usuario`, que verifica o perfil antes de agir. Aceitar, recusar, iniciar e finalizar ficam no `Passeio` (etapa 3), que é o dono do estado.
@@ -161,6 +165,8 @@ Pontos importantes:
 ---
 
 ## Etapa 3 — Ciclo de vida do `Passeio` (objeto central)
+
+**Status:** concluída (`Passeio` guarda referências, `Status` tem `private set` e as transições são validadas por métodos de domínio com testes).
 
 **Dimensões:** B, C, D, E · **Itens da correção:** "O objeto central não tem ciclo de vida", "A regra vive no objeto errado" e "`Passeio` desmembra a colaboração em Ids"
 
@@ -227,6 +233,8 @@ Por construção, o `ExigirStatus` bloqueia todas as transições proibidas (FIN
 
 ## Etapa 4 — Avaliação e Notificação como colaboradores reais
 
+**Status:** concluída (`Avaliacao` aplica REG-001/REG-006 e `NotificacaoServico` existe; testes de avaliação e notificação passando).
+
 **Dimensões:** E, C, B
 
 **`AvaliacaoPasseador` passa a se chamar `Avaliacao`** (nome da proposta):
@@ -247,6 +255,8 @@ Por construção, o `ExigirStatus` bloqueia todas as transições proibidas (FIN
 ---
 
 ## Etapa 5 — Repositórios e senha segura
+
+**Status:** concluída (repositórios em memória atrás de interfaces e registrados como singleton; senha com hash; e-mail duplicado e usuário bloqueado recusados).
 
 **Dimensões:** D, F · **Item da correção:** "Persistência dentro da entidade"
 
@@ -276,6 +286,8 @@ Por construção, o `ExigirStatus` bloqueia todas as transições proibidas (FIN
 ---
 
 ## Etapa 6 — Variação polimórfica
+
+**Status:** concluída (`IPoliticaDePreco` com duas implementações usadas via `PoliticaDePrecoFabrica`; `Valor` calculado na solicitação; cobrança configurável no cadastro; testes passando).
 
 **Dimensões:** F, G, A · **Item da correção:** "A abstração não foi definida nem exercida"
 
@@ -468,12 +480,12 @@ Uma divisão possível para 5 pessoas: (1) entidades e Usuario, (2) Passeio, Ava
 
 ## Checklist final (cada item do "O que faria a nota subir")
 
-- [ ] 1. `Passeio` com `Aceitar/Recusar/Iniciar/Finalizar/Cancelar` e `Status` com `private set`
-- [ ] 2. Nenhum `{ get; set; }` público no domínio; coleções como `IReadOnlyList`; construtores exigindo o essencial
-- [ ] 3. `Tutor.cs` e `Passeador.cs` removidos; `Usuario` único com `TipoPerfil`
-- [ ] 4. `Passeio` guarda `Usuario Tutor`, `Usuario Passeador` e `Pet Pet`
+- [x] 1. `Passeio` com `Aceitar/Recusar/Iniciar/Finalizar/Cancelar` e `Status` com `private set`
+- [x] 2. Nenhum `{ get; set; }` público no domínio; coleções como `IReadOnlyList`; construtores exigindo o essencial
+- [x] 3. `Tutor.cs` e `Passeador.cs` removidos; `Usuario` único com `TipoPerfil`
+- [x] 4. `Passeio` guarda `Usuario Tutor`, `Usuario Passeador` e `Pet Pet`
 - [ ] 5. Endpoints de pet (CRUD) e de passeio (ciclo de vida) ligados ao domínio; template de clima removido
-- [ ] 6. Persistência em repositórios; senha com hash; e-mail único e usuário bloqueado recusado no login
+- [x] 6. Persistência em repositórios; senha com hash; e-mail único e usuário bloqueado recusado no login
 - [ ] 7. `/cadastro` roteado; login chamando a API; pet com CRUD pela API; `services/api.js` com `VITE_API_URL`
-- [ ] 8. Testes cobrindo REG-001 a REG-011 e as transições proibidas
+- [x] 8. Testes cobrindo REG-001 a REG-011 e as transições proibidas
 - [ ] Extra: `proposta.md` preenchida e igual ao código (variação polimórfica, escopo, fora do escopo, riscos, participação, conceitos e regras)

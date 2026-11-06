@@ -32,9 +32,9 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 
 | Conceito | Identidade | Estado relevante | Comportamento próprio |
 | :-- | :-- | :-- | :-- |
-| Usuário | idUsuario | nome, tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail (único), senha (guardada apenas como hash), endereço (privado), pets (do tutor), valorHora e tipoCobranca (passeador), mediaAvaliacao | solicitarPasseio(), adicionarPet(), removerPet(), obterEnderecoPara(), bloquear(), desbloquear(), recalcularMedia() |
+| Usuário | idUsuario | nome, tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail (único), senha (guardada apenas como hash), endereço (privado), pets (do tutor), valorHora e tipoCobranca (passeador; definidos por definirCobranca()), mediaAvaliacao | definirCobranca(), solicitarPasseio(), adicionarPet(), removerPet(), obterEnderecoPara(), bloquear(), desbloquear(), recalcularMedia() |
 | Pet | idPet | nome, espécie, raça, porte (PEQUENO, MEDIO, GRANDE), idade, observações, vacinas, tutor (Usuário) | atualizar(), registrarVacina() |
-| Passeio | idPasseio | data, horário, duração, local, valor, tutor (Usuário), passeador (Usuário), pet (Pet), status (SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO) | criarPasseio() (via Usuário.solicitarPasseio()), aceitarPasseio(), recusarPasseio(), iniciarPasseio(), finalizarPasseio(), cancelarPasseio(), avaliarPasseio(), participou() |
+| Passeio | idPasseio | data, horário, duração, local, valor (calculado na solicitação), tutor (Usuário), passeador (Usuário), pet (Pet), status (SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO) | criarPasseio() (via Usuário.solicitarPasseio()), aceitarPasseio(), recusarPasseio(), iniciarPasseio(), finalizarPasseio(), cancelarPasseio(), avaliarPasseio(), participou() |
 | Avaliação | idAvaliacao | nota (1 a 5), comentário, data, avaliador (Usuário), avaliado (Usuário), passeio (Passeio) | criada por Passeio.avaliarPasseio() com validação no construtor (REG-001, REG-006); calcularMediaAvaliacao() (recalculada no Usuário avaliado) |
 | Notificação | idNotificacao | destinatario (Usuário), tipo (PASSEIO_SOLICITADO, PASSEIO_ACEITO, PASSEIO_RECUSADO, PASSEIO_INICIADO, PASSEIO_FINALIZADO, PASSEIO_CANCELADO), mensagem, lida, dataEnvio, passeio (Passeio) | enviarNotificacao() (executado pelo serviço de notificações após cada transição do passeio), marcarComoLida(), listarNaoLidas() (consulta por destinatário) |
 
@@ -47,7 +47,7 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 | REG-001 | Uma Avaliação só pode ser criada se o Passeio referenciado estiver com status FINALIZADO, o mesmo avaliador ainda não tiver avaliado esse passeio e a nota estiver entre 1 e 5. | Avaliação, Passeio, Usuário | Avaliação registrada e média do avaliado recalculada | Lançar erro: "Passeio não finalizado", "Passeio já avaliado por este usuário" ou "Nota deve estar entre 1 e 5" |
 | REG-002 | Somente um Usuário com tipoPerfil TUTOR ou AMBOS pode solicitar um Passeio. | Passeio, Usuário | Passeio criado com status SOLICITADO | Erro: "Usuário não possui perfil de tutor" |
 | REG-003 | Somente o passeador escolhido no Passeio, com tipoPerfil PASSEADOR ou AMBOS e status ATIVO, pode aceitar, recusar, iniciar ou finalizar esse Passeio. | Passeio, Usuário | Status do Passeio alterado para ACEITO, RECUSADO, EM_ANDAMENTO ou FINALIZADO, conforme a ação | Erro: "Usuário não possui perfil de passeador", "Usuário está bloqueado" ou "Passeio não pertence a este passeador" |
-| REG-004 | Um Passeio só pode ser cancelado se estiver com status SOLICITADO ou ACEITO. | Passeio | Status do Passeio alterado para CANCELADO | Erro: "Passeio não pode ser cancelado no estado atual" |
+| REG-004 | Um Passeio só pode ser cancelado se estiver com status SOLICITADO ou ACEITO. | Passeio | Status do Passeio alterado para CANCELADO | Erro: "Passeio não pode ser cancelado no estado atual." |
 | REG-005 | O Pet vinculado ao Passeio deve pertencer ao Usuário tutor que está realizando a solicitação. | Passeio, Pet, Usuário | Pet vinculado ao Passeio com sucesso | Erro: "O pet informado não pertence ao tutor solicitante" |
 | REG-006 | Um Usuário só pode avaliar um Passeio do qual participou como tutor ou passeador. | Avaliação, Passeio, Usuário | Avaliação registrada com sucesso | Erro: "Usuário não participou deste passeio" |
 | REG-007 | O endereço registrado no perfil de um Usuário é privado: outros usuários não podem visualizá-lo. O endereço do local do Passeio só é compartilhado com o passeador quando o tutor o informa explicitamente no formulário de solicitação (podendo usar o endereço do perfil como sugestão de preenchimento ou inserir um diferente). | Usuário, Passeio | Endereço do perfil acessível apenas ao próprio usuário; local do Passeio visível somente após informado na solicitação | Erro: "Acesso não autorizado ao endereço do perfil" |
@@ -83,9 +83,11 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 
 ## Variação polimórfica
 - O que varia: a forma de calcular o valor cobrado pelo passeio, escolhida por cada passeador (tipoCobranca).
-- Contrato possível: interface IPoliticaDePreco, com o método Calcular(Passeio), que devolve o valor do passeio.
-- Implementação 1: PrecoPorHora, que multiplica a duração do passeio pelo valor por hora do passeador.
-- Implementação 2: PrecoComAdicionalPorPorte, que parte do preço por hora e aplica um adicional quando o pet é de porte GRANDE.
+- Contrato implementado: interface IPoliticaDePreco, com o método Calcular(Passeio), que devolve o valor do passeio.
+- Implementação 1: PrecoPorHora, que multiplica a duração do passeio em horas pelo valor por hora do passeador.
+- Implementação 2: PrecoComAdicionalPorPorte, que parte do preço por hora e aplica um adicional de 30% (multiplicador 1,3) quando o pet é de porte GRANDE; para PEQUENO e MEDIO devolve o valor da base.
+- Regras implementadas: o valor é arredondado para 2 casas decimais (arredondamento comercial, afastando de zero no ponto médio); é calculado no momento da solicitação e não é recalculado depois; o passeador que ainda não configurou a cobrança usa POR_HORA com valor por hora 0.
+- Escolha da implementação: a classe estática PoliticaDePrecoFabrica.Para(TipoCobranca) é o único ponto que decide qual IPoliticaDePreco usar. Usuario.SolicitarPasseio obtém a política da fábrica e o Passeio guarda o Valor calculado.
 - Por que a variação é legítima: cada passeador define como cobra, e uma nova forma de cobrança entra criando outra implementação de IPoliticaDePreco, sem alterar o Passeio nem as demais regras.
 
 
