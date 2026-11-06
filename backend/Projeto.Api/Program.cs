@@ -20,6 +20,9 @@ builder.Services.AddSingleton<INotificacaoRepositorio, NotificacaoRepositorioEmM
 builder.Services.AddSingleton<AutenticacaoServico>();
 builder.Services.AddSingleton<NotificacaoServico>();
 
+// Relógio injetável: os endpoints leem "agora" de time.GetUtcNow().UtcDateTime em vez de DateTime.UtcNow.
+builder.Services.AddSingleton(TimeProvider.System);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -31,8 +34,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("Frontend");
-
-app.MapGet("/teste", () => "API PetWalk funcionando!");
 
 app.MapUsuarioEndpoints();
 

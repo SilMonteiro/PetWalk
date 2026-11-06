@@ -43,7 +43,8 @@ dotnet run --launch-profile http
 ```
 
 A API ficará disponível em `http://localhost:5229`. 
-Para confirmar que está respondendo, acesse `http://localhost:5229/teste`.
+Para confirmar que está respondendo, acesse o documento OpenAPI em `http://localhost:5229/openapi/v1.json`
+(ou use as requisições de `backend/Projeto.Api/Projeto.Api.http`).
 
 
 ### Executar os testes do backend

@@ -1,9 +1,5 @@
 @Projeto.Api_HostAddress = http://localhost:5229
 
-GET {{Projeto.Api_HostAddress}}/teste
-
-###
-
 # TipoPerfil: 0 = TUTOR, 1 = PASSEADOR, 2 = AMBOS
 POST {{Projeto.Api_HostAddress}}/cadastro
 Content-Type: application/json

@@ -13,7 +13,7 @@ public static class UsuarioEndpoints
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { erro = ex.Message });
+                return ErroHttp.Erro(ex);
             }
             catch (InvalidOperationException ex)
             {
