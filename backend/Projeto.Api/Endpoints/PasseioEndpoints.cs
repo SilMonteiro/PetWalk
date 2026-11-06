@@ -8,6 +8,22 @@ public static class PasseioEndpoints
         app.MapPost("/passeios", (SolicitacaoPasseioRequest req, IUsuarioRepositorio usuarios,
             IPasseioRepositorio passeios, NotificacaoServico notificacoes, TimeProvider time) =>
             Solicitar(req, usuarios, passeios, notificacoes, time.GetUtcNow().UtcDateTime));
+
+        app.MapGet("/usuarios/{id:int}/passeios", (int id, IUsuarioRepositorio usuarios, IPasseioRepositorio passeios) =>
+            Listar(id, usuarios, passeios));
+    }
+
+    // Histórico do usuário: os passeios em que ele é tutor ou passeador, com o papel de cada um.
+    internal static IResult Listar(int usuarioId, IUsuarioRepositorio usuarios, IPasseioRepositorio passeios)
+    {
+        var usuario = usuarios.ObterPorId(usuarioId);
+
+        if (usuario is null)
+        {
+            return ErroHttp.NaoEncontrado("Usuário não encontrado");
+        }
+
+        return Results.Ok(passeios.ListarPorUsuario(usuarioId).Select(p => ParaResposta(p, usuario)).ToList());
     }
 
     // Método interno para o teste exercitar o fluxo completo sem subir a API.
@@ -43,7 +59,7 @@ public static class PasseioEndpoints
             passeios.Adicionar(passeio);
             notificacoes.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, agora);
 
-            return Results.Created($"/passeios/{passeio.Id}", ParaResposta(passeio));
+            return Results.Created($"/passeios/{passeio.Id}", ParaResposta(passeio, tutor));
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
@@ -51,7 +67,8 @@ public static class PasseioEndpoints
         }
     }
 
-    internal static PasseioResponse ParaResposta(Passeio passeio) =>
+    // A perspectiva define o Papel; só é chamada para quem participa do passeio.
+    internal static PasseioResponse ParaResposta(Passeio passeio, Usuario perspectiva) =>
         new(passeio.Id,
             passeio.Status,
             passeio.DataHora,
@@ -60,5 +77,7 @@ public static class PasseioEndpoints
             passeio.Valor,
             passeio.Pet.Nome,
             new ParticipantePasseioResponse(passeio.Tutor.Id, passeio.Tutor.Nome),
-            new ParticipantePasseioResponse(passeio.Passeador.Id, passeio.Passeador.Nome));
+            new ParticipantePasseioResponse(passeio.Passeador.Id, passeio.Passeador.Nome),
+            // Comparação de referência: o mesmo passeio visto pelo tutor ou pelo passeador.
+            passeio.Tutor == perspectiva ? nameof(TipoPerfil.TUTOR) : nameof(TipoPerfil.PASSEADOR));
 }

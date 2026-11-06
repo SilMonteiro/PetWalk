@@ -232,3 +232,22 @@ Content-Type: application/json
   "duracaoMinutos": 60,
   "local": "Rua das Flores, 10"
 }
+
+###
+
+# ---------- Histórico do usuário ----------
+# Depois de criar o passeio acima, o mesmo passeio aparece para as duas partes,
+# cada uma com o seu papel (comparação de referência com o participante).
+
+# Esperado: 200 — lista com papel "TUTOR" e sem endereço/e-mail/telefone/senha (REG-007)
+GET {{Projeto.Api_HostAddress}}/usuarios/1/passeios
+
+###
+
+# Esperado: 200 — o mesmo passeio, agora com papel "PASSEADOR"
+GET {{Projeto.Api_HostAddress}}/usuarios/2/passeios
+
+###
+
+# Esperado: 404 {"erro":"Usuário não encontrado"}
+GET {{Projeto.Api_HostAddress}}/usuarios/999/passeios

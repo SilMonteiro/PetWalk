@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 
 // FLX-002: fluxo completo da solicitação — grava o passeio e notifica o passeador escolhido.
@@ -57,7 +58,55 @@ public class PasseioEndpointsTests
         Assert.Equal(passeador.Nome, resposta.Passeador.Nome);
         Assert.Equal("Rex", resposta.NomePet);
         Assert.Equal(60, resposta.DuracaoMinutos);
+        Assert.Equal("TUTOR", resposta.Papel);
     }
+
+    [Fact]
+    public void Listar_TutorEPasseadorVeemOMesmoPasseioComPapeisDiferentes()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+
+        var doTutor = ListaDe(PasseioEndpoints.Listar(tutor.Id, usuarios, passeios));
+        var doPasseador = ListaDe(PasseioEndpoints.Listar(passeador.Id, usuarios, passeios));
+
+        var paraTutor = Assert.Single(doTutor);
+        var paraPasseador = Assert.Single(doPasseador);
+
+        Assert.Equal(paraTutor.Id, paraPasseador.Id);
+        Assert.Equal("TUTOR", paraTutor.Papel);
+        Assert.Equal("PASSEADOR", paraPasseador.Papel);
+    }
+
+    [Fact]
+    public void Listar_NaoExpoeDadosSensiveis()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+
+        var json = JsonSerializer.Serialize(
+                ListaDe(PasseioEndpoints.Listar(tutor.Id, usuarios, passeios)),
+                new JsonSerializerOptions(JsonSerializerDefaults.Web))
+            .ToLowerInvariant();
+
+        Assert.DoesNotContain("endereco", json);
+        Assert.DoesNotContain("email", json);
+        Assert.DoesNotContain("telefone", json);
+        Assert.DoesNotContain("senha", json);
+    }
+
+    [Fact]
+    public void Listar_UsuarioInexistente_Devolve404()
+    {
+        var (usuarios, passeios, _, _, _, _, _) = CriarCenario();
+
+        var resultado = PasseioEndpoints.Listar(999, usuarios, passeios);
+
+        Assert.Equal(404, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+    }
+
+    private static List<PasseioResponse> ListaDe(IResult resultado) =>
+        Assert.IsType<List<PasseioResponse>>(Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value);
 
     [Fact]
     public void Solicitar_TutorInexistente_Devolve404()
