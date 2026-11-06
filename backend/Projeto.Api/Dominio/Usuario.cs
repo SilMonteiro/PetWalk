@@ -49,6 +49,12 @@ public class Usuario
 
     public void AdicionarPet(Pet pet)
     {
+        // REG-002: só quem tem perfil de tutor pode ter pets no próprio perfil.
+        if (!EhTutor)
+        {
+            throw new InvalidOperationException("Usuário não possui perfil de tutor");
+        }
+
         if (pet is null)
         {
             throw new ArgumentNullException(nameof(pet));

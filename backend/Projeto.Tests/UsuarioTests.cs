@@ -4,6 +4,29 @@ using System.Reflection;
 public class UsuarioTests
 {
     [Fact]
+    public void AdicionarPet_ComPerfilDePasseador_LancaErro()
+    {
+        var passeador = Fabrica.CriarUsuario(TipoPerfil.PASSEADOR);
+        var pet = Fabrica.CriarPet(passeador);
+
+        var erro = Assert.Throws<InvalidOperationException>(() => passeador.AdicionarPet(pet));
+
+        Assert.Equal("Usuário não possui perfil de tutor", erro.Message);
+        Assert.Empty(passeador.Pets);
+    }
+
+    [Fact]
+    public void AdicionarPet_ComPerfilAmbos_AdicionaOPet()
+    {
+        var ambos = Fabrica.CriarUsuario(TipoPerfil.AMBOS);
+        var pet = Fabrica.CriarPet(ambos);
+
+        ambos.AdicionarPet(pet);
+
+        Assert.Same(pet, Assert.Single(ambos.Pets));
+    }
+
+    [Fact]
     public void RemoverPet_TiraOPetDaListaDoTutor()
     {
         var tutor = Fabrica.CriarUsuario(TipoPerfil.TUTOR);
