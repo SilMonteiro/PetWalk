@@ -1,6 +1,7 @@
 public class Usuario
 {
     private readonly List<Pet> _pets = new();
+    private readonly List<Avaliacao> _avaliacoesRecebidas = new();
     private string _endereco = string.Empty;
 
     public int Id { get; private set; }
@@ -143,11 +144,11 @@ public class Usuario
 
     public void Desbloquear() => Status = StatusUsuario.ATIVO;
 
-    // REG-001: média das avaliações em que este usuário é o avaliado.
-    internal void RecalcularMedia(IEnumerable<Avaliacao> avaliacoes)
+    // REG-001: a média considera todas as avaliações recebidas pelo usuário, não apenas as de um passeio.
+    internal void RegistrarAvaliacaoRecebida(Avaliacao avaliacao)
     {
-        var notas = avaliacoes.Where(a => a.Avaliado == this).Select(a => a.Nota).ToList();
-        MediaAvaliacao = notas.Count == 0 ? 0d : notas.Average();
+        _avaliacoesRecebidas.Add(avaliacao);
+        MediaAvaliacao = _avaliacoesRecebidas.Count == 0 ? 0d : _avaliacoesRecebidas.Average(a => a.Nota);
     }
 
     internal void DefinirId(int id) => Id = id;

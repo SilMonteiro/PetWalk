@@ -103,7 +103,7 @@ public class Passeio
 
         var avaliacao = new Avaliacao(avaliador, this, nota, comentario);
         _avaliacoes.Add(avaliacao);
-        avaliacao.Avaliado.RecalcularMedia(_avaliacoes);
+        avaliacao.Avaliado.RegistrarAvaliacaoRecebida(avaliacao);
     }
 
     // REG-003: somente o passeador escolhido, com perfil de passeador e ativo, pode agir no passeio.

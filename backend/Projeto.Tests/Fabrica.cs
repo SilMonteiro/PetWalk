@@ -20,7 +20,6 @@ public static class Fabrica
         Porte porte = Porte.MEDIO,
         decimal? valorHora = null)
     {
-        var tutor = CriarUsuario(TipoPerfil.TUTOR);
         var passeador = CriarUsuario(TipoPerfil.PASSEADOR);
 
         if (valorHora is not null)
@@ -28,12 +27,24 @@ public static class Fabrica
             passeador.DefinirCobranca(valorHora.Value, TipoCobranca.POR_HORA);
         }
 
+        var (tutor, pet, passeio) = CriarPasseioSolicitadoPara(passeador, porte, duracao);
+
+        return (tutor, passeador, pet, passeio);
+    }
+
+    // Permite acumular passeios no mesmo passeador, base para a média de avaliações.
+    public static (Usuario tutor, Pet pet, Passeio passeio) CriarPasseioSolicitadoPara(
+        Usuario passeador,
+        Porte porte = Porte.MEDIO,
+        TimeSpan? duracao = null)
+    {
+        var tutor = CriarUsuario(TipoPerfil.TUTOR);
         var pet = CriarPet(tutor, porte);
         tutor.AdicionarPet(pet);
 
         var passeio = tutor.SolicitarPasseio(
             pet, passeador, Agora.AddDays(1), duracao ?? TimeSpan.FromHours(1), "Rua A, 10", Agora);
 
-        return (tutor, passeador, pet, passeio);
+        return (tutor, pet, passeio);
     }
 }
