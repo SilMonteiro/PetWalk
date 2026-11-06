@@ -87,3 +87,58 @@ Content-Type: application/json
 
 # REG-011 (usuário bloqueado → 403 {"erro":"Usuário está bloqueado"}) não aparece aqui:
 # não existe endpoint para bloquear usuário. A regra fica coberta por teste unitário (Prompt 7).
+
+###
+
+# ---------- Pets do tutor (FLX-007) ----------
+# Os exemplos usam o usuário 1 (Maria, TUTOR) criado no primeiro POST /cadastro acima.
+
+# Esperado: 200 — lista com os pets do usuário ([] quando ele ainda não tem nenhum)
+GET {{Projeto.Api_HostAddress}}/usuarios/1/pets
+
+###
+
+# Esperado: 201 Created — PetResponse com id, vacinas: [] e tutorId: 1
+# Porte: 0 = PEQUENO, 1 = MEDIO, 2 = GRANDE
+# Usuário sem perfil de tutor: 422 {"erro":"Usuário não possui perfil de tutor"} (REG-002)
+POST {{Projeto.Api_HostAddress}}/usuarios/1/pets
+Content-Type: application/json
+
+{
+  "nome": "Rex",
+  "especie": "Cachorro",
+  "raca": "Vira-lata",
+  "porte": 1,
+  "idade": 3,
+  "observacoes": "Muito dócil"
+}
+
+###
+
+# Esperado: 200 com o pet; 404 {"erro":"Pet não encontrado"} para pet inexistente ou de outro tutor (REG-005)
+GET {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
+
+###
+
+# Esperado: 200 com os dados atualizados; 400 {"erro":"Idade inválida."} se a idade sair de 0..30
+PUT {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
+Content-Type: application/json
+
+{
+  "nome": "Rex",
+  "especie": "Cachorro",
+  "raca": "Vira-lata",
+  "porte": 2,
+  "idade": 4,
+  "observacoes": "Agora adulto"
+}
+
+###
+
+# Esperado: 204 No Content; repetir a chamada devolve 404 {"erro":"Pet não encontrado"}
+DELETE {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
+
+###
+
+# Esperado: 404 {"erro":"Usuário não encontrado"}
+GET {{Projeto.Api_HostAddress}}/usuarios/999/pets

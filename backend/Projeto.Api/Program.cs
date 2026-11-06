@@ -37,4 +37,6 @@ app.UseCors("Frontend");
 
 app.MapUsuarioEndpoints();
 
+app.MapPetEndpoints();
+
 app.Run();
