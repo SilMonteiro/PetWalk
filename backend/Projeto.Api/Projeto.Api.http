@@ -142,3 +142,11 @@ DELETE {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
 
 # Esperado: 404 {"erro":"Usuário não encontrado"}
 GET {{Projeto.Api_HostAddress}}/usuarios/999/pets
+
+###
+
+# ---------- Passeadores (FLX-001) ----------
+
+# Esperado: 200 — só usuários PASSEADOR/AMBOS com status ATIVO (o tutor Maria fica de fora)
+# Cada item traz apenas id, nome, mediaAvaliacao, valorHora e tipoCobranca (REG-007).
+GET {{Projeto.Api_HostAddress}}/passeadores

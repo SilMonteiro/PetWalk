@@ -39,4 +39,6 @@ app.MapUsuarioEndpoints();
 
 app.MapPetEndpoints();
 
+app.MapPasseadorEndpoints();
+
 app.Run();
