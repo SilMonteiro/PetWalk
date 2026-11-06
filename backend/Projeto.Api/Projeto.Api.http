@@ -296,3 +296,60 @@ Content-Type: application/json
 {
   "usuarioId": 2
 }
+
+###
+
+# ---------- Ciclo de vida: iniciar e finalizar (FLX-008 / FLX-004) ----------
+# Continuando do passeio 1, que ficou ACEITO no exemplo de aceite acima.
+
+# Esperado: 200 — status 2 (EM_ANDAMENTO) e notificação PASSEIO_INICIADO para o tutor (1)
+POST {{Projeto.Api_HostAddress}}/passeios/1/iniciar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+###
+
+# Esperado: 200 — status 3 (FINALIZADO) e notificação PASSEIO_FINALIZADO para o tutor (1)
+POST {{Projeto.Api_HostAddress}}/passeios/1/finalizar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+###
+
+# Esperado: 422 {"erro":"Transição não permitida a partir do estado atual"}
+POST {{Projeto.Api_HostAddress}}/passeios/1/iniciar
+Content-Type: application/json
+
+{
+  "usuarioId": 2
+}
+
+###
+
+# ---------- Cancelamento (FLX-009, REG-004) ----------
+
+# Caminho feliz: crie um passeio novo (3), aceite-o e cancele pelo tutor.
+# Esperado: 200 — status 5 (CANCELADO) e notificação PASSEIO_CANCELADO para o passeador (2)
+POST {{Projeto.Api_HostAddress}}/passeios/3/cancelar
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}
+
+###
+
+# Cancelar depois de iniciado não é permitido (REG-004): use um passeio aceito e iniciado (ex.: 4).
+# Esperado: 422 {"erro":"Passeio não pode ser cancelado no estado atual."}
+POST {{Projeto.Api_HostAddress}}/passeios/4/cancelar
+Content-Type: application/json
+
+{
+  "usuarioId": 1
+}

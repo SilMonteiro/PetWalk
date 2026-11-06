@@ -217,6 +217,96 @@ public class PasseioEndpointsTests
         Assert.Equal("Passeio não encontrado", resposta?.GetType().GetProperty("erro")?.GetValue(resposta));
     }
 
+    [Fact]
+    public void Iniciar_AposAceite_NotificaOTutor()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        passeio.Aceitar(passeador);
+
+        var resultado = ExecutarAcao(passeio.Id, passeador, passeios, usuarios, servico,
+            (p, quem) => p.Iniciar(quem), TipoNotificacao.PASSEIO_INICIADO);
+
+        Assert.Equal(200, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(StatusPasseio.EM_ANDAMENTO, passeio.Status);
+
+        var notificacao = Assert.Single(notificacoes.ListarPorDestinatario(tutor.Id));
+        Assert.Equal(TipoNotificacao.PASSEIO_INICIADO, notificacao.Tipo);
+    }
+
+    [Fact]
+    public void Finalizar_EmAndamento_NotificaOTutor()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        passeio.Aceitar(passeador);
+        passeio.Iniciar(passeador);
+
+        var resultado = ExecutarAcao(passeio.Id, passeador, passeios, usuarios, servico,
+            (p, quem) => p.Finalizar(quem), TipoNotificacao.PASSEIO_FINALIZADO);
+
+        Assert.Equal(200, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(StatusPasseio.FINALIZADO, passeio.Status);
+
+        var notificacao = Assert.Single(notificacoes.ListarPorDestinatario(tutor.Id));
+        Assert.Equal(TipoNotificacao.PASSEIO_FINALIZADO, notificacao.Tipo);
+    }
+
+    [Fact]
+    public void Iniciar_SemAceite_Devolve422SemNotificar()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+
+        var resultado = ExecutarAcao(passeio.Id, passeador, passeios, usuarios, servico,
+            (p, quem) => p.Iniciar(quem), TipoNotificacao.PASSEIO_INICIADO);
+
+        Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
+        Assert.Empty(notificacoes.ListarPorDestinatario(tutor.Id));
+    }
+
+    [Fact]
+    public void Cancelar_PeloTutor_NotificaOPasseador()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+
+        var resultado = ExecutarAcao(passeio.Id, tutor, passeios, usuarios, servico,
+            (p, quem) => p.Cancelar(quem), TipoNotificacao.PASSEIO_CANCELADO);
+
+        Assert.Equal(200, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(StatusPasseio.CANCELADO, passeio.Status);
+
+        // O passeador já tinha a notificação da solicitação; a do cancelamento é a mais nova.
+        var notificacao = Assert.Single(
+            notificacoes.ListarPorDestinatario(passeador.Id),
+            n => n.Tipo == TipoNotificacao.PASSEIO_CANCELADO);
+        Assert.Same(passeio, notificacao.Passeio);
+        Assert.Empty(notificacoes.ListarPorDestinatario(tutor.Id));
+    }
+
+    [Fact]
+    public void Cancelar_EmAndamento_Devolve422SemNotificar()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        passeio.Aceitar(passeador);
+        passeio.Iniciar(passeador);
+
+        var resultado = ExecutarAcao(passeio.Id, tutor, passeios, usuarios, servico,
+            (p, quem) => p.Cancelar(quem), TipoNotificacao.PASSEIO_CANCELADO);
+
+        Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+
+        var resposta = Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value;
+        Assert.Equal("Passeio não pode ser cancelado no estado atual.", resposta?.GetType().GetProperty("erro")?.GetValue(resposta));
+
+        Assert.Equal(StatusPasseio.EM_ANDAMENTO, passeio.Status);
+        Assert.DoesNotContain(
+            notificacoes.ListarPorDestinatario(passeador.Id), n => n.Tipo == TipoNotificacao.PASSEIO_CANCELADO);
+    }
+
     private static Passeio CriarPasseioPersistido(
         IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, NotificacaoServico servico,
         Usuario tutor, Pet pet, Usuario passeador)

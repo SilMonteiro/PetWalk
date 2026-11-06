@@ -23,6 +23,24 @@ public static class PasseioEndpoints
             IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
             ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
                 (passeio, quem) => passeio.Recusar(quem), TipoNotificacao.PASSEIO_RECUSADO));
+
+        // FLX-008: o passeador escolhido inicia o passeio aceito; o tutor é notificado (REG-003).
+        app.MapPost("/passeios/{id:int}/iniciar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+                (passeio, quem) => passeio.Iniciar(quem), TipoNotificacao.PASSEIO_INICIADO));
+
+        // FLX-004: o passeador escolhido finaliza o passeio em andamento; o tutor é notificado (REG-003).
+        app.MapPost("/passeios/{id:int}/finalizar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+                (passeio, quem) => passeio.Finalizar(quem), TipoNotificacao.PASSEIO_FINALIZADO));
+
+        // FLX-009: tutor ou passeador cancela antes de começar; o outro participante é notificado (REG-004).
+        app.MapPost("/passeios/{id:int}/cancelar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+                (passeio, quem) => passeio.Cancelar(quem), TipoNotificacao.PASSEIO_CANCELADO));
     }
 
     // Fluxo comum às ações do passeador: localiza as partes, deixa o domínio decidir (REG-003),
