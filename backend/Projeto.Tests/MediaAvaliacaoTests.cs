@@ -13,8 +13,8 @@ public class MediaAvaliacaoTests
         Finalizar(primeiro.passeio, passeador);
         Finalizar(segundo.passeio, passeador);
 
-        primeiro.passeio.Avaliar(primeiro.tutor, 5, "Ótimo passeio");
-        segundo.passeio.Avaliar(segundo.tutor, 1, "Passeio ruim");
+        primeiro.passeio.Avaliar(primeiro.tutor, 5, "Ótimo passeio", Fabrica.Agora);
+        segundo.passeio.Avaliar(segundo.tutor, 1, "Passeio ruim", Fabrica.Agora);
 
         Assert.Equal(3d, passeador.MediaAvaliacao);
     }

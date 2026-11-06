@@ -8,7 +8,7 @@ public class Avaliacao
     public Passeio Passeio { get; }
     public Usuario Avaliado { get; }
 
-    public Avaliacao(Usuario avaliador, Passeio passeio, int nota, string comentario)
+    public Avaliacao(Usuario avaliador, Passeio passeio, int nota, string comentario, DateTime agora)
     {
         Avaliador = avaliador ?? throw new ArgumentNullException(nameof(avaliador));
         Passeio = passeio ?? throw new ArgumentNullException(nameof(passeio));
@@ -30,7 +30,7 @@ public class Avaliacao
 
         Nota = nota;
         Comentario = comentario ?? string.Empty;
-        Data = DateTime.UtcNow;
+        Data = agora;
         Avaliado = passeio.ObterOutroParticipante(avaliador);
     }
 

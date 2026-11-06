@@ -91,7 +91,7 @@ public class Passeio
     }
 
     // REG-001: cada participante pode avaliar o outro uma única vez, após FINALIZADO.
-    public void Avaliar(Usuario avaliador, int nota, string comentario)
+    public void Avaliar(Usuario avaliador, int nota, string comentario, DateTime agora)
     {
         foreach (var existente in _avaliacoes)
         {
@@ -101,7 +101,7 @@ public class Passeio
             }
         }
 
-        var avaliacao = new Avaliacao(avaliador, this, nota, comentario);
+        var avaliacao = new Avaliacao(avaliador, this, nota, comentario, agora);
         _avaliacoes.Add(avaliacao);
         avaliacao.Avaliado.RegistrarAvaliacaoRecebida(avaliacao);
     }

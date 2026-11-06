@@ -9,7 +9,7 @@ public class Notificacao
 
     public Passeio Passeio { get; }
 
-    public Notificacao(Usuario destinatario, Passeio passeio, TipoNotificacao tipo)
+    public Notificacao(Usuario destinatario, Passeio passeio, TipoNotificacao tipo, DateTime agora)
     {
         Destinatario = destinatario ?? throw new ArgumentNullException(nameof(destinatario));
         Passeio = passeio ?? throw new ArgumentNullException(nameof(passeio));
@@ -17,7 +17,7 @@ public class Notificacao
         Tipo = tipo;
         Mensagem = GerarMensagem(tipo);
         Lida = false;
-        DataEnvio = DateTime.UtcNow;
+        DataEnvio = agora;
     }
 
     public void MarcarComoLida() => Lida = true;

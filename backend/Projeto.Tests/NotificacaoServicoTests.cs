@@ -18,13 +18,14 @@ public class NotificacaoServicoTests
         var (_, passeador, passeio) = CriarParticipantes();
         var servico = CriarServico();
 
-        var notificacao = servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO);
+        var notificacao = servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, Fabrica.Agora);
 
         Assert.Equal(1, notificacao.Id);
         Assert.False(notificacao.Lida);
         Assert.Same(passeador, notificacao.Destinatario);
         Assert.Same(passeio, notificacao.Passeio);
         Assert.Equal(TipoNotificacao.PASSEIO_SOLICITADO, notificacao.Tipo);
+        Assert.Equal(Fabrica.Agora, notificacao.DataEnvio);
         Assert.Single(servico.ListarNaoLidas(passeador.Id));
     }
 
@@ -34,8 +35,8 @@ public class NotificacaoServicoTests
         var (_, passeador, passeio) = CriarParticipantes();
         var servico = CriarServico();
 
-        var lida = servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO);
-        servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_ACEITO);
+        var lida = servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, Fabrica.Agora);
+        servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_ACEITO, Fabrica.Agora);
         lida.MarcarComoLida();
 
         var naoLidas = servico.ListarNaoLidas(passeador.Id);
@@ -50,8 +51,8 @@ public class NotificacaoServicoTests
         var (tutor, passeador, passeio) = CriarParticipantes();
         var servico = CriarServico();
 
-        servico.Enviar(tutor, passeio, TipoNotificacao.PASSEIO_CANCELADO);
-        servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO);
+        servico.Enviar(tutor, passeio, TipoNotificacao.PASSEIO_CANCELADO, Fabrica.Agora);
+        servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, Fabrica.Agora);
 
         var doTutor = servico.ListarNaoLidas(tutor.Id);
         var doPasseador = servico.ListarNaoLidas(passeador.Id);

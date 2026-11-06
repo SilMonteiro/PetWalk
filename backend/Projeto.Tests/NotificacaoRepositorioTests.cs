@@ -8,8 +8,8 @@ public class NotificacaoRepositorioTests
         tutor.DefinirId(1);
 
         var repositorio = new NotificacaoRepositorioEmMemoria();
-        repositorio.Adicionar(new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_SOLICITADO));
-        var segunda = repositorio.Adicionar(new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_ACEITO));
+        repositorio.Adicionar(new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_SOLICITADO, Fabrica.Agora));
+        var segunda = repositorio.Adicionar(new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_ACEITO, Fabrica.Agora));
 
         Assert.Same(segunda, repositorio.ObterPorId(2));
         Assert.Equal(TipoNotificacao.PASSEIO_ACEITO, repositorio.ObterPorId(2)!.Tipo);

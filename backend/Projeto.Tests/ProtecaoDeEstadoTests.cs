@@ -185,7 +185,7 @@ public class ProtecaoDeEstadoTests
     {
         var (tutor, _, _, passeio) = CriarPasseioSolicitado();
 
-        var notificacao = new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_ACEITO);
+        var notificacao = new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_ACEITO, Fabrica.Agora);
 
         Assert.False(notificacao.Lida);
         Assert.Equal(TipoNotificacao.PASSEIO_ACEITO, notificacao.Tipo);
@@ -198,7 +198,7 @@ public class ProtecaoDeEstadoTests
     public void Notificacao_MarcarComoLida_TornaLida()
     {
         var (tutor, _, _, passeio) = CriarPasseioSolicitado();
-        var notificacao = new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_FINALIZADO);
+        var notificacao = new Notificacao(tutor, passeio, TipoNotificacao.PASSEIO_FINALIZADO, Fabrica.Agora);
 
         notificacao.MarcarComoLida();
 

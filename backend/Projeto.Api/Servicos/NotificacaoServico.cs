@@ -8,9 +8,9 @@ public class NotificacaoServico
         _notificacoes = notificacoes ?? throw new ArgumentNullException(nameof(notificacoes));
     }
 
-    public Notificacao Enviar(Usuario destinatario, Passeio passeio, TipoNotificacao tipo)
+    public Notificacao Enviar(Usuario destinatario, Passeio passeio, TipoNotificacao tipo, DateTime agora)
     {
-        var notificacao = new Notificacao(destinatario, passeio, tipo);
+        var notificacao = new Notificacao(destinatario, passeio, tipo, agora);
 
         return _notificacoes.Adicionar(notificacao);
     }

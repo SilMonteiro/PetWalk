@@ -26,7 +26,7 @@ public class AvaliacaoTests
     {
         var (passeio, tutor, passeador) = CriarPasseioFinalizado();
 
-        passeio.Avaliar(tutor, 5, "Ótimo passeio");
+        passeio.Avaliar(tutor, 5, "Ótimo passeio", Fabrica.Agora);
 
         var avaliacao = Assert.Single(passeio.Avaliacoes);
         Assert.Same(tutor, avaliacao.Avaliador);
@@ -34,6 +34,7 @@ public class AvaliacaoTests
         Assert.Same(passeio, avaliacao.Passeio);
         Assert.Equal(5, avaliacao.Nota);
         Assert.Equal("Ótimo passeio", avaliacao.Comentario);
+        Assert.Equal(Fabrica.Agora, avaliacao.Data);
         Assert.Equal(5d, passeador.MediaAvaliacao);
         Assert.Equal(0d, tutor.MediaAvaliacao);
     }
@@ -43,7 +44,7 @@ public class AvaliacaoTests
     {
         var (passeio, tutor, passeador) = CriarPasseioFinalizado();
 
-        passeio.Avaliar(passeador, 4, "Tutor atencioso");
+        passeio.Avaliar(passeador, 4, "Tutor atencioso", Fabrica.Agora);
 
         var avaliacao = Assert.Single(passeio.Avaliacoes);
         Assert.Same(tutor, avaliacao.Avaliado);
@@ -55,9 +56,9 @@ public class AvaliacaoTests
     public void MesmoAvaliadorNaoPodeAvaliarDuasVezes()
     {
         var (passeio, tutor, _) = CriarPasseioFinalizado();
-        passeio.Avaliar(tutor, 5, "Primeira avaliação");
+        passeio.Avaliar(tutor, 5, "Primeira avaliação", Fabrica.Agora);
 
-        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Avaliar(tutor, 3, "Segunda avaliação"));
+        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Avaliar(tutor, 3, "Segunda avaliação", Fabrica.Agora));
 
         Assert.Equal("Passeio já avaliado por este usuário", erro.Message);
         Assert.Single(passeio.Avaliacoes);
@@ -69,7 +70,7 @@ public class AvaliacaoTests
     {
         var (passeio, tutor, _) = CriarPasseioSolicitado();
 
-        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Avaliar(tutor, 5, ""));
+        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Avaliar(tutor, 5, "", Fabrica.Agora));
 
         Assert.Equal("Passeio não finalizado", erro.Message);
         Assert.Empty(passeio.Avaliacoes);
@@ -81,7 +82,7 @@ public class AvaliacaoTests
         var (passeio, _, _) = CriarPasseioFinalizado();
         var estranho = CriarUsuario(TipoPerfil.AMBOS, "Carla", "carla@petwalk.com");
 
-        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Avaliar(estranho, 5, ""));
+        var erro = Assert.Throws<InvalidOperationException>(() => passeio.Avaliar(estranho, 5, "", Fabrica.Agora));
 
         Assert.Equal("Usuário não participou deste passeio", erro.Message);
         Assert.Empty(passeio.Avaliacoes);
@@ -94,7 +95,7 @@ public class AvaliacaoTests
     {
         var (passeio, tutor, _) = CriarPasseioFinalizado();
 
-        var erro = Assert.Throws<ArgumentException>(() => passeio.Avaliar(tutor, nota, ""));
+        var erro = Assert.Throws<ArgumentException>(() => passeio.Avaliar(tutor, nota, "", Fabrica.Agora));
 
         Assert.Equal("Nota deve estar entre 1 e 5", erro.Message);
         Assert.Empty(passeio.Avaliacoes);
@@ -105,8 +106,8 @@ public class AvaliacaoTests
     {
         var (passeio, tutor, passeador) = CriarPasseioFinalizado();
 
-        passeio.Avaliar(tutor, 5, "");
-        passeio.Avaliar(passeador, 3, "");
+        passeio.Avaliar(tutor, 5, "", Fabrica.Agora);
+        passeio.Avaliar(passeador, 3, "", Fabrica.Agora);
 
         Assert.Equal(2, passeio.Avaliacoes.Count);
         Assert.Equal(5d, passeador.MediaAvaliacao);
