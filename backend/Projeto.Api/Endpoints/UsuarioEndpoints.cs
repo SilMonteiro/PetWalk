@@ -23,29 +23,36 @@ public static class UsuarioEndpoints
         });
 
         app.MapPost("/login", (LoginRequest req, AutenticacaoServico autenticacao) =>
+            Login(req, autenticacao));
+    }
+
+    // FLX-006: autentica e devolve o perfil e o endereço do próprio usuário para o frontend.
+    // REG-007 continua respeitada: ObterEnderecoPara só entrega o endereço ao próprio dono.
+    internal static IResult Login(LoginRequest req, AutenticacaoServico autenticacao)
+    {
+        try
         {
-            try
-            {
-                var usuario = autenticacao.Autenticar(req.Email, req.Senha);
+            var usuario = autenticacao.Autenticar(req.Email, req.Senha);
 
-                if (usuario is null)
-                {
-                    return Results.Json(new { erro = "E-mail ou senha inválidos" }, statusCode: StatusCodes.Status401Unauthorized);
-                }
-
-                return Results.Ok(new
-                {
-                    mensagem = "Login realizado com sucesso!",
-                    id = usuario.Id,
-                    nome = usuario.Nome,
-                    email = usuario.Email
-                });
-            }
-            catch (InvalidOperationException ex)
+            if (usuario is null)
             {
-                // REG-011: só chega aqui quem acertou a senha de uma conta bloqueada.
-                return Results.Json(new { erro = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+                return Results.Json(new { erro = "E-mail ou senha inválidos" }, statusCode: StatusCodes.Status401Unauthorized);
             }
-        });
+
+            return Results.Ok(new
+            {
+                mensagem = "Login realizado com sucesso!",
+                id = usuario.Id,
+                nome = usuario.Nome,
+                email = usuario.Email,
+                tipoPerfil = usuario.TipoPerfil,
+                endereco = usuario.ObterEnderecoPara(usuario)
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // REG-011: só chega aqui quem acertou a senha de uma conta bloqueada.
+            return Results.Json(new { erro = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+        }
     }
 }
