@@ -6,6 +6,7 @@ import CadastroPage from './pages/CadastroPage';
 import HomePage from './pages/HomePage';
 import PetsPage from './pages/PetsPage';
 import PasseadoresPage from './pages/PasseadoresPage';
+import SolicitarPasseioPage from './pages/SolicitarPasseioPage';
 import PetFormPage from './pages/PetFormPage';
 
 function App() {
@@ -52,6 +53,14 @@ function App() {
             element={
               <RotaProtegida>
                 <PasseadoresPage />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/passeios/novo"
+            element={
+              <RotaProtegida>
+                <SolicitarPasseioPage />
               </RotaProtegida>
             }
           />
