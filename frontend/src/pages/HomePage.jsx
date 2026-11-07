@@ -2,7 +2,7 @@ import React, { useEffect, useState }  from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/home.css';
 
-const HomeScreen = () => {
+const HomePage = () => {
     const navigate = useNavigate();
 
     const [mensagemApi, setMensagemApi] = useState('');
@@ -51,4 +51,4 @@ const HomeScreen = () => {
     );
 };
 
-export default HomeScreen;
+export default HomePage;

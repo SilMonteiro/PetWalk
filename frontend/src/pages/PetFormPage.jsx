@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/pet-registration.css';
 
-export function PetRegistrationScreen() {
+export function PetFormPage() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({

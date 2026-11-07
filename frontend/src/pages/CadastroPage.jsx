@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../styles/login.css';
+import '../styles/cadastro.css';
 
-const RegisterScreen = () => {
+const CadastroPage = () => {
     const navigate = useNavigate();
 
     const [nome, setNome] = useState('');
@@ -139,4 +139,4 @@ const RegisterScreen = () => {
     );
 };
 
-export default RegisterScreen;
+export default CadastroPage;

@@ -5,7 +5,7 @@ import '../styles/login.css';
 const MOCK_EMAIL = 'admin@petwalk.com';
 const MOCK_SENHA = '123456';
 
-const LoginScreen = () => {
+const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [erro, setErro] = useState('');
@@ -54,7 +54,7 @@ const LoginScreen = () => {
                 </p>
                 <p>
     Você ainda não possui cadastro?{' '}
-    <button class="cadastro-pet" type="button" onClick={() => navigate('/cadastro')}>
+    <button className="cadastro-pet" type="button" onClick={() => navigate('/cadastro')}>
         Cadastre-se aqui
     </button>
 </p>
@@ -63,4 +63,4 @@ const LoginScreen = () => {
     );
 };
 
-export default LoginScreen;
+export default LoginPage;
