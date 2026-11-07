@@ -1,9 +1,11 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotificacoes } from '../context/NotificacoesContext';
 import '../styles/header.css';
 
 export default function Header() {
   const { usuario, sair } = useAuth();
+  const { naoLidas } = useNotificacoes();
   const navigate = useNavigate();
 
   const handleSair = () => {
@@ -16,8 +18,16 @@ export default function Header() {
       <span className="header-logo">🐾 PetWalk</span>
 
       <div className="header-acoes">
-        {/* Espaço reservado para o contador de notificações não lidas (S11). */}
-        <div className="header-notificacoes" aria-hidden="true" />
+        <Link
+          className="header-notificacoes"
+          to="/notificacoes"
+          aria-label={
+            naoLidas > 0 ? `Notificações: ${naoLidas} não lidas` : 'Notificações'
+          }
+        >
+          <span aria-hidden="true">🔔</span>
+          {naoLidas > 0 && <span className="header-contador">{naoLidas}</span>}
+        </Link>
 
         <span className="header-usuario">{usuario.nome}</span>
 

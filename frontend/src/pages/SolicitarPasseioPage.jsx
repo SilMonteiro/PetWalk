@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { listarPasseadores } from '../services/passeadorService';
 import { listarPets } from '../services/petService';
 import { solicitarPasseio } from '../services/passeioService';
+import { useNotificacoes } from '../context/NotificacoesContext';
 import { ROTULO_STATUS_PASSEIO, TIPO_PERFIL } from '../constants/enums';
 import '../styles/solicitar-passeio.css';
 
@@ -21,6 +22,7 @@ function paraDataHoraLocal(data) {
 
 const SolicitarPasseioPage = () => {
   const { usuario } = useAuth();
+  const { recarregar } = useNotificacoes();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -109,6 +111,8 @@ const SolicitarPasseioPage = () => {
         `Passeio solicitado! Valor: ${FORMATO_MOEDA.format(passeio.valor)} · ` +
           `Status: ${ROTULO_STATUS_PASSEIO[passeio.status]}.`
       );
+
+      recarregar();
 
       setTimeout(() => {
         navigate('/passeios');

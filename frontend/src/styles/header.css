@@ -24,11 +24,28 @@
 }
 
 .header-notificacoes {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  min-height: 24px;
+  min-width: 28px;
+  min-height: 28px;
+  font-size: 1.2rem;
+  text-decoration: none;
+}
+
+.header-contador {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background-color: #dc2626;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-align: center;
 }
 
 .header-usuario {

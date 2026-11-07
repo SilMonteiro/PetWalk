@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AvaliacaoForm from './AvaliacaoForm';
+import { useNotificacoes } from '../context/NotificacoesContext';
 import { aceitar, cancelar, finalizar, iniciar, recusar } from '../services/passeioService';
 import { PAPEL, ROTULO_STATUS_PASSEIO } from '../constants/enums';
 import { acoesDisponiveis } from '../utils/passeioAcoes';
@@ -26,6 +27,7 @@ const ROTULO_ACAO = {
 const EXECUTORES = { aceitar, recusar, iniciar, finalizar, cancelar };
 
 export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
+  const { recarregar } = useNotificacoes();
   const [acaoEmAndamento, setAcaoEmAndamento] = useState(null);
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
   const [erro, setErro] = useState('');
@@ -47,6 +49,7 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
       const atualizado = await EXECUTORES[acao](passeio.id, usuarioId);
       setConfirmandoCancelamento(false);
       onAtualizado(atualizado);
+      recarregar();
     } catch (falha) {
       setErro(falha.message);
     } finally {
