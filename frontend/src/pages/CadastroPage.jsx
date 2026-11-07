@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { cadastrar } from '../services/usuarioService';
+import {
+    ROTULO_TIPO_COBRANCA,
+    ROTULO_TIPO_PERFIL,
+    TIPO_COBRANCA,
+    TIPO_PERFIL
+} from '../constants/enums';
 import '../styles/cadastro.css';
 
 const CadastroPage = () => {
@@ -9,14 +16,25 @@ const CadastroPage = () => {
     const [email, setEmail] = useState('');
     const [telefone, setTelefone] = useState('');
     const [endereco, setEndereco] = useState('');
-    const [tipoPerfil, setTipoPerfil] = useState(0); // 0 = TUTOR, 1 = PASSEADOR, 2 = AMBOS
+    const [tipoPerfil, setTipoPerfil] = useState(TIPO_PERFIL.TUTOR);
     const [senha, setSenha] = useState('');
+    const [valorHora, setValorHora] = useState('');
+    const [tipoCobranca, setTipoCobranca] = useState(TIPO_COBRANCA.POR_HORA);
 
     const [erro, setErro] = useState('');
     const [sucesso, setSucesso] = useState('');
+    const [enviando, setEnviando] = useState(false);
+
+    const perfilPasseador =
+        tipoPerfil === TIPO_PERFIL.PASSEADOR || tipoPerfil === TIPO_PERFIL.AMBOS;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (enviando) {
+            return;
+        }
+
         setErro('');
         setSucesso('');
 
@@ -25,41 +43,28 @@ const CadastroPage = () => {
             email,
             telefone,
             endereco,
-            tipoPerfil: Number(tipoPerfil),
+            tipoPerfil,
             senha
         };
 
-        try {
-            const listaUsuarios = JSON.parse(localStorage.getItem('usuarios_petwalk')) || [];
-            listaUsuarios.push({ ...dadosCadastro, id: Date.now() });
-            localStorage.setItem('usuarios_petwalk', JSON.stringify(listaUsuarios));
-        } catch (errCache) {
-            console.error('Erro ao salvar no cache:', errCache);
+        // Só o perfil que passeia envia cobrança; sem ela o passeador nasce com valor 0.
+        if (perfilPasseador) {
+            dadosCadastro.valorHora = Number(valorHora);
+            dadosCadastro.tipoCobranca = tipoCobranca;
         }
 
-        try {
-            const resposta = await fetch('http://localhost:5229/cadastro', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(dadosCadastro)
-            });
+        setEnviando(true);
 
-            if (resposta.ok) {
-                const dados = await resposta.json();
-                setSucesso(dados.mensagem || 'Usuário cadastrado com sucesso!');
-                
-                setTimeout(() => {
-                    navigate('/home');
-                }, 1500);
-            } else {
-                const textoErro = await resposta.text();
-                setErro(textoErro || 'Erro ao realizar cadastro.');
-            }
-        } catch (err) {
-            console.error('Erro de conexão:', err);
-            setErro('Não foi possível conectar ao servidor C#.');
+        try {
+            const resposta = await cadastrar(dadosCadastro);
+            setSucesso(resposta.mensagem);
+
+            setTimeout(() => {
+                navigate('/');
+            }, 1500);
+        } catch (falha) {
+            setErro(falha.message);
+            setEnviando(false);
         }
     };
 
@@ -90,7 +95,7 @@ const CadastroPage = () => {
                 <div className="campo">
                     <label htmlFor="telefone">Telefone:</label>
                     <input
-                        type="number"
+                        type="tel"
                         id="telefone"
                         value={telefone}
                         onChange={(e) => setTelefone(e.target.value)}
@@ -112,14 +117,48 @@ const CadastroPage = () => {
                     <select
                         id="Tipo"
                         value={tipoPerfil}
-                        onChange={(e) => setTipoPerfil(e.target.value)}
+                        onChange={(e) => setTipoPerfil(Number(e.target.value))}
                         required
                     >
-                        <option value="0">Tutor</option>
-                        <option value="1">Passeador</option>
-                        <option value="2">Ambos</option>
+                        {Object.entries(ROTULO_TIPO_PERFIL).map(([valor, rotulo]) => (
+                            <option key={valor} value={Number(valor)}>
+                                {rotulo}
+                            </option>
+                        ))}
                     </select>
                 </div>
+                {perfilPasseador && (
+                    <>
+                        <div className="campo">
+                            <label htmlFor="valorHora">Valor por hora (R$):</label>
+                            <input
+                                type="number"
+                                id="valorHora"
+                                min="0.01"
+                                step="0.01"
+                                value={valorHora}
+                                onChange={(e) => setValorHora(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="campo">
+                            <label htmlFor="tipoCobranca">Tipo de cobrança:</label>
+                            <select
+                                id="tipoCobranca"
+                                value={tipoCobranca}
+                                onChange={(e) => setTipoCobranca(Number(e.target.value))}
+                                required
+                            >
+                                <option value={TIPO_COBRANCA.POR_HORA}>
+                                    {ROTULO_TIPO_COBRANCA[TIPO_COBRANCA.POR_HORA]}
+                                </option>
+                                <option value={TIPO_COBRANCA.POR_HORA_COM_ADICIONAL_DE_PORTE}>
+                                    {ROTULO_TIPO_COBRANCA[TIPO_COBRANCA.POR_HORA_COM_ADICIONAL_DE_PORTE]}
+                                </option>
+                            </select>
+                        </div>
+                    </>
+                )}
                 <div className="campo">
                     <label htmlFor="senha">Senha:</label>
                     <input
@@ -133,7 +172,15 @@ const CadastroPage = () => {
                 {erro && <p className="mensagem-erro">{erro}</p>}
                 {sucesso && <p className="mensagem-sucesso">{sucesso}</p>}
 
-                <button type="submit" className="botao-cadastrar">Cadastrar</button>
+                <button type="submit" className="botao-cadastrar" disabled={enviando}>
+                    Cadastrar
+                </button>
+
+                <p className="rodape-cadastro">
+                    <Link className="link-login" to="/">
+                        Já tenho conta
+                    </Link>
+                </p>
             </form>
         </div>
     );

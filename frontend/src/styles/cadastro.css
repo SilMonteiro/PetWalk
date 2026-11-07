@@ -39,3 +39,14 @@
   text-align: center;
   margin: 8px 0;
 }
+
+.rodape-cadastro {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.link-login {
+  color: #2d6a4f;
+  font-weight: bold;
+}

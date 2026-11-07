@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import RotaProtegida from './components/RotaProtegida';
 import LoginPage from './pages/LoginPage';
+import CadastroPage from './pages/CadastroPage';
 import HomePage from './pages/HomePage';
 import { PetFormPage } from './pages/PetFormPage';
 
@@ -11,6 +12,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LoginPage />} />
+          <Route path="/cadastro" element={<CadastroPage />} />
           <Route
             path="/home"
             element={

@@ -49,7 +49,7 @@ export const ROTULO_PORTE = {
 
 export const ROTULO_TIPO_COBRANCA = {
   [TIPO_COBRANCA.POR_HORA]: 'Por hora',
-  [TIPO_COBRANCA.POR_HORA_COM_ADICIONAL_DE_PORTE]: 'Por hora com adicional de porte'
+  [TIPO_COBRANCA.POR_HORA_COM_ADICIONAL_DE_PORTE]: 'Por hora + adicional para porte grande'
 };
 
 export const ROTULO_STATUS_PASSEIO = {
