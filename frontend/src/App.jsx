@@ -5,7 +5,7 @@ import LoginPage from './pages/LoginPage';
 import CadastroPage from './pages/CadastroPage';
 import HomePage from './pages/HomePage';
 import PetsPage from './pages/PetsPage';
-import { PetFormPage } from './pages/PetFormPage';
+import PetFormPage from './pages/PetFormPage';
 
 function App() {
   return (
@@ -30,7 +30,22 @@ function App() {
               </RotaProtegida>
             }
           />
-          <Route path="/registro-pet" element={<PetFormPage />} />
+          <Route
+            path="/pets/novo"
+            element={
+              <RotaProtegida>
+                <PetFormPage />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/pets/:id/editar"
+            element={
+              <RotaProtegida>
+                <PetFormPage />
+              </RotaProtegida>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
