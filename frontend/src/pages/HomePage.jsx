@@ -1,9 +1,11 @@
 import React, { useEffect, useState }  from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import '../styles/home.css';
 
 const HomePage = () => {
     const navigate = useNavigate();
+    const { sair } = useAuth();
 
     const [mensagemApi, setMensagemApi] = useState('');
 
@@ -17,7 +19,7 @@ const HomePage = () => {
         <div className="container-home">
             <header className="header-home">
                 <h1>🐾 PetWalk</h1>
-                <button className="botao-sair" onClick={() => navigate('/')}>
+                <button className="botao-sair" onClick={() => { sair(); navigate('/'); }}>
                     Sair
                 </button>
             </header>
