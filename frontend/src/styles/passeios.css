@@ -198,3 +198,70 @@
 .passeio-confirmacao .passeio-acoes {
   margin-top: 10px;
 }
+
+.passeio-avaliacao {
+  margin-top: 14px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.passeio-avaliacao-titulo {
+  margin: 0 0 10px;
+  color: #1b4332;
+  font-size: 1rem;
+}
+
+.passeio-avaliacao-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.passeio-avaliacao-campo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.passeio-avaliacao-campo label {
+  margin-bottom: 4px;
+  color: #34495e;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.passeio-avaliacao-campo select,
+.passeio-avaliacao-campo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  background-color: #ffffff;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.passeio-avaliacao-campo select:focus,
+.passeio-avaliacao-campo textarea:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15);
+}
+
+.passeio-avaliacao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.passeio-avaliacao-sucesso {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #166534;
+  font-size: 0.9rem;
+}

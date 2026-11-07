@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AvaliacaoForm from './AvaliacaoForm';
 import { aceitar, cancelar, finalizar, iniciar, recusar } from '../services/passeioService';
 import { PAPEL, ROTULO_STATUS_PASSEIO } from '../constants/enums';
 import { acoesDisponiveis } from '../utils/passeioAcoes';
@@ -8,12 +9,18 @@ const FORMATO_MOEDA = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL'
 });
 
+const FORMATO_NOTA = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1
+});
+
 const ROTULO_ACAO = {
   aceitar: 'Aceitar',
   recusar: 'Recusar',
   iniciar: 'Iniciar',
   finalizar: 'Finalizar',
-  cancelar: 'Cancelar'
+  cancelar: 'Cancelar',
+  avaliar: 'Avaliar'
 };
 
 const EXECUTORES = { aceitar, recusar, iniciar, finalizar, cancelar };
@@ -22,6 +29,9 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
   const [acaoEmAndamento, setAcaoEmAndamento] = useState(null);
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
   const [erro, setErro] = useState('');
+  const [avaliarAberto, setAvaliarAberto] = useState(false);
+  const [avaliacao, setAvaliacao] = useState(null);
+  const [avaliacaoIndisponivel, setAvaliacaoIndisponivel] = useState(false);
 
   const acoes = acoesDisponiveis(passeio.papel, passeio.status);
   const ehTutor = passeio.papel === PAPEL.TUTOR;
@@ -44,6 +54,23 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
     }
   };
 
+  const handleAvaliado = (resultado) => {
+    setAvaliarAberto(false);
+    setAvaliacao(resultado);
+  };
+
+  const handleJaAvaliado = () => {
+    setAvaliacaoIndisponivel(true);
+  };
+
+  const abrirAvaliacao = () => {
+    setErro('');
+    setAvaliarAberto(true);
+  };
+
+  const podeMostrarAcoes =
+    acoes.length > 0 && !avaliacao && !avaliacaoIndisponivel;
+
   return (
     <li className="passeio-card">
       <div className="passeio-topo">
@@ -64,6 +91,14 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
       </p>
 
       {erro && <p className="passeio-erro">{erro}</p>}
+
+      {avaliacao && (
+        <p className="passeio-avaliacao-sucesso">
+          Avaliação registrada: nota {avaliacao.nota}. Nova média de{' '}
+          {avaliacao.avaliado.nome}:{' '}
+          {FORMATO_NOTA.format(avaliacao.mediaAvaliacao)}.
+        </p>
+      )}
 
       {confirmandoCancelamento ? (
         <div className="passeio-confirmacao">
@@ -91,36 +126,36 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
             </button>
           </div>
         </div>
+      ) : avaliarAberto ? (
+        <AvaliacaoForm
+          passeioId={passeio.id}
+          usuarioId={usuarioId}
+          onAvaliado={handleAvaliado}
+          onJaAvaliado={handleJaAvaliado}
+          onCancelar={() => setAvaliarAberto(false)}
+        />
       ) : (
-        acoes.length > 0 && (
+        podeMostrarAcoes && (
           <div className="passeio-acoes">
-            {acoes.map((acao) =>
-              acao === 'avaliar' ? (
-                <button
-                  key={acao}
-                  type="button"
-                  className="passeio-botao passeio-botao-secundario"
-                  disabled
-                  title="A avaliação será implementada na próxima etapa"
-                >
-                  Avaliar
-                </button>
-              ) : (
-                <button
-                  key={acao}
-                  type="button"
-                  className={`passeio-botao passeio-botao-${acao}`}
-                  onClick={() =>
-                    acao === 'cancelar'
-                      ? setConfirmandoCancelamento(true)
-                      : executar(acao)
+            {acoes.map((acao) => (
+              <button
+                key={acao}
+                type="button"
+                className={`passeio-botao passeio-botao-${acao}`}
+                onClick={() => {
+                  if (acao === 'cancelar') {
+                    setConfirmandoCancelamento(true);
+                  } else if (acao === 'avaliar') {
+                    abrirAvaliacao();
+                  } else {
+                    executar(acao);
                   }
-                  disabled={ocupado}
-                >
-                  {ROTULO_ACAO[acao]}
-                </button>
-              )
-            )}
+                }}
+                disabled={ocupado}
+              >
+                {ROTULO_ACAO[acao]}
+              </button>
+            ))}
           </div>
         )
       )}
