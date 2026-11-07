@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import CadastroPage from './pages/CadastroPage';
 import HomePage from './pages/HomePage';
 import PetsPage from './pages/PetsPage';
+import PasseadoresPage from './pages/PasseadoresPage';
 import PetFormPage from './pages/PetFormPage';
 
 function App() {
@@ -43,6 +44,14 @@ function App() {
             element={
               <RotaProtegida>
                 <PetFormPage />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/passeadores"
+            element={
+              <RotaProtegida>
+                <PasseadoresPage />
               </RotaProtegida>
             }
           />
