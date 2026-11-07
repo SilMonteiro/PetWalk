@@ -4,6 +4,7 @@ import RotaProtegida from './components/RotaProtegida';
 import LoginPage from './pages/LoginPage';
 import CadastroPage from './pages/CadastroPage';
 import HomePage from './pages/HomePage';
+import PetsPage from './pages/PetsPage';
 import { PetFormPage } from './pages/PetFormPage';
 
 function App() {
@@ -18,6 +19,14 @@ function App() {
             element={
               <RotaProtegida>
                 <HomePage />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/pets"
+            element={
+              <RotaProtegida>
+                <PetsPage />
               </RotaProtegida>
             }
           />

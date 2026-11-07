@@ -26,7 +26,7 @@ const CARDS = {
 };
 
 // Rotas que já existem. As fatias seguintes adicionam os destinos e habilitam os cards.
-const DESTINOS_DISPONIVEIS = new Set();
+const DESTINOS_DISPONIVEIS = new Set(['/pets']);
 
 function CardHome({ card }) {
   const disponivel = DESTINOS_DISPONIVEIS.has(card.destino);
