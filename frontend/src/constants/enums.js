@@ -69,3 +69,9 @@ export const ROTULO_TIPO_NOTIFICACAO = {
   [TIPO_NOTIFICACAO.FINALIZADO]: 'Finalizado',
   [TIPO_NOTIFICACAO.CANCELADO]: 'Cancelado'
 };
+
+// Único campo textual dos enums: a perspectiva do usuário no passeio.
+export const PAPEL = {
+  TUTOR: 'TUTOR',
+  PASSEADOR: 'PASSEADOR'
+};
