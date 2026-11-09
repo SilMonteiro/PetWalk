@@ -1,25 +1,34 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { login } from '../services/usuarioService';
 import '../styles/login.css';
 
-const MOCK_EMAIL = 'admin@petwalk.com';
-const MOCK_SENHA = '123456';
-
-const LoginScreen = () => {
+const LoginPage = () => {
+    const { usuario, entrar } = useAuth();
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [erro, setErro] = useState('');
+    const [enviando, setEnviando] = useState(false);
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    if (usuario) {
+        return <Navigate to="/home" replace />;
+    }
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setErro('');
+        setEnviando(true);
 
-        // Validação com credenciais mockadas
-        if (email === MOCK_EMAIL && senha === MOCK_SENHA) {
+        try {
+            const dados = await login(email, senha);
+            entrar(dados);
             navigate('/home');
-        } else {
-            setErro('Email ou senha inválidos. Use: admin@petwalk.com / 123456');
+        } catch (falha) {
+            setErro(falha.message);
+        } finally {
+            setEnviando(false);
         }
     };
 
@@ -48,13 +57,12 @@ const LoginScreen = () => {
                     />
                 </div>
                 {erro && <p className="mensagem-erro">{erro}</p>}
-                <button type="submit" className="botao-login">Entrar</button>
-                <p className="dica-login">
-                    Credenciais de teste: <strong>admin@petwalk.com</strong> / <strong>123456</strong>
-                </p>
+                <button type="submit" className="botao-login" disabled={enviando}>
+                    Entrar
+                </button>
                 <p>
     Você ainda não possui cadastro?{' '}
-    <button class="cadastro-pet" type="button" onClick={() => navigate('/cadastro')}>
+    <button className="cadastro-pet" type="button" onClick={() => navigate('/cadastro')}>
         Cadastre-se aqui
     </button>
 </p>
@@ -63,4 +71,4 @@ const LoginScreen = () => {
     );
 };
 
-export default LoginScreen;
+export default LoginPage;

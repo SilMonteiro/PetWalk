@@ -62,7 +62,7 @@ Content-Type: application/json
 
 ###
 
-# Esperado: 200 {"mensagem":"Login realizado com sucesso!","id":1,"nome":"Maria","email":"maria@petwalk.com"}
+# Esperado: 200 {"mensagem":"Login realizado com sucesso!","id":1,"nome":"Maria","email":"maria@petwalk.com","tipoPerfil":0,"endereco":"Rua das Flores, 10"}
 POST {{Projeto.Api_HostAddress}}/login
 Content-Type: application/json
 

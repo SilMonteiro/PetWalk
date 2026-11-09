@@ -242,7 +242,7 @@ Por construção, o `ExigirStatus` bloqueia todas as transições proibidas (FIN
   - **REG-001:** `passeio.Status == FINALIZADO` ("Passeio não finalizado") e nota entre 1 e 5 ("Nota deve estar entre 1 e 5");
   - **REG-006:** `passeio.Participou(avaliador)` ("Usuário não participou deste passeio").
 - O avaliado é derivado do passeio (se o tutor avalia, o avaliado é o passeador, e vice-versa).
-- "Já avaliado por este usuário" (segunda parte da REG-001): fica no `Passeio`, que guarda suas avaliações em uma `List<Avaliacao>` privada e expõe `Passeio.Avaliar(Usuario avaliador, int nota, string comentario)`. Assim a duplicidade é verificada por quem tem a informação.
+- "Passeio já avaliado por este usuário" (segunda parte da REG-001): fica no `Passeio`, que guarda suas avaliações em uma `List<Avaliacao>` privada e expõe `Passeio.Avaliar(Usuario avaliador, int nota, string comentario)`. Assim a duplicidade é verificada por quem tem a informação.
 - Depois de criada a avaliação, o avaliado recalcula a média (`RecalcularMedia`).
 
 **`Notificacao`**:
@@ -328,6 +328,8 @@ As interfaces de repositório da etapa 5 também contam para abstração (F).
 
 **Dimensão:** H · **Item da correção:** "Nenhum teste"
 
+**Status:** concluída (`dotnet test` com 160 testes passando, cobrindo REG-001 a REG-011, ciclo de vida e políticas de preço).
+
 Em `backend/Projeto.Tests/`, um arquivo por objeto (`PasseioTests.cs`, `UsuarioTests.cs`, `AvaliacaoTests.cs`, `PoliticaDePrecoTests.cs`). No mínimo, conferindo também a **mensagem** de erro:
 
 | Regra | Teste |
@@ -394,7 +396,9 @@ Padrões:
 
 **Dimensões:** I, J, K · **Itens da correção:** "O frontend não entrega o CRUD exigido", "A integração é parcial e repetida" e "A organização tem uma tela morta"
 
-### 9.1 Estrutura
+**Status:** concluída (frontend em `pages/components/services/context/constants/utils`, login real, CRUD de pets, passeadores, solicitação, ciclo completo do passeio, avaliação e notificações; `npm run build` sem erros e sem `fetch`/`localStorage` fora de `services/api.js` e `AuthContext`).
+
+### 9.1 Estrutura — concluída
 
 ```
 frontend/src/
@@ -409,7 +413,7 @@ frontend/src/
 - Cada tela importa **apenas o seu** CSS. Remover os imports de CSS de `main.jsx`.
 - Trocar `class=` por `className=` em `LoginScreen.jsx`.
 
-### 9.2 Camada de serviço
+### 9.2 Camada de serviço — concluída
 
 `frontend/.env`:
 ```
@@ -436,7 +440,7 @@ export async function api(caminho, { method = 'GET', body } = {}) {
 
 `services/petService.js`: `listarPets(usuarioId)`, `obterPet`, `criarPet`, `atualizarPet`, `excluirPet`. Nenhuma tela chama `fetch` diretamente.
 
-### 9.3 Telas
+### 9.3 Telas — concluída
 
 | Tela | O que muda |
 |---|---|
@@ -448,7 +452,7 @@ export async function api(caminho, { method = 'GET', body } = {}) {
 | Excluir | **Delete** com confirmação construída na própria tela (não `window.confirm`); a lista é atualizada após excluir |
 | Rotas protegidas | `RotaProtegida` redireciona para `/` se não houver usuário logado; o botão "Sair" limpa o contexto |
 
-### 9.4 Passeios (fluxos FLX-001 a FLX-009)
+### 9.4 Passeios (fluxos FLX-001 a FLX-009) — concluída
 
 Depois do CRUD de pet:
 - Lista de passeadores ativos com o botão "Solicitar".
@@ -457,7 +461,7 @@ Depois do CRUD de pet:
 - Avaliação (nota de 1 a 5) para passeio finalizado.
 - Contador de notificações não lidas no header.
 
-### 9.5 README
+### 9.5 README — concluída
 
 Atualizar o `README.md`: remover as credenciais de teste mockadas e listar as rotas reais do frontend (incluindo `/cadastro` e as telas de pets e passeios).
 
@@ -488,6 +492,6 @@ Uma divisão possível para 5 pessoas: (1) entidades e Usuario, (2) Passeio, Ava
 - [x] 4. `Passeio` guarda `Usuario Tutor`, `Usuario Passeador` e `Pet Pet`
 - [x] 5. Endpoints de pet (CRUD) e de passeio (ciclo de vida) ligados ao domínio; template de clima removido
 - [x] 6. Persistência em repositórios; senha com hash; e-mail único e usuário bloqueado recusado no login
-- [ ] 7. `/cadastro` roteado; login chamando a API; pet com CRUD pela API; `services/api.js` com `VITE_API_URL`
+- [x] 7. `/cadastro` roteado; login chamando a API; pet com CRUD pela API; `services/api.js` com `VITE_API_URL`
 - [x] 8. Testes cobrindo REG-001 a REG-011 e as transições proibidas
-- [ ] Extra: `proposta.md` preenchida e igual ao código (variação polimórfica, escopo, fora do escopo, riscos, participação, conceitos e regras)
+- [x] Extra: `proposta.md` preenchida e igual ao código (variação polimórfica, escopo, fora do escopo, riscos, participação, conceitos e regras)

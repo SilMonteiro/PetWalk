@@ -31,7 +31,6 @@ dotnet --version
 
 Clone o repositório e abra um terminal na raiz do projeto. O frontend e a API devem ser executados em **terminais separados**.
 
-
 ### 1. Iniciar a API
 
 No primeiro terminal:
@@ -42,10 +41,9 @@ dotnet restore
 dotnet run --launch-profile http
 ```
 
-A API ficará disponível em `http://localhost:5229`. 
+A API ficará disponível em `http://localhost:5229`.
 Para confirmar que está respondendo, acesse o documento OpenAPI em `http://localhost:5229/openapi/v1.json`
 (ou use as requisições de `backend/Projeto.Api/Projeto.Api.http`).
-
 
 ### Executar os testes do backend
 
@@ -66,17 +64,43 @@ npm run dev
 
 Abra `http://localhost:3000` no navegador. Mantenha os dois terminais abertos enquanto estiver usando o projeto.
 
+#### Configuração da API no frontend
+
+O frontend lê a URL da API da variável `VITE_API_URL`. O modelo versionado é `frontend/.env.example`:
+
+```bash
+cd frontend
+cp .env.example .env
+```
+
+```env
+VITE_API_URL=http://localhost:5229
+```
+
+- `frontend/.env` não é versionado (está no `.gitignore`).
+- Sem `.env`, `src/services/api.js` usa `http://localhost:5229` como valor padrão.
+- A API habilita CORS apenas para `http://localhost:3000`, a porta padrão do Vite.
+
 ### Encerrar os servidores
 
 Em cada terminal, pressione `Ctrl+C`.
 
 ## Rotas e Telas Disponíveis
 
-- **Login:** [http://localhost:3000/](http://localhost:3000/)
-  - *Credenciais de teste (Mock):* **`admin@petwalk.com`** / **`123456`**
-- **Home (Página Inicial):** [http://localhost:3000/home](http://localhost:3000/home)
-- **Cadastro de Pets:** [http://localhost:3000/registro-pet](http://localhost:3000/registro-pet)
+Rotas protegidas redirecionam para o login quando não há usuário na sessão.
 
+| Rota | Tela |
+| :-- | :-- |
+| `/` | Login de usuário real da API |
+| `/cadastro` | Cadastro de tutor, passeador ou ambos |
+| `/home` | Home com cards conforme o `tipoPerfil` |
+| `/pets` | Meus pets (listar e excluir) |
+| `/pets/novo` | Cadastro de pet |
+| `/pets/:id/editar` | Edição de pet |
+| `/passeadores` | Passeadores ativos (tutor) |
+| `/passeios/novo?passeadorId=ID` | Solicitação de passeio (tutor) |
+| `/passeios` | Meus passeios, ações por papel/status e avaliação do passeador |
+| `/notificacoes` | Notificações do usuário logado |
 
 ## Estrutura do Projeto
 
@@ -89,25 +113,59 @@ PetWalk
 │   │   ├── Dominio          # Entidades e regras de negócio
 │   │   ├── Endpoints        # Rotas HTTP (finas, delegam ao domínio)
 │   │   ├── Repositorios     # Armazenamento (atrás de interfaces)
+│   │   ├── Servicos         # Autenticação e notificações
 │   │   └── Properties
 │   └── Projeto.Tests        # Testes xUnit das regras do domínio
 ├── docs
 ├── frontend
+│   ├── .env.example         # Modelo de VITE_API_URL
 │   ├── index.html           # Ponto de entrada HTML do Vite
 │   ├── package.json         # Dependências do projeto frontend
 │   ├── vite.config.js       # Configuração do Vite
 │   └── src
-│       ├── App.jsx          # Configuração de rotas
+│       ├── App.jsx          # Configuração de rotas e providers
 │       ├── main.jsx         # Renderização principal do React
 │       ├── components
-│       │   ├── LoginScreen.jsx
-│       │   ├── HomeScreen.jsx
-│       │   ├── RegisterScreen.jsx
-│       │   └── PetRegistrationScreen.jsx
+│       │   ├── AvaliacaoForm.jsx
+│       │   ├── Header.jsx
+│       │   ├── PasseioCard.jsx
+│       │   ├── PetCard.jsx
+│       │   └── RotaProtegida.jsx
+│       ├── constants
+│       │   └── enums.js
+│       ├── context
+│       │   ├── AuthContext.jsx
+│       │   └── NotificacoesContext.jsx
+│       ├── pages
+│       │   ├── CadastroPage.jsx
+│       │   ├── HomePage.jsx
+│       │   ├── LoginPage.jsx
+│       │   ├── NotificacoesPage.jsx
+│       │   ├── PasseadoresPage.jsx
+│       │   ├── PasseiosPage.jsx
+│       │   ├── PetFormPage.jsx
+│       │   ├── PetsPage.jsx
+│       │   └── SolicitarPasseioPage.jsx
+│       ├── services
+│       │   ├── api.js
+│       │   ├── notificacaoService.js
+│       │   ├── passeadorService.js
+│       │   ├── passeioService.js
+│       │   ├── petService.js
+│       │   └── usuarioService.js
+│       ├── utils
+│       │   └── passeioAcoes.js
 │       └── styles
-│           ├── login.css
+│           ├── cadastro.css
+│           ├── header.css
 │           ├── home.css
-│           └── pet-registration.css
+│           ├── login.css
+│           ├── notificacoes.css
+│           ├── passeadores.css
+│           ├── passeios.css
+│           ├── pet-form.css
+│           ├── pets.css
+│           └── solicitar-passeio.css
 ├── .gitignore
 └── README.md
 ```

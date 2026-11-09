@@ -81,6 +81,12 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 | FLX-009 | Passeador recusa a solicitação, ou tutor/passeador cancela o passeio antes de ele começar | REG-003 (recusa pelo passeador escolhido) e REG-004 (cancelamento só em SOLICITADO ou ACEITO) | Status do Passeio alterado para RECUSADO ou CANCELADO; Notificação (PASSEIO_RECUSADO ou PASSEIO_CANCELADO) enviada à outra parte | Registro mantido no histórico com o status final |
 
 
+## Estado da implementação (S0)
+- FLX-001 a FLX-009 estão implementados na interface: listagem de passeadores, solicitação com local pré-preenchido e valor calculado pela API, aceite/recusa, início, finalização, cancelamento, avaliação do passeador pelo tutor, CRUD de pets, cadastro e login e notificações (contador no header e lista).
+- O `POST /login` devolve também `tipoPerfil` e `endereco` do próprio usuário. O frontend usa o perfil para montar a Home e o endereço apenas como sugestão do local na solicitação (FLX-002); a REG-007 continua respeitada, porque o endereço só é entregue ao próprio usuário e o local do passeio é o informado na solicitação.
+- Continua fora do escopo: autenticação com token/JWT, pagamento real, agenda/disponibilidade, banco de dados real, busca por proximidade e tela do passeador avaliando o tutor.
+
+
 ## Variação polimórfica
 - O que varia: a forma de calcular o valor cobrado pelo passeio, escolhida por cada passeador (tipoCobranca).
 - Contrato implementado: interface IPoliticaDePreco, com o método Calcular(Passeio), que devolve o valor do passeio.
@@ -99,10 +105,10 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 
 
 ## Escopo da AV2
-- Evoluções previstas: ciclo completo do passeio (iniciar, finalizar e cancelar), avaliações com média do passeador, notificações, política de preço (variação polimórfica) e testes automatizados das regras.
+- Evoluções implementadas: ciclo completo do passeio (iniciar, finalizar e cancelar), avaliações com média do passeador, notificações, política de preço (variação polimórfica) e testes automatizados das regras.
 - Três fluxos completos: FLX-002 (solicitar passeio), FLX-004 (finalizar passeio) e FLX-005 (avaliar passeador).
 - Falhas tratadas: mensagens das REG-001 a REG-011 devolvidas pela API e exibidas no frontend, com este contrato de status: 400 para entrada inválida (ex.: "Nota deve estar entre 1 e 5"), 422 para regra de negócio violada (ex.: "Passeio não finalizado", REG-003, REG-004 e REG-008), 404 para recurso inexistente ("Usuário não encontrado", "Passeador não encontrado", "Pet não encontrado", "Passeio não encontrado", "Notificação não encontrada"), 409 para e-mail já cadastrado (REG-010), 403 para usuário bloqueado no login (REG-011) e 401 para credenciais inválidas; transições proibidas do ciclo de vida cobertas pelos mesmos erros.
-- Testes esperados: testes xUnit para REG-001 a REG-011, para o ciclo de vida do Passeio (caminho feliz e transições proibidas) e para as duas políticas de preço.
+- Testes implementados (160 no backend): testes xUnit para REG-001 a REG-011, para o ciclo de vida do Passeio (caminho feliz e transições proibidas) e para as duas políticas de preço.
 
 
 ## Fora do escopo
