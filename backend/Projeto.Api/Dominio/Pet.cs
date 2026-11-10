@@ -1,6 +1,6 @@
 public class Pet
 {
-    private readonly List<string> _vacinas = new();
+    private List<string> _vacinas = new();
 
     public int Id { get; private set; }
     public string Nome { get; private set; } = string.Empty;
@@ -17,6 +17,13 @@ public class Pet
         Tutor = tutor ?? throw new ArgumentNullException(nameof(tutor));
 
         Atualizar(nome, especie, raca, porte, idade, observacoes);
+    }
+
+    // Construtor exclusivo para materialização pelo EF Core: não executa as validações
+    // do construtor público e permite que o Tutor seja atribuído após a materialização.
+    private Pet()
+    {
+        Tutor = null!;
     }
 
     public void Atualizar(string nome, string especie, string raca, Porte porte, int idade, string observacoes)
