@@ -4,7 +4,7 @@ Plataforma Web para intermediação de passeios com pets.
 
 ---
 
-## Integrante
+## Integrantes
 
 - GUILHERME INÁCIO DOS SANTOS MOREIRA - Matrícula: 06014499
 - DANIEL MORAES DELGADO - Matrícula: 06014751
