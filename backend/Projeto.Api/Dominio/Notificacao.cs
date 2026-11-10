@@ -20,6 +20,14 @@ public class Notificacao
         DataEnvio = agora;
     }
 
+    // Construtor exclusivo para materialização pelo EF Core: não executa as regras
+    // do construtor público e permite restaurar Mensagem, Lida e DataEnvio persistidos.
+    private Notificacao()
+    {
+        Destinatario = null!;
+        Passeio = null!;
+    }
+
     public void MarcarComoLida() => Lida = true;
 
     internal void DefinirId(int id) => Id = id;
