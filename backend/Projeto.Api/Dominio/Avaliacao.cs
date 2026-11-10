@@ -34,5 +34,14 @@ public class Avaliacao
         Avaliado = passeio.ObterOutroParticipante(avaliador);
     }
 
+    // Construtor exclusivo para materialização pelo EF Core: não executa as validações
+    // do construtor público nem deriva Avaliado a partir do Passeio.
+    private Avaliacao()
+    {
+        Avaliador = null!;
+        Passeio = null!;
+        Avaliado = null!;
+    }
+
     internal void DefinirId(int id) => Id = id;
 }
