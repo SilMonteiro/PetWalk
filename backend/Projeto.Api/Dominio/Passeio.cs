@@ -36,6 +36,15 @@ public class Passeio
         Valor = politica.Calcular(this);
     }
 
+    // Construtor exclusivo para materialização pelo EF Core: não usa IPoliticaDePreco,
+    // não recalcula Valor e permite restaurar o Status persistido.
+    private Passeio()
+    {
+        Tutor = null!;
+        Passeador = null!;
+        Pet = null!;
+    }
+
     public bool Participou(Usuario u) => u is not null && (u == Tutor || u == Passeador);
 
     // Veio de Passeador.AceitarPasseio (arquivo removido). Regras: REG-003 e o estado do passeio.
