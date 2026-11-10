@@ -17,6 +17,8 @@ public class Usuario
 
     public IReadOnlyList<Pet> Pets => _pets;
 
+    internal IReadOnlyList<Avaliacao> AvaliacoesRecebidas => _avaliacoesRecebidas;
+
     public bool EhTutor => TipoPerfil is TipoPerfil.TUTOR or TipoPerfil.AMBOS;
     public bool EhPasseador => TipoPerfil is TipoPerfil.PASSEADOR or TipoPerfil.AMBOS;
 
@@ -34,6 +36,12 @@ public class Usuario
         TipoPerfil = tipoPerfil;
         SenhaHash = senhaHash;
         Status = StatusUsuario.ATIVO;
+    }
+
+    // Construtor exclusivo para materialização pelo EF Core: não executa as validações
+    // do construtor público e preserva Status, SenhaHash, MediaAvaliacao e coleções.
+    private Usuario()
+    {
     }
 
     // REG-007: o endereço é privado e só o próprio usuário pode consultá-lo.
