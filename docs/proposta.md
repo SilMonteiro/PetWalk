@@ -86,6 +86,8 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 - O `POST /login` devolve também `tipoPerfil` e `endereco` do próprio usuário. O frontend usa o perfil para montar a Home e o endereço apenas como sugestão do local na solicitação (FLX-002); a REG-007 continua respeitada, porque o endereço só é entregue ao próprio usuário e o local do passeio é o informado na solicitação.
 - Continua fora do escopo: autenticação com token/JWT, pagamento real, agenda/disponibilidade, banco de dados real, busca por proximidade e tela do passeador avaliando o tutor.
 
+> **Nota de atualização (subetapa 9.2):** o estado acima é o registro histórico do S0. A versão atual persiste os dados em SQLite em arquivo, via Entity Framework Core, com migrations; um banco compartilhado entre máquinas permanece fora do escopo.
+
 
 ## Variação polimórfica
 - O que varia: a forma de calcular o valor cobrado pelo passeio, escolhida por cada passeador (tipoCobranca).
@@ -103,6 +105,8 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 - Mudança de estado: SOLICITADO → ACEITO (aceitarPasseio) e SOLICITADO → RECUSADO (recusarPasseio).
 - Dados persistidos: Usuário (senha como hash), Pet, Passeio e Notificação, em repositórios em memória (reiniciar a API apaga os dados).
 
+> **Nota de atualização (subetapa 9.2):** esta descrição registra o escopo da AV1. Na versão atual, a persistência é SQLite em arquivo via Entity Framework Core, com migrations; os dados sobrevivem ao reinício da API.
+
 
 ## Escopo da AV2
 - Evoluções implementadas: ciclo completo do passeio (iniciar, finalizar e cancelar), avaliações com média do passeador, notificações, política de preço (variação polimórfica) e testes automatizados das regras.
@@ -110,13 +114,15 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 - Falhas tratadas: mensagens das REG-001 a REG-011 devolvidas pela API e exibidas no frontend, com este contrato de status: 400 para entrada inválida (ex.: "Nota deve estar entre 1 e 5"), 422 para regra de negócio violada (ex.: "Passeio não finalizado", REG-003, REG-004 e REG-008), 404 para recurso inexistente ("Usuário não encontrado", "Passeador não encontrado", "Pet não encontrado", "Passeio não encontrado", "Notificação não encontrada"), 409 para e-mail já cadastrado (REG-010), 403 para usuário bloqueado no login (REG-011) e 401 para credenciais inválidas; transições proibidas do ciclo de vida cobertas pelos mesmos erros.
 - Testes implementados (160 no backend): testes xUnit para REG-001 a REG-011, para o ciclo de vida do Passeio (caminho feliz e transições proibidas) e para as duas políticas de preço.
 
+> **Nota de atualização (subetapa 9.2):** a contagem de 160 testes refere-se à entrega da AV2; a suíte atual tem 291 casos (253 `[Fact]` + 38 casos de `[Theory]`) em 33 classes. Na última execução registrada, 171 casos passaram e 120 permanecem bloqueados pelo Windows App Control (`0x800711C7`), sem execução.
+
 
 ## Fora do escopo
 
 - Autenticação real (login com token/JWT): as ações do passeio identificam quem age pelo id do usuário; as regras de perfil e de endereço (REG-007) são garantidas no domínio.
 - Pagamento e cobrança reais: o sistema apenas calcula e registra o valor do passeio.
 - Disponibilidade e agenda do passeador (conflito de horários).
-- Banco de dados real: os dados ficam em repositórios em memória.
+- Banco de dados compartilhado entre máquinas: a persistência atual é SQLite local em arquivo.
 - Busca de passeadores por proximidade e localização do pet.
 - Tela para o passeador avaliar o tutor (a REG-006 já permite no domínio).
 
@@ -125,7 +131,7 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 | Risco | Impacto | Mitigação |
 | :-- | :-- | :-- |
 | Sem autenticação real, o usuário que age é informado pelo cliente | As regras de perfil e a REG-007 só são garantidas no domínio, não na API | O domínio valida perfil, status e posse em cada operação; autenticação com token registrada como fora do escopo |
-| Armazenamento em memória | Os dados são perdidos ao reiniciar a API | Repositórios atrás de interfaces, permitindo trocar por banco sem alterar o domínio |
+| Armazenamento em memória (histórico) | Os dados eram perdidos ao reiniciar a API | **Mitigado:** a persistência atual é SQLite em arquivo via EF Core, com migrations; os dados sobrevivem ao reinício. |
 | Integração tardia entre frontend e API | Telas prontas sem endpoint correspondente e retrabalho | Contratos (DTOs) e arquivo .http definidos antes; o frontend usa apenas a camada services/ |
 | Unificar Tutor e Passeador em Usuário quebra o código existente | Regressões nas telas de cadastro e login | Testes das regras escritos junto com cada etapa e PRs pequenos |
 | Cinco pessoas alterando as mesmas classes | Conflitos de merge e decisões divergentes | Divisão por etapa e por objeto, com revisão cruzada |

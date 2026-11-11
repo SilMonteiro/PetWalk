@@ -46,6 +46,8 @@
 | D03 | ❌ | `ErroHttp.Erro` faz `_ => throw ex`; não há `UseExceptionHandler`, nem log, nem resposta 500 padronizada. Em ambiente de desenvolvimento a página de exceção pode expor stack trace |
 | D04 | ⚠️ | Há testes para 400/404/409/403/422, mas não para uma falha excepcional (depende de D01 e D03) |
 
+> **Nota de atualização (subetapa 9.2):** o tratamento central de exceções foi implementado após esta avaliação: `Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()`, e `EndpointsFalhaDePersistenciaTests` cobre 500 em três rotas (`Cadastro_FalhaAoSalvar_Devolve500`, `CriarPet_FalhaAoSalvar_Devolve500`, `AtualizarPet_FalhaAoSalvar_Devolve500`). Os status ❌/⚠️ desta tabela são históricos e não foram alterados.
+
 ### E — Depuração (0/6 ❌)
 
 | Item | Status | Situação |
@@ -58,7 +60,7 @@
 |---|---|---|
 | F01 | ✅ | Testes de sucesso e violação para as regras (`SolicitacaoDePasseioTests` 23, `AvaliacaoTests`, `UsuarioTests`, `PasseioEndpointsTests`…) |
 | F02 | ✅ | Testes tentam transição proibida e conferem `Status` inalterado |
-| F03 | ✅ | `FluxoCompletoTests` (`WebApplicationFactory<Program>`) executa o fluxo pela API e lê de volta pelos endpoints. *Observação: a persistência é em memória* |
+| F03 | ✅ | `FluxoCompletoTests` (`WebApplicationFactory<Program>`) executa o fluxo pela API e lê de volta pelos endpoints. *Observação: o teste usa SQLite em memória via `PetWalkApiFactory`; a aplicação persiste em arquivo SQLite.* |
 | F04 | ⚠️ | README tem instruções, mas **não verifiquei** build/testes em clone limpo |
 | F05 | ❌ | Não há matriz de rastreabilidade fluxo ↔ regra ↔ implementação ↔ teste |
 | F06 | ❌ | Não há auditoria final |
@@ -335,7 +337,7 @@ Criar `docs/av2/especificacao-agente.md`. (O PDF escreve "DsCode"; use a mesma f
 
 1. Em outra pasta/máquina: `git clone https://github.com/SilMonteiro/PetWalk && cd PetWalk/backend && dotnet restore && dotnet test`. Registrar o resultado (nº de testes, tempo, SDK).
 2. Se falhar, corrigir README (versão do SDK, pré-requisitos) ou projeto.
-3. Acrescentar ao README: saída esperada e uma linha informando que o armazenamento é **em memória** (não há banco a preparar).
+3. ~~Acrescentar ao README: saída esperada e uma linha informando que o armazenamento é **em memória** (não há banco a preparar).~~ **Substituído (subetapa 9.2):** o README atual documenta SQLite em arquivo, a localização do banco, as migrations e a limitação dos testes bloqueados pelo App Control.
 4. **Recomendado:** criar `.github/workflows/ci.yml` (`actions/setup-dotnet` com `10.0.x`, `dotnet restore`, `dotnet build --no-restore`, `dotnet test --no-build`) e linkar o run verde no documento de auditoria como evidência de "gate técnico".
 
 ---
@@ -360,7 +362,7 @@ Preencha `<método>` com nomes reais (`grep -n "public void\|public async" Proje
 Criar `docs/av2/auditoria-final.md`:
 
 1. Tabela dos 40 itens: **item → status → evidência (arquivo/commit/saída de teste) → pendência/limitação**.
-2. Seção "Limitações conhecidas", declarando honestamente o que **não** existe: persistência em memória (reiniciar a API apaga os dados), ausência de autenticação por token (quem age é informado pelo cliente — risco já registrado na proposta), sem agenda/pagamento.
+2. Seção "Limitações conhecidas", declarando honestamente o que **não** existe: banco compartilhado entre máquinas (a persistência é SQLite local em arquivo), ausência de autenticação por token (quem age é informado pelo cliente — risco já registrado na proposta), sem agenda/pagamento.
 3. Não marcar como concluído nada que não tenha evidência executável.
 4. Anexar saída final de `dotnet test` e, se existir, o link do CI.
 
