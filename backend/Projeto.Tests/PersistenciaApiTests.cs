@@ -632,6 +632,138 @@ public class PersistenciaApiTests : IClassFixture<PetWalkApiFactory>
         Assert.Equal("Usuário não encontrado", documento.RootElement.GetProperty("erro").GetString());
     }
 
+    // FLX-006: autenticação pelo pipeline HTTP real. Os 401/403 não tinham nenhuma cobertura
+    // de endpoint até aqui; o bloqueio é semeado por escopo independente do DbContext.
+    [Fact]
+    public async Task Login_ComCredenciaisValidas_Devolve200ComPerfilEEndereco()
+    {
+        var tutorId = await Cadastrar("Abel", "abel@petwalk.com", TipoPerfil.TUTOR);
+
+        var resposta = await _client.PostAsJsonAsync("/login", new { email = "abel@petwalk.com", senha = "123456" });
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        var corpo = await resposta.Content.ReadAsStringAsync();
+
+        using (var documento = JsonDocument.Parse(corpo))
+        {
+            var login = documento.RootElement;
+
+            Assert.Equal("Login realizado com sucesso!", login.GetProperty("mensagem").GetString());
+            Assert.Equal(tutorId, login.GetProperty("id").GetInt32());
+            Assert.Equal("Abel", login.GetProperty("nome").GetString());
+            Assert.Equal("abel@petwalk.com", login.GetProperty("email").GetString());
+            Assert.Equal((int)TipoPerfil.TUTOR, login.GetProperty("tipoPerfil").GetInt32());
+            Assert.Equal("Rua A, 10", login.GetProperty("endereco").GetString());
+        }
+
+        // REG-007: o login devolve o perfil, nunca o hash, a senha, o telefone ou o status.
+        var corpoEmMinusculas = corpo.ToLowerInvariant();
+        Assert.DoesNotContain("senha", corpoEmMinusculas);
+        Assert.DoesNotContain("hash", corpoEmMinusculas);
+        Assert.DoesNotContain("telefone", corpoEmMinusculas);
+        Assert.DoesNotContain("status", corpoEmMinusculas);
+    }
+
+    [Fact]
+    public async Task Login_ComSenhaErrada_Devolve401ComMensagemGenerica()
+    {
+        await Cadastrar("Bianca", "bianca@petwalk.com", TipoPerfil.TUTOR);
+
+        var resposta = await _client.PostAsJsonAsync("/login", new { email = "bianca@petwalk.com", senha = "senha-errada" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("E-mail ou senha inválidos", documento.RootElement.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    public async Task Login_ComEmailInexistente_Devolve401ComAMesmaMensagem()
+    {
+        // E-mail que nunca foi cadastrado: a resposta não pode revelar a inexistência da conta.
+        var resposta = await _client.PostAsJsonAsync("/login", new { email = "ninguem@petwalk.com", senha = "123456" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("E-mail ou senha inválidos", documento.RootElement.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    public async Task Login_UsuarioBloqueadoComSenhaCerta_Devolve403()
+    {
+        var tutorId = await Cadastrar("Caio", "caio@petwalk.com", TipoPerfil.TUTOR);
+
+        // O hash gravado pelo cadastro é o real: bloquear por escopo evita reimplementar o hash.
+        using (var escopo = _fabrica.Services.CreateScope())
+        {
+            var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+            contexto.Usuarios.Single(u => u.Id == tutorId).Bloquear();
+            contexto.SaveChanges();
+        }
+
+        var resposta = await _client.PostAsJsonAsync("/login", new { email = "caio@petwalk.com", senha = "123456" });
+
+        Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("Usuário está bloqueado", documento.RootElement.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    public async Task Login_UsuarioBloqueadoComSenhaErrada_Devolve401()
+    {
+        var tutorId = await Cadastrar("Dora", "dora@petwalk.com", TipoPerfil.TUTOR);
+
+        using (var escopo = _fabrica.Services.CreateScope())
+        {
+            var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+            contexto.Usuarios.Single(u => u.Id == tutorId).Bloquear();
+            contexto.SaveChanges();
+        }
+
+        // REG-011: quem não prova saber a senha não descobre que a conta está bloqueada.
+        var resposta = await _client.PostAsJsonAsync("/login", new { email = "dora@petwalk.com", senha = "senha-errada" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("E-mail ou senha inválidos", documento.RootElement.GetProperty("erro").GetString());
+
+        // O bloqueio continua gravado: o 401 veio da senha errada, não de a conta estar ativa.
+        using var escopoDoBanco = _fabrica.Services.CreateScope();
+        var contextoDoBanco = escopoDoBanco.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusUsuario.BLOQUEADO, contextoDoBanco.Usuarios.Single(u => u.Id == tutorId).Status);
+    }
+
+    [Fact]
+    public async Task CadastroSemSenha_Devolve400SemCriarUsuario()
+    {
+        var resposta = await _client.PostAsJsonAsync("/cadastro", new
+        {
+            nome = "Elias",
+            email = "elias@petwalk.com",
+            telefone = "11999999999",
+            endereco = "Rua A, 10",
+            tipoPerfil = (int)TipoPerfil.TUTOR,
+            senha = ""
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("Nome, e-mail e senha são obrigatórios.",
+                documento.RootElement.GetProperty("erro").GetString());
+        }
+
+        // Escopo independente: a validação aconteceu antes de qualquer gravação.
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Null(contexto.Usuarios.SingleOrDefault(u => u.Email == "elias@petwalk.com"));
+    }
+
     [Fact]
     public async Task CadastroComEmailRepetido_Devolve409()
     {
