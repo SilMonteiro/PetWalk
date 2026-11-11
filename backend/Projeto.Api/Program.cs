@@ -51,10 +51,20 @@ builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
 builder.Services.AddScoped<AutenticacaoServico>();
 builder.Services.AddScoped<NotificacaoServico>();
 
+// Tradução única de falhas de constraint do EF/SQLite (409/422) — ver ErroDePersistencia.
+// AddProblemDetails cobre o caso não tratado: é o fallback exigido pelo UseExceptionHandler()
+// sem path; as exceções reconhecidas continuam respondendo pelo handler abaixo.
+builder.Services.AddExceptionHandler<ErroDePersistenciaHandler>();
+builder.Services.AddProblemDetails();
+
 // Relógio injetável: os endpoints leem "agora" de time.GetUtcNow().UtcDateTime em vez de DateTime.UtcNow.
 builder.Services.AddSingleton(TimeProvider.System);
 
 var app = builder.Build();
+
+// Primeiro do pipeline: converte DbUpdateException conhecida em resposta e deixa as demais
+// exceções seguirem para o 500 padrão.
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

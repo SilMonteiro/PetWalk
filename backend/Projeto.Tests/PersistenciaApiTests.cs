@@ -112,6 +112,25 @@ public class PersistenciaApiTests : IClassFixture<PetWalkApiFactory>
     }
 
     [Fact]
+    public async Task CadastroComEmailRepetido_Devolve409()
+    {
+        await Cadastrar("Zelia", "zelia@petwalk.com", TipoPerfil.TUTOR);
+
+        var repetido = await _client.PostAsJsonAsync("/cadastro", new
+        {
+            nome = "Zelia de novo",
+            email = "zelia@petwalk.com",
+            telefone = "11999999999",
+            endereco = "Rua A, 10",
+            tipoPerfil = (int)TipoPerfil.TUTOR,
+            senha = "123456"
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, repetido.StatusCode);
+        Assert.Contains("E-mail já cadastrado", await repetido.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task MediaAvaliacao_ConsideraAvaliacoesDePasseiosDiferentes()
     {
         var passeadorId = await Cadastrar("Tania", "tania@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 20m);

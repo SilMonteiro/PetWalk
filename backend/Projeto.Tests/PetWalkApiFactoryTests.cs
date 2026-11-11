@@ -2,6 +2,7 @@ using System.Data;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,16 @@ using Microsoft.Extensions.DependencyInjection;
 // mantém o schema disponível para os testes durante toda a vida da fábrica.
 public class PetWalkApiFactoryTests
 {
+    [Fact]
+    public void Fabrica_RegistraOHandlerDePersistencia()
+    {
+        using var fabrica = new PetWalkApiFactory();
+
+        // O wiring do pipeline depende deste registro: sem ele, DbUpdateException vira 500.
+        Assert.Contains(fabrica.Services.GetServices<IExceptionHandler>(),
+            handler => handler is ErroDePersistenciaHandler);
+    }
+
     [Fact]
     public void Fabrica_SubstituiOBancoDeArquivoPorSqliteEmMemoria()
     {
