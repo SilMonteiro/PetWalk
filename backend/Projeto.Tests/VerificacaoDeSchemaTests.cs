@@ -1,12 +1,8 @@
 using System.Net;
 using System.Text;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 // A verificação de schema roda no startup da API: interrompe antes de qualquer requisição quando
 // o banco SQLite não tem as migrations aplicadas ou não corresponde ao modelo. Os testes usam
@@ -383,24 +379,4 @@ public class VerificacaoDeSchemaTests
         }
     }
 
-    // Fábrica que aponta para um banco em arquivo, sem aplicar migrations: reproduz o ambiente
-    // de produção antes do dotnet ef database update.
-    private sealed class FabricaComBancoEmArquivo : WebApplicationFactory<Program>
-    {
-        private readonly string _caminho;
-
-        public FabricaComBancoEmArquivo(string caminho) => _caminho = caminho;
-
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.ConfigureServices(servicos =>
-            {
-                servicos.RemoveAll<DbContextOptions<PetWalkDbContext>>();
-                servicos.RemoveAll<IDbContextOptionsConfiguration<PetWalkDbContext>>();
-
-                servicos.AddDbContext<PetWalkDbContext>(options =>
-                    options.UseSqlite(StringDeConexao(_caminho)));
-            });
-        }
-    }
 }
