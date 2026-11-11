@@ -42,22 +42,25 @@ public static class PetEndpoints
                 return ErroHttp.NaoEncontrado("Usuário não encontrado");
             }
 
+            Pet pet;
+
             try
             {
-                // RegistrarPet vincula o pet ao perfil (REG-002) e atribui o Id.
-                var pet = repositorio.RegistrarPet(
+                // RegistrarPet executa REG-002/REG-005 (AdicionarPet), então permanece no catch.
+                pet = repositorio.RegistrarPet(
                     usuario,
                     new Pet(usuario, req.Nome, req.Especie, req.Raca, req.Porte, req.Idade, req.Observacoes));
-
-                // O Location usa pet.Id: a gravação precisa acontecer antes da resposta.
-                unidade.Salvar();
-
-                return Results.Created($"/usuarios/{usuario.Id}/pets/{pet.Id}", ParaResponse(pet));
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
             {
                 return ErroHttp.Erro(ex);
             }
+
+            // O Location usa pet.Id: a gravação precisa acontecer antes da resposta.
+            // Falha do EF aqui vira 500, nunca 400/422.
+            unidade.Salvar();
+
+            return Results.Created($"/usuarios/{usuario.Id}/pets/{pet.Id}", ParaResponse(pet));
         });
 
         app.MapPut("/usuarios/{id:int}/pets/{petId:int}", (int id, int petId, PetRequest req,
@@ -80,15 +83,16 @@ public static class PetEndpoints
             try
             {
                 pet.Atualizar(req.Nome, req.Especie, req.Raca, req.Porte, req.Idade, req.Observacoes);
-
-                unidade.Salvar();
-
-                return Results.Ok(ParaResponse(pet));
             }
             catch (ArgumentException ex)
             {
                 return ErroHttp.Erro(ex);
             }
+
+            // Fora do catch: falha do EF aqui vira 500, nunca 400.
+            unidade.Salvar();
+
+            return Results.Ok(ParaResponse(pet));
         });
 
         app.MapDelete("/usuarios/{id:int}/pets/{petId:int}", (int id, int petId,

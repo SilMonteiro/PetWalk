@@ -397,6 +397,78 @@ public class PasseioEndpointsTests
     }
 
     [Fact]
+    public void Solicitar_FalhaDePersistencia_NaoEhConvertidaEm4xx()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var unidade = new UnidadeDeTrabalhoQueFalha();
+
+        var erro = Assert.Throws<InvalidOperationException>(
+            () => PasseioEndpoints.Solicitar(
+                Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, unidade, Fabrica.Agora));
+
+        Assert.Equal("falha de persistência simulada", erro.Message);
+
+        // A falha ocorre no fim do fluxo: passeio e notificação já foram preparados.
+        Assert.Single(passeios.ListarPorUsuario(tutor.Id));
+        Assert.Single(notificacoes.ListarPorDestinatario(passeador.Id));
+        Assert.Equal(1, unidade.Chamadas);
+    }
+
+    [Fact]
+    public void Solicitar_GravaDepoisDeCriarOPasseioENotificar()
+    {
+        var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
+        var unidade = new UnidadeDeTrabalhoFake(() =>
+        {
+            // No momento da gravação, passeio e notificação já existem: a ordem é
+            // domínio → repositórios → Salvar.
+            Assert.Single(passeios.ListarPorUsuario(tutor.Id));
+            Assert.Single(notificacoes.ListarPorDestinatario(passeador.Id));
+        });
+
+        var resultado = PasseioEndpoints.Solicitar(
+            Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, unidade, Fabrica.Agora);
+
+        Assert.Equal(201, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(1, unidade.Chamadas);
+    }
+
+    [Fact]
+    public void Avaliar_FalhaDePersistencia_NaoEhConvertidaEm4xx()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioFinalizado(usuarios, passeios, servico, tutor, pet, passeador);
+        var unidade = new UnidadeDeTrabalhoQueFalha();
+
+        var erro = Assert.Throws<InvalidOperationException>(
+            () => PasseioEndpoints.Avaliar(
+                passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, unidade, Fabrica.Agora));
+
+        Assert.Equal("falha de persistência simulada", erro.Message);
+        Assert.Single(passeio.Avaliacoes);
+        Assert.Equal(1, unidade.Chamadas);
+    }
+
+    [Fact]
+    public void Avaliar_GravaDepoisDaMutacaoDeDominio()
+    {
+        var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
+        var passeio = CriarPasseioFinalizado(usuarios, passeios, servico, tutor, pet, passeador);
+        var unidade = new UnidadeDeTrabalhoFake(() =>
+        {
+            // No momento da gravação, a avaliação já foi criada e a média já foi recalculada.
+            Assert.Single(passeio.Avaliacoes);
+            Assert.Equal(5d, passeador.MediaAvaliacao);
+        });
+
+        var resultado = PasseioEndpoints.Avaliar(
+            passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, unidade, Fabrica.Agora);
+
+        Assert.Equal(201, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
+        Assert.Equal(1, unidade.Chamadas);
+    }
+
+    [Fact]
     public void AvaliacaoResponse_NaoTemCampoId()
     {
         // Sem repositório de avaliações o Id seria sempre 0, então não entra no contrato.

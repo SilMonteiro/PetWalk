@@ -5,16 +5,13 @@ public static class UsuarioEndpoints
         app.MapPost("/cadastro", (UsuarioRequest req, AutenticacaoServico autenticacao,
             IUnidadeDeTrabalho unidade) =>
         {
+            Usuario usuarioCriado;
+
             try
             {
-                var usuarioCriado = autenticacao.Cadastrar(
+                usuarioCriado = autenticacao.Cadastrar(
                     req.Nome, req.Email, req.Telefone, req.Endereco, req.TipoPerfil, req.Senha,
                     req.ValorHora, req.TipoCobranca);
-
-                // O Id só existe depois de gravar: salva antes de montar a resposta.
-                unidade.Salvar();
-
-                return Results.Ok(new { mensagem = "Usuário cadastrado com sucesso!", id = usuarioCriado.Id });
             }
             catch (ArgumentException ex)
             {
@@ -25,6 +22,11 @@ public static class UsuarioEndpoints
                 // REG-010: e-mail já cadastrado é regra de negócio, não entrada inválida.
                 return Results.Conflict(new { erro = ex.Message });
             }
+
+            // Fora do catch: o Id nasce na gravação e uma falha do EF aqui vira 500, nunca 409.
+            unidade.Salvar();
+
+            return Results.Ok(new { mensagem = "Usuário cadastrado com sucesso!", id = usuarioCriado.Id });
         });
 
         app.MapPost("/login", (LoginRequest req, AutenticacaoServico autenticacao) =>

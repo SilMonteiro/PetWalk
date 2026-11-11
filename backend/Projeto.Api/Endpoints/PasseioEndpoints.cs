@@ -75,18 +75,21 @@ public static class PasseioEndpoints
             return ErroHttp.NaoEncontrado("Usuário não encontrado");
         }
 
+        Avaliacao avaliacao;
+
         try
         {
-            var avaliacao = passeio.Avaliar(avaliador, req.Nota, req.Comentario, agora);
-
-            unidade.Salvar();
-
-            return Results.Json(ParaResposta(avaliacao), statusCode: StatusCodes.Status201Created);
+            avaliacao = passeio.Avaliar(avaliador, req.Nota, req.Comentario, agora);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             return ErroHttp.Erro(ex);
         }
+
+        // Fora do catch: persistência não é regra de negócio; falha do EF aqui vira 500.
+        unidade.Salvar();
+
+        return Results.Json(ParaResposta(avaliacao), statusCode: StatusCodes.Status201Created);
     }
 
     // Fluxo comum às ações do passeador: localiza as partes, deixa o domínio decidir (REG-003),
@@ -173,23 +176,27 @@ public static class PasseioEndpoints
         // REG-005: pet que não está no perfil do tutor chega como null e o domínio recusa com a mensagem da proposta.
         var pet = tutor.Pets.FirstOrDefault(p => p.Id == req.PetId);
 
+        Passeio passeio;
+
         try
         {
-            var passeio = tutor.SolicitarPasseio(
+            // Só o domínio: é a única chamada que pode lançar exceção de negócio (400/422).
+            passeio = tutor.SolicitarPasseio(
                 pet!, passeador, req.DataHora, TimeSpan.FromMinutes(req.DuracaoMinutos), req.Local, agora);
-
-            passeios.Adicionar(passeio);
-            notificacoes.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, agora);
-
-            // Passeio e notificação nascem juntos: uma única gravação no fim do fluxo.
-            unidade.Salvar();
-
-            return Results.Created($"/passeios/{passeio.Id}", ParaResposta(passeio, tutor));
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             return ErroHttp.Erro(ex);
         }
+
+        passeios.Adicionar(passeio);
+        notificacoes.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, agora);
+
+        // Passeio e notificação nascem juntos: uma única gravação no fim do fluxo.
+        // Fora do catch: falha do EF aqui vira 500, nunca 4xx.
+        unidade.Salvar();
+
+        return Results.Created($"/passeios/{passeio.Id}", ParaResposta(passeio, tutor));
     }
 
     // A perspectiva define o Papel; só é chamada para quem participa do passeio.
