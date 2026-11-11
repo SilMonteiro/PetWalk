@@ -62,6 +62,14 @@ builder.Services.AddSingleton(TimeProvider.System);
 
 var app = builder.Build();
 
+// Falha rápida: nenhuma rotina de startup cria o schema. Sem ele, toda rota que toca o banco
+// responderia 500; a verificação interrompe aqui, com o comando manual de migration.
+using (var escopo = app.Services.CreateScope())
+{
+    VerificacaoDeSchema.GarantirSchemaAplicado(
+        escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>());
+}
+
 // Primeiro do pipeline: converte DbUpdateException conhecida em resposta e deixa as demais
 // exceções seguirem para o 500 padrão.
 app.UseExceptionHandler();
