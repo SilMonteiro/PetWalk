@@ -343,6 +343,295 @@ public class PersistenciaApiTests : IClassFixture<PetWalkApiFactory>
         Assert.Equal("Idade inválida.", documento.RootElement.GetProperty("erro").GetString());
     }
 
+    // FLX-009: recusa e cancelamento pela API real, e o histórico do usuário. Cada teste cria
+    // os seus próprios usuários, porque a fixture da classe compartilha um único banco.
+    [Fact]
+    public async Task RecusarPasseio_Devolve200NotificaOTutorEPersiste()
+    {
+        var tutorId = await Cadastrar("Euler", "euler@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Fabio", "fabio@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var petId = await CriarPet(tutorId, "Rex");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/recusar", new { usuarioId = passeadorId });
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal((int)StatusPasseio.RECUSADO, documento.RootElement.GetProperty("status").GetInt32());
+            Assert.Equal("PASSEADOR", documento.RootElement.GetProperty("papel").GetString());
+        }
+
+        // Requisição nova: a notificação do tutor veio do banco, não do request da ação.
+        var doTutor = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/notificacoes");
+        var notificacao = Assert.Single(doTutor!);
+        Assert.Equal((int)TipoNotificacao.PASSEIO_RECUSADO, notificacao.GetProperty("tipo").GetInt32());
+        Assert.Equal(passeioId, notificacao.GetProperty("passeioId").GetInt32());
+
+        // O histórico do tutor mostra o estado final.
+        var passeiosDoTutor = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/passeios");
+        Assert.Equal((int)StatusPasseio.RECUSADO, Assert.Single(passeiosDoTutor!).GetProperty("status").GetInt32());
+
+        // Escopo independente: a linha gravada no SQLite, sem passar pela API.
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusPasseio.RECUSADO, contexto.Passeios.Single(p => p.Id == passeioId).Status);
+    }
+
+    [Fact]
+    public async Task RecusarPasseio_PorQuemNaoEhOPasseador_Devolve422SemAlterar()
+    {
+        var tutorId = await Cadastrar("Gabi", "gabi@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Hugo", "hugo@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var petId = await CriarPet(tutorId, "Bolt");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        // REG-003: só o passeador escolhido recusa; o tutor não tem esse poder.
+        var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/recusar", new { usuarioId = tutorId });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("Passeio não pertence a este passeador", documento.RootElement.GetProperty("erro").GetString());
+        }
+
+        // O tutor não recebeu nada; o passeador só tem a notificação da solicitação.
+        Assert.Empty((await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/notificacoes"))!);
+        var doPasseador = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{passeadorId}/notificacoes");
+        Assert.Equal((int)TipoNotificacao.PASSEIO_SOLICITADO,
+            Assert.Single(doPasseador!).GetProperty("tipo").GetInt32());
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusPasseio.SOLICITADO, contexto.Passeios.Single(p => p.Id == passeioId).Status);
+    }
+
+    [Fact]
+    public async Task RecusarPasseio_ForaDoEstadoSolicitado_Devolve422()
+    {
+        var tutorId = await Cadastrar("Iris", "iris@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Joao", "joao@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var petId = await CriarPet(tutorId, "Mel");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        await Acao($"passeios/{passeioId}/aceitar", passeadorId);
+
+        var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/recusar", new { usuarioId = passeadorId });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("Transição não permitida a partir do estado atual",
+                documento.RootElement.GetProperty("erro").GetString());
+        }
+
+        // O tutor já tinha PASSEIO_ACEITO: o que não pode existir é a notificação de recusa.
+        var doTutor = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/notificacoes");
+        Assert.Single(doTutor!);
+        Assert.DoesNotContain(doTutor!,
+            n => n.GetProperty("tipo").GetInt32() == (int)TipoNotificacao.PASSEIO_RECUSADO);
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusPasseio.ACEITO, contexto.Passeios.Single(p => p.Id == passeioId).Status);
+    }
+
+    [Fact]
+    public async Task RecusarPasseio_Inexistente_Devolve404()
+    {
+        var passeadorId = await Cadastrar("Karla", "karla@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+
+        var resposta = await _client.PostAsJsonAsync("/passeios/9999/recusar", new { usuarioId = passeadorId });
+
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("Passeio não encontrado", documento.RootElement.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    public async Task CancelarPasseio_PeloTutor_Devolve200NotificaOPasseadorEPersiste()
+    {
+        var tutorId = await Cadastrar("Lucas", "lucas@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Marta", "marta@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var petId = await CriarPet(tutorId, "Thor");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/cancelar", new { usuarioId = tutorId });
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal((int)StatusPasseio.CANCELADO, documento.RootElement.GetProperty("status").GetInt32());
+            Assert.Equal("TUTOR", documento.RootElement.GetProperty("papel").GetString());
+        }
+
+        // O passeador já tinha a notificação da solicitação; a de cancelamento é adicional.
+        var doPasseador = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{passeadorId}/notificacoes");
+        Assert.Equal(2, doPasseador!.Count);
+        var cancelamento = Assert.Single(doPasseador!,
+            n => n.GetProperty("tipo").GetInt32() == (int)TipoNotificacao.PASSEIO_CANCELADO);
+        Assert.Equal(passeioId, cancelamento.GetProperty("passeioId").GetInt32());
+
+        // O tutor foi o ator, não o destinatário: ele não pode receber notificação alguma.
+        Assert.Empty((await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/notificacoes"))!);
+
+        // O histórico do passeador também reflete o estado final.
+        var passeiosDoPasseador = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{passeadorId}/passeios");
+        Assert.Equal((int)StatusPasseio.CANCELADO,
+            Assert.Single(passeiosDoPasseador!).GetProperty("status").GetInt32());
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusPasseio.CANCELADO, contexto.Passeios.Single(p => p.Id == passeioId).Status);
+    }
+
+    [Fact]
+    public async Task CancelarPasseio_PeloPasseador_Devolve200NotificaOTutor()
+    {
+        var tutorId = await Cadastrar("Nara", "nara@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Olga", "olga@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var petId = await CriarPet(tutorId, "Bolt");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        // REG-004: o passeador também pode cancelar, e notifica o tutor.
+        var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/cancelar", new { usuarioId = passeadorId });
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        Assert.Equal((int)StatusPasseio.CANCELADO, await LerInteiro(resposta, "status"));
+
+        var doTutor = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/notificacoes");
+        var notificacao = Assert.Single(doTutor!);
+        Assert.Equal((int)TipoNotificacao.PASSEIO_CANCELADO, notificacao.GetProperty("tipo").GetInt32());
+        Assert.Equal(passeioId, notificacao.GetProperty("passeioId").GetInt32());
+
+        // O passeador foi o ator: o histórico dele continua só com a notificação da solicitação.
+        var doPasseador = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{passeadorId}/notificacoes");
+        Assert.Equal((int)TipoNotificacao.PASSEIO_SOLICITADO,
+            Assert.Single(doPasseador!).GetProperty("tipo").GetInt32());
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusPasseio.CANCELADO, contexto.Passeios.Single(p => p.Id == passeioId).Status);
+    }
+
+    [Fact]
+    public async Task CancelarPasseio_PorQuemNaoParticipa_Devolve422SemAlterar()
+    {
+        var tutorId = await Cadastrar("Pedro", "pedro@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Quim", "quim@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var terceiroId = await Cadastrar("Rosa", "rosa@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Pingo");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        // REG-004: cancelar exige ser tutor ou passeador deste passeio.
+        var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/cancelar", new { usuarioId = terceiroId });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("Usuário não participou deste passeio.",
+                documento.RootElement.GetProperty("erro").GetString());
+        }
+
+        Assert.Empty((await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/notificacoes"))!);
+        var doPasseador = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{passeadorId}/notificacoes");
+        Assert.Equal((int)TipoNotificacao.PASSEIO_SOLICITADO,
+            Assert.Single(doPasseador!).GetProperty("tipo").GetInt32());
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusPasseio.SOLICITADO, contexto.Passeios.Single(p => p.Id == passeioId).Status);
+    }
+
+    [Fact]
+    public async Task AcoesPasseio_UsuarioInexistente_Devolve404()
+    {
+        var tutorId = await Cadastrar("Sergio", "sergio@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Tina", "tina@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var petId = await CriarPet(tutorId, "Faisca");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        // O passeio existe e o usuário não: o 404 é o do ramo de usuário.
+        foreach (var rota in new[] { "recusar", "cancelar" })
+        {
+            var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/{rota}", new { usuarioId = 9999 });
+
+            Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+
+            using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+            Assert.Equal("Usuário não encontrado", documento.RootElement.GetProperty("erro").GetString());
+        }
+
+        // Nada mudou: estado e notificações continuam os da solicitação.
+        Assert.Empty((await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/notificacoes"))!);
+
+        var doPasseador = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{passeadorId}/notificacoes");
+        Assert.Equal((int)TipoNotificacao.PASSEIO_SOLICITADO,
+            Assert.Single(doPasseador!).GetProperty("tipo").GetInt32());
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        Assert.Equal(StatusPasseio.SOLICITADO, contexto.Passeios.Single(p => p.Id == passeioId).Status);
+    }
+
+    [Fact]
+    public async Task ListarPasseios_DevolveOMesmoPasseioComOPapelDeCadaParticipante()
+    {
+        var tutorId = await Cadastrar("Ulisses", "ulisses@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Wanda", "wanda@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var terceiroId = await Cadastrar("Xavier", "xavier@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Jade");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        var doTutor = await _client.GetAsync($"/usuarios/{tutorId}/passeios");
+        Assert.Equal(HttpStatusCode.OK, doTutor.StatusCode);
+
+        var corpoDoTutor = await doTutor.Content.ReadAsStringAsync();
+
+        using (var documento = JsonDocument.Parse(corpoDoTutor))
+        {
+            var passeio = Assert.Single(documento.RootElement.EnumerateArray());
+
+            Assert.Equal(passeioId, passeio.GetProperty("id").GetInt32());
+            Assert.Equal((int)StatusPasseio.SOLICITADO, passeio.GetProperty("status").GetInt32());
+            Assert.Equal("TUTOR", passeio.GetProperty("papel").GetString());
+        }
+
+        // A projeção não expõe dados sensíveis do perfil (REG-007).
+        var corpoEmMinusculas = corpoDoTutor.ToLowerInvariant();
+        Assert.DoesNotContain("endereco", corpoEmMinusculas);
+        Assert.DoesNotContain("email", corpoEmMinusculas);
+        Assert.DoesNotContain("senha", corpoEmMinusculas);
+
+        // O mesmo passeio, visto pelo passeador, muda apenas o papel.
+        var doPasseador = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{passeadorId}/passeios");
+        var comoPasseador = Assert.Single(doPasseador!);
+        Assert.Equal(passeioId, comoPasseador.GetProperty("id").GetInt32());
+        Assert.Equal((int)StatusPasseio.SOLICITADO, comoPasseador.GetProperty("status").GetInt32());
+        Assert.Equal("PASSEADOR", comoPasseador.GetProperty("papel").GetString());
+
+        // Quem não participa não vê o passeio, mesmo existindo.
+        var doTerceiro = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{terceiroId}/passeios");
+        Assert.Empty(doTerceiro!);
+    }
+
+    [Fact]
+    public async Task ListarPasseios_UsuarioInexistente_Devolve404()
+    {
+        var resposta = await _client.GetAsync("/usuarios/9999/passeios");
+
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("Usuário não encontrado", documento.RootElement.GetProperty("erro").GetString());
+    }
+
     [Fact]
     public async Task CadastroComEmailRepetido_Devolve409()
     {
