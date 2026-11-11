@@ -26,6 +26,15 @@ obj/
 *.user
 *.suo
 
+# Banco local do PetWalk (SQLite) — nunca versionar
+backend/Projeto.Api/App_Data/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
 AGENTS.md 
 dscode
 dscode-v4.2.0-linux-x64.tar.gz
