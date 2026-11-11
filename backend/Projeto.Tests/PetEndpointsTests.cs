@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Http;
 // FLX-007: exclusão de pet — 204 sem passeio, 409 com passeio, 404 para tutor ou pet inexistente.
 public class PetEndpointsTests
 {
+    // Fake sem efeito: os repositórios são em memória, então a mutação já é observável.
+    private readonly UnidadeDeTrabalhoFake _unidade = new();
+
     private static (IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, Usuario tutor, Pet pet) CriarCenario()
     {
         var usuarios = new UsuarioRepositorioEmMemoria();
@@ -19,11 +22,13 @@ public class PetEndpointsTests
     {
         var (usuarios, passeios, tutor, pet) = CriarCenario();
 
-        var resultado = PetEndpoints.Excluir(tutor.Id, pet.Id, usuarios, passeios);
+        var resultado = PetEndpoints.Excluir(tutor.Id, pet.Id, usuarios, passeios, _unidade);
 
         Assert.Equal(204, StatusDe(resultado));
         Assert.Empty(tutor.Pets);
         Assert.Null(usuarios.ObterPet(pet.Id));
+
+        Assert.Equal(1, _unidade.Chamadas);
     }
 
     [Fact]
@@ -35,7 +40,7 @@ public class PetEndpointsTests
             pet, passeador, Fabrica.Agora.AddDays(1), TimeSpan.FromHours(1), "Rua A, 10", Fabrica.Agora);
         passeios.Adicionar(passeio);
 
-        var resultado = PetEndpoints.Excluir(tutor.Id, pet.Id, usuarios, passeios);
+        var resultado = PetEndpoints.Excluir(tutor.Id, pet.Id, usuarios, passeios, _unidade);
 
         Assert.Equal(409, StatusDe(resultado));
         Assert.Equal("Pet possui passeios e não pode ser excluído", MensagemDe(resultado));
@@ -43,6 +48,8 @@ public class PetEndpointsTests
         // O 409 não pode alterar nada: o pet continua no agregado e acessível pelo repositório.
         Assert.Contains(pet, tutor.Pets);
         Assert.Same(pet, usuarios.ObterPet(pet.Id));
+
+        Assert.Equal(0, _unidade.Chamadas);
     }
 
     [Fact]
@@ -50,10 +57,12 @@ public class PetEndpointsTests
     {
         var (usuarios, passeios, _, pet) = CriarCenario();
 
-        var resultado = PetEndpoints.Excluir(999, pet.Id, usuarios, passeios);
+        var resultado = PetEndpoints.Excluir(999, pet.Id, usuarios, passeios, _unidade);
 
         Assert.Equal(404, StatusDe(resultado));
         Assert.Equal("Usuário não encontrado", MensagemDe(resultado));
+
+        Assert.Equal(0, _unidade.Chamadas);
     }
 
     [Fact]
@@ -61,7 +70,7 @@ public class PetEndpointsTests
     {
         var (usuarios, passeios, tutor, _) = CriarCenario();
 
-        var resultado = PetEndpoints.Excluir(tutor.Id, 999, usuarios, passeios);
+        var resultado = PetEndpoints.Excluir(tutor.Id, 999, usuarios, passeios, _unidade);
 
         Assert.Equal(404, StatusDe(resultado));
         Assert.Equal("Pet não encontrado", MensagemDe(resultado));
@@ -74,7 +83,7 @@ public class PetEndpointsTests
         var outroTutor = usuarios.Adicionar(Fabrica.CriarUsuario(TipoPerfil.TUTOR, "outro@petwalk.com"));
         var petDoOutro = usuarios.RegistrarPet(outroTutor, Fabrica.CriarPet(outroTutor));
 
-        var resultado = PetEndpoints.Excluir(tutor.Id, petDoOutro.Id, usuarios, passeios);
+        var resultado = PetEndpoints.Excluir(tutor.Id, petDoOutro.Id, usuarios, passeios, _unidade);
 
         Assert.Equal(404, StatusDe(resultado));
         Assert.Equal("Pet não encontrado", MensagemDe(resultado));

@@ -6,52 +6,58 @@ public static class PasseioEndpoints
     public static void MapPasseioEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapPost("/passeios", (SolicitacaoPasseioRequest req, IUsuarioRepositorio usuarios,
-            IPasseioRepositorio passeios, NotificacaoServico notificacoes, TimeProvider time) =>
-            Solicitar(req, usuarios, passeios, notificacoes, time.GetUtcNow().UtcDateTime));
+            IPasseioRepositorio passeios, NotificacaoServico notificacoes, IUnidadeDeTrabalho unidade,
+            TimeProvider time) =>
+            Solicitar(req, usuarios, passeios, notificacoes, unidade, time.GetUtcNow().UtcDateTime));
 
         app.MapGet("/usuarios/{id:int}/passeios", (int id, IUsuarioRepositorio usuarios, IPasseioRepositorio passeios) =>
             Listar(id, usuarios, passeios));
 
         // FLX-003: o passeador escolhido aceita; o tutor é notificado (REG-003).
         app.MapPost("/passeios/{id:int}/aceitar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
-            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
-            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, IUnidadeDeTrabalho unidade,
+            TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, unidade, time.GetUtcNow().UtcDateTime,
                 (passeio, quem) => passeio.Aceitar(quem), TipoNotificacao.PASSEIO_ACEITO));
 
         // FLX-009: o passeador escolhido recusa; o tutor é notificado (REG-003).
         app.MapPost("/passeios/{id:int}/recusar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
-            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
-            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, IUnidadeDeTrabalho unidade,
+            TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, unidade, time.GetUtcNow().UtcDateTime,
                 (passeio, quem) => passeio.Recusar(quem), TipoNotificacao.PASSEIO_RECUSADO));
 
         // FLX-008: o passeador escolhido inicia o passeio aceito; o tutor é notificado (REG-003).
         app.MapPost("/passeios/{id:int}/iniciar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
-            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
-            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, IUnidadeDeTrabalho unidade,
+            TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, unidade, time.GetUtcNow().UtcDateTime,
                 (passeio, quem) => passeio.Iniciar(quem), TipoNotificacao.PASSEIO_INICIADO));
 
         // FLX-004: o passeador escolhido finaliza o passeio em andamento; o tutor é notificado (REG-003).
         app.MapPost("/passeios/{id:int}/finalizar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
-            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
-            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, IUnidadeDeTrabalho unidade,
+            TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, unidade, time.GetUtcNow().UtcDateTime,
                 (passeio, quem) => passeio.Finalizar(quem), TipoNotificacao.PASSEIO_FINALIZADO));
 
         // FLX-009: tutor ou passeador cancela antes de começar; o outro participante é notificado (REG-004).
         app.MapPost("/passeios/{id:int}/cancelar", (int id, AcaoPasseioRequest req, IPasseioRepositorio passeios,
-            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, TimeProvider time) =>
-            ExecutarAcao(id, req, passeios, usuarios, notificacoes, time.GetUtcNow().UtcDateTime,
+            IUsuarioRepositorio usuarios, NotificacaoServico notificacoes, IUnidadeDeTrabalho unidade,
+            TimeProvider time) =>
+            ExecutarAcao(id, req, passeios, usuarios, notificacoes, unidade, time.GetUtcNow().UtcDateTime,
                 (passeio, quem) => passeio.Cancelar(quem), TipoNotificacao.PASSEIO_CANCELADO));
 
         // FLX-005: cada participante avalia a outra parte depois do passeio finalizado (REG-001).
         app.MapPost("/passeios/{id:int}/avaliacoes", (int id, AvaliacaoRequest req, IPasseioRepositorio passeios,
-            IUsuarioRepositorio usuarios, TimeProvider time) =>
-            Avaliar(id, req, passeios, usuarios, time.GetUtcNow().UtcDateTime));
+            IUsuarioRepositorio usuarios, IUnidadeDeTrabalho unidade, TimeProvider time) =>
+            Avaliar(id, req, passeios, usuarios, unidade, time.GetUtcNow().UtcDateTime));
     }
 
     // REG-001: passeio FINALIZADO, uma avaliação por usuário, nota 1..5 e participação continuam
     // sendo decididos pelo domínio; aqui só se resolvem as partes e se monta a resposta.
     internal static IResult Avaliar(int passeioId, AvaliacaoRequest req, IPasseioRepositorio passeios,
-        IUsuarioRepositorio usuarios, DateTime agora)
+        IUsuarioRepositorio usuarios, IUnidadeDeTrabalho unidade, DateTime agora)
     {
         var passeio = passeios.ObterPorId(passeioId);
 
@@ -71,6 +77,8 @@ public static class PasseioEndpoints
         {
             var avaliacao = passeio.Avaliar(avaliador, req.Nota, req.Comentario, agora);
 
+            unidade.Salvar();
+
             return Results.Json(ParaResposta(avaliacao), statusCode: StatusCodes.Status201Created);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
@@ -87,6 +95,7 @@ public static class PasseioEndpoints
         IPasseioRepositorio passeios,
         IUsuarioRepositorio usuarios,
         NotificacaoServico notificacoes,
+        IUnidadeDeTrabalho unidade,
         DateTime agora,
         Action<Passeio, Usuario> acao,
         TipoNotificacao tipoNotificacao)
@@ -117,6 +126,9 @@ public static class PasseioEndpoints
         // Só chega aqui quem passou pela REG-003, então o outro participante é a parte a notificar.
         notificacoes.Enviar(passeio.ObterOutroParticipante(usuario), passeio, tipoNotificacao, agora);
 
+        // Estado do passeio e notificação mudaram juntos: uma única gravação no fim do fluxo.
+        unidade.Salvar();
+
         return Results.Ok(ParaResposta(passeio, usuario));
     }
 
@@ -139,6 +151,7 @@ public static class PasseioEndpoints
         IUsuarioRepositorio usuarios,
         IPasseioRepositorio passeios,
         NotificacaoServico notificacoes,
+        IUnidadeDeTrabalho unidade,
         DateTime agora)
     {
         var tutor = usuarios.ObterPorId(req.UsuarioId);
@@ -165,6 +178,9 @@ public static class PasseioEndpoints
 
             passeios.Adicionar(passeio);
             notificacoes.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, agora);
+
+            // Passeio e notificação nascem juntos: uma única gravação no fim do fluxo.
+            unidade.Salvar();
 
             return Results.Created($"/passeios/{passeio.Id}", ParaResposta(passeio, tutor));
         }

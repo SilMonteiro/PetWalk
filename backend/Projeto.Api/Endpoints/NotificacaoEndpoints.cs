@@ -10,8 +10,8 @@ public static class NotificacaoEndpoints
             Listar(id, naoLidas ?? false, usuarios, notificacoes));
 
         app.MapPost("/notificacoes/{id:int}/lida", (int id, MarcarNotificacaoLidaRequest req,
-            INotificacaoRepositorio notificacoes) =>
-            MarcarComoLida(id, req, notificacoes));
+            INotificacaoRepositorio notificacoes, IUnidadeDeTrabalho unidade) =>
+            MarcarComoLida(id, req, notificacoes, unidade));
     }
 
     internal static IResult Listar(int usuarioId, bool apenasNaoLidas, IUsuarioRepositorio usuarios,
@@ -28,7 +28,7 @@ public static class NotificacaoEndpoints
     // Só o destinatário pode marcar como lida. Para qualquer outro usuário o 404 é proposital:
     // responder 403 revelaria que a notificação existe.
     internal static IResult MarcarComoLida(int notificacaoId, MarcarNotificacaoLidaRequest req,
-        INotificacaoRepositorio notificacoes)
+        INotificacaoRepositorio notificacoes, IUnidadeDeTrabalho unidade)
     {
         var notificacao = notificacoes.ObterPorId(notificacaoId);
 
@@ -38,6 +38,8 @@ public static class NotificacaoEndpoints
         }
 
         notificacao.MarcarComoLida();
+
+        unidade.Salvar();
 
         return Results.NoContent();
     }

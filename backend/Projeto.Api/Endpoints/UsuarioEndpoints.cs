@@ -2,13 +2,18 @@ public static class UsuarioEndpoints
 {
     public static void MapUsuarioEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/cadastro", (UsuarioRequest req, AutenticacaoServico autenticacao) =>
+        app.MapPost("/cadastro", (UsuarioRequest req, AutenticacaoServico autenticacao,
+            IUnidadeDeTrabalho unidade) =>
         {
             try
             {
                 var usuarioCriado = autenticacao.Cadastrar(
                     req.Nome, req.Email, req.Telefone, req.Endereco, req.TipoPerfil, req.Senha,
                     req.ValorHora, req.TipoCobranca);
+
+                // O Id só existe depois de gravar: salva antes de montar a resposta.
+                unidade.Salvar();
+
                 return Results.Ok(new { mensagem = "Usuário cadastrado com sucesso!", id = usuarioCriado.Id });
             }
             catch (ArgumentException ex)

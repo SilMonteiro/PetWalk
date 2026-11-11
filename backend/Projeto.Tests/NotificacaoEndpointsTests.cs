@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Http;
 // Listagem das notificações do destinatário e marcação como lida (listarNaoLidas/marcarComoLida).
 public class NotificacaoEndpointsTests
 {
+    // Fake sem efeito: os repositórios são em memória, então a mutação já é observável.
+    private readonly UnidadeDeTrabalhoFake _unidade = new();
+
     private static (IUsuarioRepositorio usuarios, INotificacaoRepositorio notificacoes, NotificacaoServico servico,
         Usuario tutor, Usuario passeador, Passeio passeio) CriarCenario()
     {
@@ -68,10 +71,12 @@ public class NotificacaoEndpointsTests
         var notificacao = servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, Fabrica.Agora);
 
         var resultado = NotificacaoEndpoints.MarcarComoLida(
-            notificacao.Id, new MarcarNotificacaoLidaRequest(passeador.Id), notificacoes);
+            notificacao.Id, new MarcarNotificacaoLidaRequest(passeador.Id), notificacoes, _unidade);
 
         Assert.Equal(204, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
         Assert.True(notificacao.Lida);
+
+        Assert.Equal(1, _unidade.Chamadas);
     }
 
     [Fact]
@@ -81,11 +86,14 @@ public class NotificacaoEndpointsTests
         var notificacao = servico.Enviar(passeador, passeio, TipoNotificacao.PASSEIO_SOLICITADO, Fabrica.Agora);
 
         var resultado = NotificacaoEndpoints.MarcarComoLida(
-            notificacao.Id, new MarcarNotificacaoLidaRequest(tutor.Id), notificacoes);
+            notificacao.Id, new MarcarNotificacaoLidaRequest(tutor.Id), notificacoes, _unidade);
 
         Assert.Equal(404, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
         Assert.Equal("Notificação não encontrada", MensagemDe(resultado));
         Assert.False(notificacao.Lida);
+
+        // Não é o destinatário: nada foi gravado.
+        Assert.Equal(0, _unidade.Chamadas);
     }
 
     [Fact]
@@ -94,7 +102,7 @@ public class NotificacaoEndpointsTests
         var (_, notificacoes, _, _, passeador, _) = CriarCenario();
 
         var resultado = NotificacaoEndpoints.MarcarComoLida(
-            999, new MarcarNotificacaoLidaRequest(passeador.Id), notificacoes);
+            999, new MarcarNotificacaoLidaRequest(passeador.Id), notificacoes, _unidade);
 
         Assert.Equal(404, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
         Assert.Equal("Notificação não encontrada", MensagemDe(resultado));

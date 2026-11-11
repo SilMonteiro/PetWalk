@@ -32,7 +32,8 @@ public static class PetEndpoints
                 : Results.Ok(ParaResponse(pet));
         });
 
-        app.MapPost("/usuarios/{id:int}/pets", (int id, PetRequest req, IUsuarioRepositorio repositorio) =>
+        app.MapPost("/usuarios/{id:int}/pets", (int id, PetRequest req, IUsuarioRepositorio repositorio,
+            IUnidadeDeTrabalho unidade) =>
         {
             var usuario = repositorio.ObterPorId(id);
 
@@ -48,6 +49,9 @@ public static class PetEndpoints
                     usuario,
                     new Pet(usuario, req.Nome, req.Especie, req.Raca, req.Porte, req.Idade, req.Observacoes));
 
+                // O Location usa pet.Id: a gravação precisa acontecer antes da resposta.
+                unidade.Salvar();
+
                 return Results.Created($"/usuarios/{usuario.Id}/pets/{pet.Id}", ParaResponse(pet));
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
@@ -56,7 +60,8 @@ public static class PetEndpoints
             }
         });
 
-        app.MapPut("/usuarios/{id:int}/pets/{petId:int}", (int id, int petId, PetRequest req, IUsuarioRepositorio repositorio) =>
+        app.MapPut("/usuarios/{id:int}/pets/{petId:int}", (int id, int petId, PetRequest req,
+            IUsuarioRepositorio repositorio, IUnidadeDeTrabalho unidade) =>
         {
             var usuario = repositorio.ObterPorId(id);
 
@@ -76,6 +81,8 @@ public static class PetEndpoints
             {
                 pet.Atualizar(req.Nome, req.Especie, req.Raca, req.Porte, req.Idade, req.Observacoes);
 
+                unidade.Salvar();
+
                 return Results.Ok(ParaResponse(pet));
             }
             catch (ArgumentException ex)
@@ -85,14 +92,14 @@ public static class PetEndpoints
         });
 
         app.MapDelete("/usuarios/{id:int}/pets/{petId:int}", (int id, int petId,
-            IUsuarioRepositorio repositorio, IPasseioRepositorio passeios) =>
-            Excluir(id, petId, repositorio, passeios));
+            IUsuarioRepositorio repositorio, IPasseioRepositorio passeios, IUnidadeDeTrabalho unidade) =>
+            Excluir(id, petId, repositorio, passeios, unidade));
     }
 
     // Pet com passeio associado não pode ser excluído: o histórico passaria a apontar para um
     // pet inexistente. A checagem vem antes de qualquer remoção, então o 409 não altera nada.
     internal static IResult Excluir(int usuarioId, int petId, IUsuarioRepositorio usuarios,
-        IPasseioRepositorio passeios)
+        IPasseioRepositorio passeios, IUnidadeDeTrabalho unidade)
     {
         var usuario = usuarios.ObterPorId(usuarioId);
 
@@ -114,6 +121,8 @@ public static class PetEndpoints
         }
 
         usuarios.RemoverPet(usuario, pet);
+
+        unidade.Salvar();
 
         return Results.NoContent();
     }

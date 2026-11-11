@@ -40,6 +40,10 @@ if (!string.IsNullOrEmpty(diretorioDoBanco))
 builder.Services.AddDbContext<PetWalkDbContext>(options =>
     options.UseSqlite(construtorDeConexao.ConnectionString));
 
+// Mesmo escopo do PetWalkDbContext: quando os repositórios passarem a ser EF, todos
+// compartilham o contexto e o change tracker desta unidade.
+builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
+
 builder.Services.AddSingleton<IUsuarioRepositorio, UsuarioRepositorioEmMemoria>();
 builder.Services.AddSingleton<IPasseioRepositorio, PasseioRepositorioEmMemoria>();
 builder.Services.AddSingleton<INotificacaoRepositorio, NotificacaoRepositorioEmMemoria>();

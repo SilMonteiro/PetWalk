@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Http;
 // FLX-002: fluxo completo da solicitação — grava o passeio e notifica o passeador escolhido.
 public class PasseioEndpointsTests
 {
+    // Fake sem efeito: os repositórios são em memória, então a mutação já é observável.
+    private readonly UnidadeDeTrabalhoFake _unidade = new();
+
     private static (IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, INotificacaoRepositorio notificacoes,
         NotificacaoServico servico, Usuario tutor, Pet pet, Usuario passeador) CriarCenario()
     {
@@ -26,7 +29,7 @@ public class PasseioEndpointsTests
     {
         var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
 
-        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         Assert.Equal(201, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
 
@@ -40,6 +43,9 @@ public class PasseioEndpointsTests
         Assert.Equal(TipoNotificacao.PASSEIO_SOLICITADO, notificacao.Tipo);
         Assert.Same(passeio, notificacao.Passeio);
         Assert.False(notificacao.Lida);
+
+        // Uma única gravação, depois de criar o passeio e a notificação.
+        Assert.Equal(1, _unidade.Chamadas);
     }
 
     [Fact]
@@ -47,7 +53,7 @@ public class PasseioEndpointsTests
     {
         var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
 
-        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         var resposta = Assert.IsType<PasseioResponse>(
             Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value);
@@ -65,7 +71,7 @@ public class PasseioEndpointsTests
     public void Listar_TutorEPasseadorVeemOMesmoPasseioComPapeisDiferentes()
     {
         var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
-        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         var doTutor = ListaDe(PasseioEndpoints.Listar(tutor.Id, usuarios, passeios));
         var doPasseador = ListaDe(PasseioEndpoints.Listar(passeador.Id, usuarios, passeios));
@@ -82,7 +88,7 @@ public class PasseioEndpointsTests
     public void Listar_NaoExpoeDadosSensiveis()
     {
         var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
-        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         var json = JsonSerializer.Serialize(
                 ListaDe(PasseioEndpoints.Listar(tutor.Id, usuarios, passeios)),
@@ -113,12 +119,14 @@ public class PasseioEndpointsTests
     {
         var (usuarios, passeios, _, servico, _, pet, passeador) = CriarCenario();
 
-        var resultado = PasseioEndpoints.Solicitar(Requisicao(999, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+        var resultado = PasseioEndpoints.Solicitar(Requisicao(999, pet.Id, passeador.Id), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         Assert.Equal(404, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
 
         var resposta = Assert.IsAssignableFrom<IValueHttpResult>(resultado).Value;
         Assert.Equal("Usuário não encontrado", resposta?.GetType().GetProperty("erro")?.GetValue(resposta));
+
+        Assert.Equal(0, _unidade.Chamadas);
     }
 
     [Fact]
@@ -126,7 +134,7 @@ public class PasseioEndpointsTests
     {
         var (usuarios, passeios, _, servico, tutor, pet, _) = CriarCenario();
 
-        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, 999), usuarios, passeios, servico, Fabrica.Agora);
+        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, 999), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         Assert.Equal(404, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
 
@@ -141,7 +149,7 @@ public class PasseioEndpointsTests
         var outroTutor = usuarios.Adicionar(Fabrica.CriarUsuario(TipoPerfil.TUTOR, "outro@petwalk.com"));
         var petDoOutro = usuarios.RegistrarPet(outroTutor, Fabrica.CriarPet(outroTutor));
 
-        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, petDoOutro.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+        var resultado = PasseioEndpoints.Solicitar(Requisicao(tutor.Id, petDoOutro.Id, passeador.Id), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
 
@@ -155,6 +163,7 @@ public class PasseioEndpointsTests
     {
         var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
         var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
+        var salvamentosAntes = _unidade.Chamadas;
 
         var resultado = ExecutarAcao(passeio.Id, passeador, passeios, usuarios, servico,
             (p, quem) => p.Aceitar(quem), TipoNotificacao.PASSEIO_ACEITO);
@@ -165,6 +174,8 @@ public class PasseioEndpointsTests
         var notificacao = Assert.Single(notificacoes.ListarPorDestinatario(tutor.Id));
         Assert.Equal(TipoNotificacao.PASSEIO_ACEITO, notificacao.Tipo);
         Assert.Same(passeio, notificacao.Passeio);
+
+        Assert.Equal(salvamentosAntes + 1, _unidade.Chamadas);
     }
 
     [Fact]
@@ -189,6 +200,7 @@ public class PasseioEndpointsTests
         var (usuarios, passeios, notificacoes, servico, tutor, pet, passeador) = CriarCenario();
         var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
         var outroPasseador = usuarios.Adicionar(Fabrica.CriarUsuario(TipoPerfil.PASSEADOR, "outro-passeador@petwalk.com"));
+        var salvamentosAntes = _unidade.Chamadas;
 
         var resultado = ExecutarAcao(passeio.Id, outroPasseador, passeios, usuarios, servico,
             (p, quem) => p.Aceitar(quem), TipoNotificacao.PASSEIO_ACEITO);
@@ -200,6 +212,9 @@ public class PasseioEndpointsTests
 
         Assert.Equal(StatusPasseio.SOLICITADO, passeio.Status);
         Assert.Empty(notificacoes.ListarPorDestinatario(tutor.Id));
+
+        // Regra de negócio violada: nada além do setup da solicitação foi gravado.
+        Assert.Equal(salvamentosAntes, _unidade.Chamadas);
     }
 
     [Fact]
@@ -316,8 +331,10 @@ public class PasseioEndpointsTests
         passeio.Iniciar(passeador);
         passeio.Finalizar(passeador);
 
+        var salvamentosAntes = _unidade.Chamadas;
+
         var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, "Ótimo passeio"),
-            passeios, usuarios, Fabrica.Agora);
+            passeios, usuarios, _unidade, Fabrica.Agora);
 
         Assert.Equal(201, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
 
@@ -329,6 +346,8 @@ public class PasseioEndpointsTests
         Assert.Equal(passeador.Id, resposta.Avaliado.Id);
         Assert.Equal(passeador.Nome, resposta.Avaliado.Nome);
         Assert.Equal(5d, resposta.MediaAvaliacao);
+
+        Assert.Equal(salvamentosAntes + 1, _unidade.Chamadas);
     }
 
     [Fact]
@@ -338,11 +357,15 @@ public class PasseioEndpointsTests
         var passeio = CriarPasseioPersistido(usuarios, passeios, servico, tutor, pet, passeador);
         passeio.Aceitar(passeador);
 
-        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, Fabrica.Agora);
+        var salvamentosAntes = _unidade.Chamadas;
+
+        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, _unidade, Fabrica.Agora);
 
         Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
         Assert.Equal("Passeio não finalizado", MensagemDe(resultado));
         Assert.Empty(passeio.Avaliacoes);
+
+        Assert.Equal(salvamentosAntes, _unidade.Chamadas);
     }
 
     [Fact]
@@ -350,9 +373,9 @@ public class PasseioEndpointsTests
     {
         var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
         var passeio = CriarPasseioFinalizado(usuarios, passeios, servico, tutor, pet, passeador);
-        PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, Fabrica.Agora);
+        PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 5, ""), passeios, usuarios, _unidade, Fabrica.Agora);
 
-        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 3, ""), passeios, usuarios, Fabrica.Agora);
+        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, 3, ""), passeios, usuarios, _unidade, Fabrica.Agora);
 
         Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
         Assert.Equal("Passeio já avaliado por este usuário", MensagemDe(resultado));
@@ -367,7 +390,7 @@ public class PasseioEndpointsTests
         var (usuarios, passeios, _, servico, tutor, pet, passeador) = CriarCenario();
         var passeio = CriarPasseioFinalizado(usuarios, passeios, servico, tutor, pet, passeador);
 
-        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, nota, ""), passeios, usuarios, Fabrica.Agora);
+        var resultado = PasseioEndpoints.Avaliar(passeio.Id, new AvaliacaoRequest(tutor.Id, nota, ""), passeios, usuarios, _unidade, Fabrica.Agora);
 
         Assert.Equal(400, Assert.IsAssignableFrom<IStatusCodeHttpResult>(resultado).StatusCode);
         Assert.Equal("Nota deve estar entre 1 e 5", MensagemDe(resultado));
@@ -387,7 +410,7 @@ public class PasseioEndpointsTests
         return corpo?.GetType().GetProperty("erro")?.GetValue(corpo) as string;
     }
 
-    private static Passeio CriarPasseioFinalizado(
+    private Passeio CriarPasseioFinalizado(
         IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, NotificacaoServico servico,
         Usuario tutor, Pet pet, Usuario passeador)
     {
@@ -399,16 +422,16 @@ public class PasseioEndpointsTests
         return passeio;
     }
 
-    private static Passeio CriarPasseioPersistido(
+    private Passeio CriarPasseioPersistido(
         IUsuarioRepositorio usuarios, IPasseioRepositorio passeios, NotificacaoServico servico,
         Usuario tutor, Pet pet, Usuario passeador)
     {
-        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, Fabrica.Agora);
+        PasseioEndpoints.Solicitar(Requisicao(tutor.Id, pet.Id, passeador.Id), usuarios, passeios, servico, _unidade, Fabrica.Agora);
 
         return Assert.Single(passeios.ListarPorUsuario(tutor.Id));
     }
 
-    private static IResult ExecutarAcao(int passeioId, Usuario quem, IPasseioRepositorio passeios,
+    private IResult ExecutarAcao(int passeioId, Usuario quem, IPasseioRepositorio passeios,
         IUsuarioRepositorio usuarios, NotificacaoServico servico, Action<Passeio, Usuario> acao, TipoNotificacao tipo) =>
-        PasseioEndpoints.ExecutarAcao(passeioId, new AcaoPasseioRequest(quem.Id), passeios, usuarios, servico, Fabrica.Agora, acao, tipo);
+        PasseioEndpoints.ExecutarAcao(passeioId, new AcaoPasseioRequest(quem.Id), passeios, usuarios, servico, _unidade, Fabrica.Agora, acao, tipo);
 }
