@@ -22,13 +22,25 @@ public class PasseioRepositorio : IPasseioRepositorio
         return passeio;
     }
 
-    // PasseioResponse lê Tutor, Passeador e Pet; a leitura de um passeio também expõe
-    // as avaliações e o avaliador de cada uma. Avaliado é resolvido pelo fixup do EF,
-    // porque o tutor e o passeador já vêm carregados por esta consulta.
+    // PasseioResponse lê apenas Tutor, Passeador e Pet. As avaliações têm um método próprio
+    // (ObterParaAvaliacao), para não carregar coleção que nenhum fluxo de leitura usa aqui.
     public Passeio? ObterPorId(int id) =>
         _contexto.Passeios
             .Include(p => p.Tutor)
             .Include(p => p.Passeador)
+            .Include(p => p.Pet)
+            .FirstOrDefault(p => p.Id == id);
+
+    // REG-001: a média do avaliado considera TODAS as avaliações que ele já recebeu, não só
+    // as deste passeio. As coleções dos dois participantes vêm carregadas porque só se sabe
+    // quem avalia quem em tempo de execução. Passeio.Avaliacoes também é necessária: é nela
+    // que o domínio verifica a avaliação duplicada, comparando o Avaliador por referência.
+    public Passeio? ObterParaAvaliacao(int id) =>
+        _contexto.Passeios
+            .Include(p => p.Tutor)
+                .ThenInclude(u => u.AvaliacoesRecebidas)
+            .Include(p => p.Passeador)
+                .ThenInclude(u => u.AvaliacoesRecebidas)
             .Include(p => p.Pet)
             .Include(p => p.Avaliacoes)
                 .ThenInclude(a => a.Avaliador)

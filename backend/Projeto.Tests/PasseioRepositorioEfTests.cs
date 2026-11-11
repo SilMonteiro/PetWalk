@@ -76,7 +76,7 @@ public class PasseioRepositorioEfTests
     }
 
     [Fact]
-    public void ObterPorId_CarregaParticipantesPetEAvaliacoesComAvaliador()
+    public void ObterPorId_CarregaParticipantesEPet_SemCarregarAvaliacoes()
     {
         using var conexao = AbrirConexao();
 
@@ -96,36 +96,116 @@ public class PasseioRepositorioEfTests
             passeadorId = passeador.Id;
         }
 
-        using (var escrita = CriarContexto(conexao))
-        {
-            var passeio = new PasseioRepositorio(escrita).ObterPorId(passeioId)!;
-
-            // Transições e avaliação sobre as entidades que o repositório carregou:
-            // tutor e passeador são as instâncias rastreadas neste mesmo contexto.
-            passeio.Aceitar(passeio.Passeador);
-            passeio.Iniciar(passeio.Passeador);
-            passeio.Finalizar(passeio.Passeador);
-            passeio.Avaliar(passeio.Tutor, 5, "Excelente", Fabrica.Agora);
-
-            new UnidadeDeTrabalho(escrita).Salvar();
-        }
-
         using var leitura = CriarContexto(conexao);
         var carregado = new PasseioRepositorio(leitura).ObterPorId(passeioId);
 
         Assert.NotNull(carregado);
-        Assert.Equal(StatusPasseio.FINALIZADO, carregado!.Status);
-        Assert.Equal(tutorId, carregado.Tutor.Id);
+        Assert.Equal(tutorId, carregado!.Tutor.Id);
         Assert.Equal(passeadorId, carregado.Passeador.Id);
         Assert.Equal("Rex", carregado.Pet.Nome);
+
+        // A leitura comum não carrega avaliações: quem precisa do histórico usa
+        // ObterParaAvaliacao, para não pagar o custo em todo GET de passeio.
+        Assert.Empty(carregado.Avaliacoes);
+        Assert.Empty(carregado.Passeador.AvaliacoesRecebidas);
+    }
+
+    [Fact]
+    public void ObterParaAvaliacao_CarregaAvaliacoesDoPasseioEAvaliador()
+    {
+        using var conexao = AbrirConexao();
+
+        int passeioId;
+        int tutorId;
+        int passeadorId;
+
+        using (var escrita = CriarContextoComSchema(conexao))
+        {
+            var (tutor, passeador, _, passeio) = SemearParticipantes(escrita);
+
+            new PasseioRepositorio(escrita).Adicionar(passeio);
+            new UnidadeDeTrabalho(escrita).Salvar();
+
+            passeioId = passeio.Id;
+            tutorId = tutor.Id;
+            passeadorId = passeador.Id;
+        }
+
+        FinalizarEAvaliar(conexao, passeioId, nota: 5);
+
+        using var leitura = CriarContexto(conexao);
+        var carregado = new PasseioRepositorio(leitura).ObterParaAvaliacao(passeioId);
+
+        Assert.NotNull(carregado);
+        Assert.Equal(StatusPasseio.FINALIZADO, carregado!.Status);
 
         var avaliacao = Assert.Single(carregado.Avaliacoes);
         Assert.Equal(5, avaliacao.Nota);
         Assert.Equal(tutorId, avaliacao.Avaliador.Id);
         Assert.Equal(passeadorId, avaliacao.Avaliado.Id);
 
-        // RegistrarAvaliacaoRecebida atualizou a média do avaliado e ela foi persistida.
+        // O histórico do avaliado veio junto — é o que sustenta a média.
+        Assert.Single(carregado.Passeador.AvaliacoesRecebidas);
         Assert.Equal(5d, carregado.Passeador.MediaAvaliacao);
+    }
+
+    [Fact]
+    public void ObterParaAvaliacao_SomaAvaliacoesDePasseiosDiferentesNaMedia()
+    {
+        using var conexao = AbrirConexao();
+
+        int primeiroPasseioId;
+        int segundoPasseioId;
+        int passeadorId;
+
+        using (var escrita = CriarContextoComSchema(conexao))
+        {
+            var (_, passeador, _, passeio) = SemearParticipantes(escrita);
+            var repositorio = new PasseioRepositorio(escrita);
+
+            repositorio.Adicionar(passeio);
+
+            // Segundo passeio do mesmo passeador, com outro tutor: a média dele precisa
+            // considerar os dois passeios, e não só o que está sendo avaliado agora.
+            var outroTutor = Fabrica.CriarUsuario(TipoPerfil.TUTOR, "outro@petwalk.com");
+            var petDoOutro = Fabrica.CriarPet(outroTutor);
+            outroTutor.AdicionarPet(petDoOutro);
+
+            escrita.AddRange(outroTutor, petDoOutro);
+
+            var segundoPasseio = outroTutor.SolicitarPasseio(
+                petDoOutro, passeador, Fabrica.Agora.AddDays(2), TimeSpan.FromHours(1), "Rua B, 20", Fabrica.Agora);
+            repositorio.Adicionar(segundoPasseio);
+
+            new UnidadeDeTrabalho(escrita).Salvar();
+
+            primeiroPasseioId = passeio.Id;
+            segundoPasseioId = segundoPasseio.Id;
+            passeadorId = passeador.Id;
+        }
+
+        FinalizarEAvaliar(conexao, primeiroPasseioId, nota: 5);
+        FinalizarEAvaliar(conexao, segundoPasseioId, nota: 3);
+
+        using var leitura = CriarContexto(conexao);
+
+        Assert.Equal(4d, leitura.Usuarios.Single(u => u.Id == passeadorId).MediaAvaliacao);
+        Assert.Equal(2, leitura.Avaliacoes.Count(a => a.Avaliado.Id == passeadorId));
+    }
+
+    // Mesmo caminho do endpoint: carrega com ObterParaAvaliacao, finaliza e avalia.
+    private static void FinalizarEAvaliar(SqliteConnection conexao, int passeioId, int nota)
+    {
+        using var contexto = CriarContexto(conexao);
+
+        var passeio = new PasseioRepositorio(contexto).ObterParaAvaliacao(passeioId)!;
+
+        passeio.Aceitar(passeio.Passeador);
+        passeio.Iniciar(passeio.Passeador);
+        passeio.Finalizar(passeio.Passeador);
+        passeio.Avaliar(passeio.Tutor, nota, "Comentário", Fabrica.Agora);
+
+        new UnidadeDeTrabalho(contexto).Salvar();
     }
 
     [Fact]

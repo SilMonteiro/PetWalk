@@ -111,6 +111,59 @@ public class PersistenciaApiTests : IClassFixture<PetWalkApiFactory>
         Assert.Contains("Pet não encontrado", await exclusao.Content.ReadAsStringAsync());
     }
 
+    [Fact]
+    public async Task MediaAvaliacao_ConsideraAvaliacoesDePasseiosDiferentes()
+    {
+        var passeadorId = await Cadastrar("Tania", "tania@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 20m);
+
+        var (primeiroTutorId, primeiroPasseioId) =
+            await PasseioFinalizado("Ubirajara", "ubirajara@petwalk.com", passeadorId);
+        var (segundoTutorId, segundoPasseioId) =
+            await PasseioFinalizado("Vitor", "vitor@petwalk.com", passeadorId);
+
+        var primeira = await Avaliar(primeiroPasseioId, primeiroTutorId, nota: 5);
+        Assert.Equal(5m, await LerDecimal(primeira, "mediaAvaliacao"));
+
+        // Segundo passeio, requisição nova: a média tem de considerar também a nota 5.
+        var segunda = await Avaliar(segundoPasseioId, segundoTutorId, nota: 3);
+        Assert.Equal(4m, await LerDecimal(segunda, "mediaAvaliacao"));
+
+        // Persistido: a listagem pública devolve a média acumulada.
+        var passeadores = await _client.GetFromJsonAsync<List<JsonElement>>("/passeadores");
+        var tania = Assert.Single(passeadores!, p => p.GetProperty("id").GetInt32() == passeadorId);
+        Assert.Equal(4m, tania.GetProperty("mediaAvaliacao").GetDecimal());
+    }
+
+    private async Task<(int tutorId, int passeioId)> PasseioFinalizado(string nome, string email, int passeadorId)
+    {
+        var tutorId = await Cadastrar(nome, email, TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Bolt");
+        var passeioId = await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        await Acao($"passeios/{passeioId}/aceitar", passeadorId);
+        await Acao($"passeios/{passeioId}/iniciar", passeadorId);
+        await Acao($"passeios/{passeioId}/finalizar", passeadorId);
+
+        return (tutorId, passeioId);
+    }
+
+    private async Task Acao(string rota, int usuarioId)
+    {
+        var resposta = await _client.PostAsJsonAsync($"/{rota}", new { usuarioId });
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+    }
+
+    private async Task<HttpResponseMessage> Avaliar(int passeioId, int avaliadorId, int nota)
+    {
+        var resposta = await _client.PostAsJsonAsync($"/passeios/{passeioId}/avaliacoes",
+            new { usuarioId = avaliadorId, nota, comentario = "Muito bom" });
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+
+        return resposta;
+    }
+
     private async Task<int> Cadastrar(string nome, string email, TipoPerfil tipoPerfil, decimal? valorHora = null)
     {
         var resposta = await _client.PostAsJsonAsync("/cadastro", new
@@ -169,5 +222,12 @@ public class PersistenciaApiTests : IClassFixture<PetWalkApiFactory>
         using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
 
         return documento.RootElement.GetProperty(propriedade).GetInt32();
+    }
+
+    private static async Task<decimal> LerDecimal(HttpResponseMessage resposta, string propriedade)
+    {
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+
+        return documento.RootElement.GetProperty(propriedade).GetDecimal();
     }
 }

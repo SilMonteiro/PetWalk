@@ -13,6 +13,9 @@ public class PasseioRepositorioEmMemoria : IPasseioRepositorio
 
     public Passeio? ObterPorId(int id) => _passeios.FirstOrDefault(p => p.Id == id);
 
+    // Em memória o grafo já guarda o histórico completo: a mesma instância serve.
+    public Passeio? ObterParaAvaliacao(int id) => ObterPorId(id);
+
     public IReadOnlyList<Passeio> ListarPorUsuario(int usuarioId) =>
         _passeios.Where(p => p.Tutor.Id == usuarioId || p.Passeador.Id == usuarioId).ToList();
 

@@ -56,10 +56,12 @@ public static class PasseioEndpoints
 
     // REG-001: passeio FINALIZADO, uma avaliação por usuário, nota 1..5 e participação continuam
     // sendo decididos pelo domínio; aqui só se resolvem as partes e se monta a resposta.
+    // ObterParaAvaliacao traz o histórico do avaliado: a média considera todas as avaliações
+    // recebidas, não só as que vieram junto com este passeio.
     internal static IResult Avaliar(int passeioId, AvaliacaoRequest req, IPasseioRepositorio passeios,
         IUsuarioRepositorio usuarios, IUnidadeDeTrabalho unidade, DateTime agora)
     {
-        var passeio = passeios.ObterPorId(passeioId);
+        var passeio = passeios.ObterParaAvaliacao(passeioId);
 
         if (passeio is null)
         {
