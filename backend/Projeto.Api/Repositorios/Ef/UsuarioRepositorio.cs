@@ -54,4 +54,14 @@ public class UsuarioRepositorio : IUsuarioRepositorio
 
         return pet;
     }
+
+    public void RemoverPet(Usuario tutor, Pet pet)
+    {
+        // REG-005 continua no agregado: só o tutor dono remove.
+        tutor.RemoverPet(pet);
+
+        // Remover da coleção não apaga a linha, porque a FK do tutor é obrigatória.
+        // O DELETE precisa ser explícito; quem chama decide quando salvar.
+        _contexto.Pets.Remove(pet);
+    }
 }

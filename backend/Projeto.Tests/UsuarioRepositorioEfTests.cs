@@ -243,4 +243,45 @@ public class UsuarioRepositorioEfTests
         Assert.Equal(50m, recarregado.ValorHora);
         Assert.Equal(TipoCobranca.POR_HORA, recarregado.TipoCobranca);
     }
+
+    [Fact]
+    public void RemoverPet_ApagaOPetDoBanco()
+    {
+        using var conexao = AbrirConexao();
+
+        int tutorId;
+        int petId;
+
+        using (var escrita = CriarContextoComSchema(conexao))
+        {
+            var tutor = Fabrica.CriarUsuario(TipoPerfil.TUTOR);
+            var pet = Fabrica.CriarPet(tutor);
+            tutor.AdicionarPet(pet);
+
+            escrita.AddRange(tutor, pet);
+            escrita.SaveChanges();
+
+            tutorId = tutor.Id;
+            petId = pet.Id;
+        }
+
+        using (var escrita = CriarContexto(conexao))
+        {
+            var repositorio = new UsuarioRepositorio(escrita);
+
+            var tutor = repositorio.ObterPorId(tutorId)!;
+            var pet = Assert.Single(tutor.Pets);
+
+            repositorio.RemoverPet(tutor, pet);
+            escrita.SaveChanges();
+
+            // O agregado em memória já não tem o pet.
+            Assert.Empty(tutor.Pets);
+        }
+
+        // A linha foi apagada: recarregar num contexto novo não encontra o pet.
+        using var leitura = CriarContexto(conexao);
+
+        Assert.Null(leitura.Pets.SingleOrDefault(p => p.Id == petId));
+    }
 }

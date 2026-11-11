@@ -36,4 +36,7 @@ public class UsuarioRepositorioEmMemoria : IUsuarioRepositorio
 
         return pet;
     }
+
+    // Em memória o agregado é a própria fonte: remover da coleção basta.
+    public void RemoverPet(Usuario tutor, Pet pet) => tutor.RemoverPet(pet);
 }

@@ -11,4 +11,7 @@ public interface IUsuarioRepositorio
     Pet? ObterPet(int petId);
 
     Pet RegistrarPet(Usuario tutor, Pet pet);
+
+    // Remove o pet do agregado e, na persistência, apaga o registro correspondente.
+    void RemoverPet(Usuario tutor, Pet pet);
 }

@@ -84,26 +84,38 @@ public static class PetEndpoints
             }
         });
 
-        app.MapDelete("/usuarios/{id:int}/pets/{petId:int}", (int id, int petId, IUsuarioRepositorio repositorio) =>
+        app.MapDelete("/usuarios/{id:int}/pets/{petId:int}", (int id, int petId,
+            IUsuarioRepositorio repositorio, IPasseioRepositorio passeios) =>
+            Excluir(id, petId, repositorio, passeios));
+    }
+
+    // Pet com passeio associado não pode ser excluído: o histórico passaria a apontar para um
+    // pet inexistente. A checagem vem antes de qualquer remoção, então o 409 não altera nada.
+    internal static IResult Excluir(int usuarioId, int petId, IUsuarioRepositorio usuarios,
+        IPasseioRepositorio passeios)
+    {
+        var usuario = usuarios.ObterPorId(usuarioId);
+
+        if (usuario is null)
         {
-            var usuario = repositorio.ObterPorId(id);
+            return ErroHttp.NaoEncontrado("Usuário não encontrado");
+        }
 
-            if (usuario is null)
-            {
-                return ErroHttp.NaoEncontrado("Usuário não encontrado");
-            }
+        var pet = LocalizarPet(usuario, petId);
 
-            var pet = LocalizarPet(usuario, petId);
+        if (pet is null)
+        {
+            return ErroHttp.NaoEncontrado("Pet não encontrado");
+        }
 
-            if (pet is null)
-            {
-                return ErroHttp.NaoEncontrado("Pet não encontrado");
-            }
+        if (passeios.ExisteParaPet(petId))
+        {
+            return Results.Conflict(new { erro = "Pet possui passeios e não pode ser excluído" });
+        }
 
-            usuario.RemoverPet(pet);
+        usuarios.RemoverPet(usuario, pet);
 
-            return Results.NoContent();
-        });
+        return Results.NoContent();
     }
 
     // REG-005: a busca é sempre dentro da lista do tutor, logo pet de outro tutor não é encontrado.
