@@ -49,7 +49,7 @@ public class FluxoCompletoTests : IClassFixture<PetWalkApiFactory>
             usuarioId = tutorId,
             petId,
             passeadorId,
-            dataHora = "2027-01-01T10:00:00Z",
+            dataHora = Fabrica.Agora.AddDays(1),
             duracaoMinutos = 60,
             local = "Rua das Flores, 10"
         });
@@ -110,7 +110,7 @@ public class FluxoCompletoTests : IClassFixture<PetWalkApiFactory>
             usuarioId = tutorId,
             petId,
             passeadorId,
-            dataHora = "2027-02-01T10:00:00Z",
+            dataHora = Fabrica.Agora.AddDays(2),
             duracaoMinutos = 60,
             local = "Rua A, 10"
         });

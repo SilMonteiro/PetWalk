@@ -22,6 +22,9 @@ public class PetWalkApiFactory : WebApplicationFactory<Program>
         _conexao.Open();
     }
 
+    // Relógio fixo injetado no host: os testes controlam "agora" sem depender do relógio real.
+    public RelogioDeTeste Relogio { get; } = new(Fabrica.Agora);
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(servicos =>
@@ -33,6 +36,10 @@ public class PetWalkApiFactory : WebApplicationFactory<Program>
             servicos.RemoveAll<IDbContextOptionsConfiguration<PetWalkDbContext>>();
 
             servicos.AddDbContext<PetWalkDbContext>(options => options.UseSqlite(_conexao));
+
+            // O Program registra TimeProvider.System; a fábrica usa o relógio controlado.
+            servicos.RemoveAll<TimeProvider>();
+            servicos.AddSingleton<TimeProvider>(Relogio);
         });
     }
 
