@@ -40,15 +40,16 @@ if (!string.IsNullOrEmpty(diretorioDoBanco))
 builder.Services.AddDbContext<PetWalkDbContext>(options =>
     options.UseSqlite(construtorDeConexao.ConnectionString));
 
-// Mesmo escopo do PetWalkDbContext: quando os repositórios passarem a ser EF, todos
-// compartilham o contexto e o change tracker desta unidade.
+// Tudo Scoped: repositórios, serviços e unidade de trabalho compartilham o mesmo
+// PetWalkDbContext na requisição. O domínio compara entidades por referência (ex.:
+// Passeio.ExigirPasseadorAtivo), então instâncias duplicadas quebrariam as regras.
+builder.Services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
+builder.Services.AddScoped<IPasseioRepositorio, PasseioRepositorio>();
+builder.Services.AddScoped<INotificacaoRepositorio, NotificacaoRepositorio>();
 builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
 
-builder.Services.AddSingleton<IUsuarioRepositorio, UsuarioRepositorioEmMemoria>();
-builder.Services.AddSingleton<IPasseioRepositorio, PasseioRepositorioEmMemoria>();
-builder.Services.AddSingleton<INotificacaoRepositorio, NotificacaoRepositorioEmMemoria>();
-builder.Services.AddSingleton<AutenticacaoServico>();
-builder.Services.AddSingleton<NotificacaoServico>();
+builder.Services.AddScoped<AutenticacaoServico>();
+builder.Services.AddScoped<NotificacaoServico>();
 
 // Relógio injetável: os endpoints leem "agora" de time.GetUtcNow().UtcDateTime em vez de DateTime.UtcNow.
 builder.Services.AddSingleton(TimeProvider.System);

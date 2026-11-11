@@ -33,10 +33,12 @@ public class NotificacaoRepositorio : INotificacaoRepositorio
     // Filtro pelo destinatário no banco, usando o índice da FK. Lida NÃO é filtrada aqui:
     // o NotificacaoServico é quem aplica apenasNaoLidas, como na implementação em memória.
     // NotificacaoResponse lê Passeio.Id de cada item, daí o Include do passeio.
+    // Ordenado por Id: o histórico sai na ordem de criação, sem depender do plano do SQLite.
     public IReadOnlyList<Notificacao> ListarPorDestinatario(int usuarioId) =>
         _contexto.Notificacoes
             .Include(n => n.Destinatario)
             .Include(n => n.Passeio)
             .Where(n => n.Destinatario.Id == usuarioId)
+            .OrderBy(n => n.Id)
             .ToList();
 }
