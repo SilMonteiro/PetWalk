@@ -1,0 +1,173 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+
+// Persistência real pela API: cada requisição abre o seu próprio escopo e DbContext, então
+// qualquer dado lido numa segunda requisição veio do SQLite, não de estado em memória.
+public class PersistenciaApiTests : IClassFixture<PetWalkApiFactory>
+{
+    private readonly PetWalkApiFactory _fabrica;
+    private readonly HttpClient _client;
+
+    public PersistenciaApiTests(PetWalkApiFactory fabrica)
+    {
+        _fabrica = fabrica;
+        _client = fabrica.CreateClient();
+    }
+
+    [Fact]
+    public async Task Cadastro_PersisteEntreRequisicoesIndependentes()
+    {
+        var usuarioId = await Cadastrar("Nina", "nina@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 30m);
+
+        // Requisição nova: o login só encontra a senha se o cadastro tiver sido gravado.
+        var login = await _client.PostAsJsonAsync("/login", new { email = "nina@petwalk.com", senha = "123456" });
+
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.Equal(usuarioId, await LerInteiro(login, "id"));
+
+        // Escopo de serviços independente do usado pelo request, para ler direto do banco.
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        var persistido = contexto.Usuarios.SingleOrDefault(u => u.Id == usuarioId);
+
+        Assert.NotNull(persistido);
+        Assert.Equal("nina@petwalk.com", persistido!.Email);
+        Assert.Equal(30m, persistido.ValorHora);
+    }
+
+    [Fact]
+    public async Task PetCriado_PodeSerConsultadoEmRequisicaoIndependente()
+    {
+        var tutorId = await Cadastrar("Otto", "otto@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Bolt");
+
+        var obtido = await _client.GetAsync($"/usuarios/{tutorId}/pets/{petId}");
+        Assert.Equal(HttpStatusCode.OK, obtido.StatusCode);
+        Assert.Contains("Bolt", await obtido.Content.ReadAsStringAsync());
+
+        var lista = await _client.GetFromJsonAsync<List<JsonElement>>($"/usuarios/{tutorId}/pets");
+        var pet = Assert.Single(lista!);
+        Assert.Equal(petId, pet.GetProperty("id").GetInt32());
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+
+        Assert.NotNull(contexto.Pets.SingleOrDefault(p => p.Id == petId));
+    }
+
+    [Fact]
+    public async Task ExcluirPet_SemPasseio_Devolve204ERemoveDoBanco()
+    {
+        var tutorId = await Cadastrar("Paula", "paula@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Mel");
+
+        var exclusao = await _client.DeleteAsync($"/usuarios/{tutorId}/pets/{petId}");
+
+        Assert.Equal(HttpStatusCode.NoContent, exclusao.StatusCode);
+
+        var consulta = await _client.GetAsync($"/usuarios/{tutorId}/pets/{petId}");
+        Assert.Equal(HttpStatusCode.NotFound, consulta.StatusCode);
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+
+        Assert.Null(contexto.Pets.SingleOrDefault(p => p.Id == petId));
+    }
+
+    [Fact]
+    public async Task ExcluirPet_ComPasseio_Devolve409EMantemOPetPersistido()
+    {
+        var tutorId = await Cadastrar("Rafa", "rafa@petwalk.com", TipoPerfil.TUTOR);
+        var passeadorId = await Cadastrar("Sofia", "sofia@petwalk.com", TipoPerfil.PASSEADOR, valorHora: 25m);
+        var petId = await CriarPet(tutorId, "Thor");
+        await SolicitarPasseio(tutorId, petId, passeadorId);
+
+        var exclusao = await _client.DeleteAsync($"/usuarios/{tutorId}/pets/{petId}");
+
+        Assert.Equal(HttpStatusCode.Conflict, exclusao.StatusCode);
+        Assert.Contains("Pet possui passeios", await exclusao.Content.ReadAsStringAsync());
+
+        // O pet continua acessível e continua na tabela.
+        var consulta = await _client.GetAsync($"/usuarios/{tutorId}/pets/{petId}");
+        Assert.Equal(HttpStatusCode.OK, consulta.StatusCode);
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+
+        Assert.NotNull(contexto.Pets.SingleOrDefault(p => p.Id == petId));
+        Assert.NotNull(contexto.Passeios.SingleOrDefault(p => p.Pet.Id == petId));
+    }
+
+    [Fact]
+    public async Task ExcluirPet_Inexistente_Devolve404()
+    {
+        var tutorId = await Cadastrar("Vera", "vera@petwalk.com", TipoPerfil.TUTOR);
+
+        var exclusao = await _client.DeleteAsync($"/usuarios/{tutorId}/pets/9999");
+
+        Assert.Equal(HttpStatusCode.NotFound, exclusao.StatusCode);
+        Assert.Contains("Pet não encontrado", await exclusao.Content.ReadAsStringAsync());
+    }
+
+    private async Task<int> Cadastrar(string nome, string email, TipoPerfil tipoPerfil, decimal? valorHora = null)
+    {
+        var resposta = await _client.PostAsJsonAsync("/cadastro", new
+        {
+            nome,
+            email,
+            telefone = "11999999999",
+            endereco = "Rua A, 10",
+            tipoPerfil = (int)tipoPerfil,
+            senha = "123456",
+            valorHora,
+            tipoCobranca = valorHora is null ? (int?)null : (int)TipoCobranca.POR_HORA
+        });
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        return await LerInteiro(resposta, "id");
+    }
+
+    private async Task<int> CriarPet(int tutorId, string nome)
+    {
+        var resposta = await _client.PostAsJsonAsync($"/usuarios/{tutorId}/pets", new
+        {
+            nome,
+            especie = "Cachorro",
+            raca = "Vira-lata",
+            porte = (int)Porte.MEDIO,
+            idade = 3,
+            observacoes = "Muito dócil"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+
+        return await LerInteiro(resposta, "id");
+    }
+
+    private async Task<int> SolicitarPasseio(int tutorId, int petId, int passeadorId)
+    {
+        var resposta = await _client.PostAsJsonAsync("/passeios", new
+        {
+            usuarioId = tutorId,
+            petId,
+            passeadorId,
+            dataHora = "2030-01-01T10:00:00Z",
+            duracaoMinutos = 60,
+            local = "Rua das Flores, 10"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+
+        return await LerInteiro(resposta, "id");
+    }
+
+    private static async Task<int> LerInteiro(HttpResponseMessage resposta, string propriedade)
+    {
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+
+        return documento.RootElement.GetProperty(propriedade).GetInt32();
+    }
+}
