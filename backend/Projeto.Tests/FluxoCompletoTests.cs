@@ -1,15 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 
-// Fluxo ponta a ponta pela API real (WebApplicationFactory): FLX-006 → FLX-007 → FLX-001 →
+// Fluxo ponta a ponta pela API real (PetWalkApiFactory): FLX-006 → FLX-007 → FLX-001 →
 // FLX-002 → FLX-003 → FLX-008 → FLX-004 → FLX-005, conferindo as notificações geradas.
-public class FluxoCompletoTests : IClassFixture<WebApplicationFactory<Program>>
+public class FluxoCompletoTests : IClassFixture<PetWalkApiFactory>
 {
     private readonly HttpClient _client;
 
-    public FluxoCompletoTests(WebApplicationFactory<Program> fabrica)
+    public FluxoCompletoTests(PetWalkApiFactory fabrica)
     {
         _client = fabrica.CreateClient();
     }
