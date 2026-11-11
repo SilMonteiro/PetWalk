@@ -165,5 +165,9 @@ public class Usuario
         MediaAvaliacao = _avaliacoesRecebidas.Count == 0 ? 0d : _avaliacoesRecebidas.Average(a => a.Nota);
     }
 
+    // Sincroniza a média derivada com o valor recalculado no banco. Não valida nem cria
+    // avaliação: somente reflete no objeto rastreado o agregado que ficou persistido.
+    internal void AtualizarMediaAvaliacao(double media) => MediaAvaliacao = media;
+
     internal void DefinirId(int id) => Id = id;
 }
