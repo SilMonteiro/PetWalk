@@ -111,6 +111,238 @@ public class PersistenciaApiTests : IClassFixture<PetWalkApiFactory>
         Assert.Contains("Pet não encontrado", await exclusao.Content.ReadAsStringAsync());
     }
 
+    // FLX-007: atualização de pet — 200 com os dados novos, persistência entre requisições
+    // independentes, 404 para tutor inexistente, pet inexistente e pet de outro tutor,
+    // e 400 das validações do domínio sem alterar o registro.
+    [Fact]
+    public async Task AtualizarPet_Devolve200ComOsDadosAtualizados()
+    {
+        var tutorId = await Cadastrar("Yuri", "yuri@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Rex");
+
+        var resposta = await _client.PutAsJsonAsync($"/usuarios/{tutorId}/pets/{petId}", new
+        {
+            nome = "Rex II",
+            especie = "Gato",
+            raca = "Siamês",
+            porte = (int)Porte.GRANDE,
+            idade = 4,
+            observacoes = "Muito independente"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        var pet = documento.RootElement;
+
+        // Identidade preservada: o PUT altera o pet existente, nunca cria outro.
+        Assert.Equal(petId, pet.GetProperty("id").GetInt32());
+        Assert.Equal(tutorId, pet.GetProperty("tutorId").GetInt32());
+
+        Assert.Equal("Rex II", pet.GetProperty("nome").GetString());
+        Assert.Equal("Gato", pet.GetProperty("especie").GetString());
+        Assert.Equal("Siamês", pet.GetProperty("raca").GetString());
+        Assert.Equal((int)Porte.GRANDE, pet.GetProperty("porte").GetInt32());
+        Assert.Equal(4, pet.GetProperty("idade").GetInt32());
+        Assert.Equal("Muito independente", pet.GetProperty("observacoes").GetString());
+
+        // Atualizar não toca nas vacinas registradas.
+        Assert.Empty(pet.GetProperty("vacinas").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task AtualizarPet_PersisteAlteracaoEntreRequisicoesIndependentes()
+    {
+        var tutorId = await Cadastrar("Zeca", "zeca@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Bolt");
+
+        var atualizacao = await _client.PutAsJsonAsync($"/usuarios/{tutorId}/pets/{petId}", new
+        {
+            nome = "Bolt Renomeado",
+            especie = "Cachorro",
+            raca = "Border Collie",
+            porte = (int)Porte.GRANDE,
+            idade = 5,
+            observacoes = "Muito ativo"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizacao.StatusCode);
+
+        // Requisição nova: o GET usa escopo e DbContext próprios, então o que vier veio do banco.
+        var obtido = await _client.GetAsync($"/usuarios/{tutorId}/pets/{petId}");
+        Assert.Equal(HttpStatusCode.OK, obtido.StatusCode);
+
+        using var documento = JsonDocument.Parse(await obtido.Content.ReadAsStringAsync());
+        var pet = documento.RootElement;
+
+        Assert.Equal("Bolt Renomeado", pet.GetProperty("nome").GetString());
+        Assert.Equal("Border Collie", pet.GetProperty("raca").GetString());
+        Assert.Equal((int)Porte.GRANDE, pet.GetProperty("porte").GetInt32());
+        Assert.Equal(5, pet.GetProperty("idade").GetInt32());
+        Assert.Equal("Muito ativo", pet.GetProperty("observacoes").GetString());
+
+        // Escopo independente do request: lê a linha gravada no SQLite, sem passar pela API.
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        var persistido = contexto.Pets.Single(p => p.Id == petId);
+
+        Assert.Equal("Bolt Renomeado", persistido.Nome);
+        Assert.Equal(Porte.GRANDE, persistido.Porte);
+        Assert.Equal(5, persistido.Idade);
+        Assert.Equal("Muito ativo", persistido.Observacoes);
+    }
+
+    [Fact]
+    public async Task AtualizarPet_UsuarioInexistente_Devolve404()
+    {
+        var resposta = await _client.PutAsJsonAsync("/usuarios/9999/pets/1", new
+        {
+            nome = "Rex II",
+            especie = "Cachorro",
+            raca = "Vira-lata",
+            porte = (int)Porte.MEDIO,
+            idade = 4,
+            observacoes = "Dócil"
+        });
+
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+
+        // O corpo é JSON com escapes unicode; a comparação é feita no valor decodificado.
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("Usuário não encontrado", documento.RootElement.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    public async Task AtualizarPet_PetInexistente_Devolve404()
+    {
+        var tutorId = await Cadastrar("Heitor", "heitor@petwalk.com", TipoPerfil.TUTOR);
+
+        var resposta = await _client.PutAsJsonAsync($"/usuarios/{tutorId}/pets/9999", new
+        {
+            nome = "Rex II",
+            especie = "Cachorro",
+            raca = "Vira-lata",
+            porte = (int)Porte.MEDIO,
+            idade = 4,
+            observacoes = "Dócil"
+        });
+
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("Pet não encontrado", documento.RootElement.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    public async Task AtualizarPet_PetDeOutroTutor_Devolve404SemAlterar()
+    {
+        var donoId = await Cadastrar("Alice", "alice@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(donoId, "Mel");
+        var invasorId = await Cadastrar("Bruno", "bruno@petwalk.com", TipoPerfil.TUTOR);
+
+        var tentativa = await _client.PutAsJsonAsync($"/usuarios/{invasorId}/pets/{petId}", new
+        {
+            nome = "Pet Invadido",
+            especie = "Gato",
+            raca = "Siamês",
+            porte = (int)Porte.GRANDE,
+            idade = 9,
+            observacoes = "Alterado por outro tutor"
+        });
+
+        // REG-005: a busca é dentro do agregado do tutor, então pet de outro tutor é inexistente.
+        Assert.Equal(HttpStatusCode.NotFound, tentativa.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await tentativa.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("Pet não encontrado", documento.RootElement.GetProperty("erro").GetString());
+        }
+
+        // O tutor dono continua vendo exatamente os dados originais.
+        var doDono = await _client.GetAsync($"/usuarios/{donoId}/pets/{petId}");
+        Assert.Equal(HttpStatusCode.OK, doDono.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await doDono.Content.ReadAsStringAsync()))
+        {
+            var pet = documento.RootElement;
+
+            Assert.Equal("Mel", pet.GetProperty("nome").GetString());
+            Assert.Equal("Cachorro", pet.GetProperty("especie").GetString());
+            Assert.Equal("Vira-lata", pet.GetProperty("raca").GetString());
+            Assert.Equal((int)Porte.MEDIO, pet.GetProperty("porte").GetInt32());
+            Assert.Equal(3, pet.GetProperty("idade").GetInt32());
+            Assert.Equal("Muito dócil", pet.GetProperty("observacoes").GetString());
+        }
+
+        // Escopo independente: nada foi gravado no banco.
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        var persistido = contexto.Pets.Single(p => p.Id == petId);
+
+        Assert.Equal("Mel", persistido.Nome);
+        Assert.Equal(Porte.MEDIO, persistido.Porte);
+        Assert.Equal(3, persistido.Idade);
+        Assert.Equal("Muito dócil", persistido.Observacoes);
+    }
+
+    [Fact]
+    public async Task AtualizarPet_SemNome_Devolve400SemPersistir()
+    {
+        var tutorId = await Cadastrar("Carla", "carla@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Mel");
+
+        var resposta = await _client.PutAsJsonAsync($"/usuarios/{tutorId}/pets/{petId}", new
+        {
+            nome = "",
+            especie = "Gato",
+            raca = "Siamês",
+            porte = (int)Porte.GRANDE,
+            idade = 4,
+            observacoes = "Alterado"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+
+        using (var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("Nome do pet é obrigatório.", documento.RootElement.GetProperty("erro").GetString());
+        }
+
+        // A validação ocorre antes de qualquer mutação: o registro tem de estar intacto.
+        using var escopo = _fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+        var persistido = contexto.Pets.Single(p => p.Id == petId);
+
+        Assert.Equal("Mel", persistido.Nome);
+        Assert.Equal("Cachorro", persistido.Especie);
+        Assert.Equal("Vira-lata", persistido.Raca);
+        Assert.Equal(Porte.MEDIO, persistido.Porte);
+        Assert.Equal(3, persistido.Idade);
+        Assert.Equal("Muito dócil", persistido.Observacoes);
+    }
+
+    [Fact]
+    public async Task AtualizarPet_IdadeInvalida_Devolve400()
+    {
+        var tutorId = await Cadastrar("Davi", "davi@petwalk.com", TipoPerfil.TUTOR);
+        var petId = await CriarPet(tutorId, "Thor");
+
+        var resposta = await _client.PutAsJsonAsync($"/usuarios/{tutorId}/pets/{petId}", new
+        {
+            nome = "Thor",
+            especie = "Cachorro",
+            raca = "Vira-lata",
+            porte = (int)Porte.MEDIO,
+            idade = 31,
+            observacoes = "Dócil"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+
+        using var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Equal("Idade inválida.", documento.RootElement.GetProperty("erro").GetString());
+    }
+
     [Fact]
     public async Task CadastroComEmailRepetido_Devolve409()
     {
