@@ -189,6 +189,21 @@ public class ErroDePersistenciaTests
     }
 
     [Fact]
+    public void ConflitoDeConcorrencia_MapeiaPara409()
+    {
+        // Token de concorrência violado: a linha foi alterada entre a leitura e a gravação.
+        var falha = new DbUpdateConcurrencyException("conflito de concorrência");
+
+        var resposta = ErroDePersistencia.Mapear(falha);
+
+        Assert.NotNull(resposta);
+        Assert.Equal(409, StatusDe(resposta!));
+        Assert.Equal(
+            "O passeio foi alterado por outra operação. Recarregue e tente novamente.",
+            MensagemDe(resposta!));
+    }
+
+    [Fact]
     public void ViolacaoUnicaSemEntidades_MapeiaPara409Generico()
     {
         // Entries vazio: o código é a única informação disponível, então nada de mensagem

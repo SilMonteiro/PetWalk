@@ -27,8 +27,13 @@ public class PasseioConfiguration : IEntityTypeConfiguration<Passeio>
         builder.Property(p => p.DataHora).HasConversion(ConversorDataHoraUtc);
         builder.Property(p => p.Duracao).HasConversion(ConversorDuracaoTicks);
 
-        // Enum persistido como texto, igual as demais entidades.
-        builder.Property(p => p.Status).HasConversion<string>().IsRequired();
+        // Enum persistido como texto, igual as demais entidades. Status é token de concorrência:
+        // o UPDATE inclui "WHERE Status = valor lido" e uma transição concorrente falha em vez
+        // de sobrescrever a outra. Não altera o schema (a coluna já existe).
+        builder.Property(p => p.Status)
+            .HasConversion<string>()
+            .IsRequired()
+            .IsConcurrencyToken();
 
         // Valor e get-only e pertence ao dominio: materializado pelo backing field,
         // sem setter publico e sem recalcular a politica de preco.

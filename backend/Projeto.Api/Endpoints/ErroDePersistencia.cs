@@ -18,6 +18,16 @@ public static class ErroDePersistencia
     // exceção seguir, para o 500 continuar significando defeito e não entrada inválida.
     public static IResult? Mapear(DbUpdateException excecao)
     {
+        // Conflito otimista: outra operação alterou a linha entre a leitura e a gravação.
+        // Vem antes do provedor porque DbUpdateConcurrencyException não tem SqliteException interna.
+        if (excecao is DbUpdateConcurrencyException)
+        {
+            return Results.Conflict(new
+            {
+                erro = "O passeio foi alterado por outra operação. Recarregue e tente novamente."
+            });
+        }
+
         if (excecao.InnerException is not SqliteException sqlite)
         {
             return null;
