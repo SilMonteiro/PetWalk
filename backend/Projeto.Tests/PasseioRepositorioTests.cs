@@ -31,4 +31,17 @@ public class PasseioRepositorioTests
         Assert.Same(passeio, Assert.Single(repositorio.ListarPorUsuario(2)));
         Assert.Empty(repositorio.ListarPorUsuario(3));
     }
+
+    [Fact]
+    public void ExisteParaPet_DevolveVerdadeiroSomenteParaPetComPasseio()
+    {
+        var (_, _, pet, passeio) = Fabrica.CriarPasseioSolicitado();
+        pet.DefinirId(7);
+
+        var repositorio = new PasseioRepositorioEmMemoria();
+        repositorio.Adicionar(passeio);
+
+        Assert.True(repositorio.ExisteParaPet(7));
+        Assert.False(repositorio.ExisteParaPet(8));
+    }
 }

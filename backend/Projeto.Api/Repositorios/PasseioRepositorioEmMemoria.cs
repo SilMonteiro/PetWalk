@@ -15,4 +15,6 @@ public class PasseioRepositorioEmMemoria : IPasseioRepositorio
 
     public IReadOnlyList<Passeio> ListarPorUsuario(int usuarioId) =>
         _passeios.Where(p => p.Tutor.Id == usuarioId || p.Passeador.Id == usuarioId).ToList();
+
+    public bool ExisteParaPet(int petId) => _passeios.Any(p => p.Pet.Id == petId);
 }
