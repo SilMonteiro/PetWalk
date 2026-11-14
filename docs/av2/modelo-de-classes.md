@@ -217,3 +217,23 @@ classDiagram
 | DataEnvio | DateTime | público 🔒 | |
 | Passeio | Passeio | público | sem setter |
 | MarcarComoLida() | void | público | |
+
+## Multiplicidade: Usuario 1 — 0..* Pet
+
+### Fundamento no código
+
+No código (`Usuario.cs` e `Pet.cs`):
+- `Usuario` mantém `private readonly List<Pet> _pets` exposta como `IReadOnlyList<Pet> Pets`.
+- `Pet` possui `public Usuario Tutor { get; }` — referência sem setter (atribuída no construtor).
+- Um pet só pode ser adicionado à lista de um `Usuario` via `AdicionarPet(pet)`, que verifica:
+  1. `if (!EhTutor)` — somente tutores têm pets (REG-002).
+  2. `if (pet.Tutor != this)` — o pet já deve pertencer a este tutor (REG-005).
+
+### Cenários de teste que provam a multiplicidade
+
+| Cenário | Classe de teste | O que prova | Método de Teste |
+|---|---|---|---|
+| Tutor com 0 pets solicita passeio → `InvalidOperationException` | `SolicitacaoDePasseioTests` | Método que verifica: `if (pet is null \|\| !_pets.Contains(pet))` | `PetDeOutroTutor_NaoPodeSerSolicitado` |
+| Tutor com 1 pet solicita passeio com seu próprio pet → sucesso | `SolicitacaoDePasseioTests` | A multiplicidade 1 funciona | `TutorComPetVinculado_SolicitaPasseio_CriaPasseioSolicitado` |
+| Tutor tenta usar pet de outro tutor → `InvalidOperationException` | `SolicitacaoDePasseioTests` | Posse exclusiva: REG-005 | `PetDeOutroTutor_NaoPodeSerSolicitado` |
+| Usuário sem perfil de tutor tenta adicionar pet → `InvalidOperationException` | `UsuarioTests` | REG-002: só tutor tem pets | `AdicionarPet_ComPerfilDePasseador_LancaErro` |
