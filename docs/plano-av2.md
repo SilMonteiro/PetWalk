@@ -1,3 +1,6 @@
+<!-- ÚLTIMA ATUALIZAÇÃO: 14/11/2026 15:35 -->
+<!-- STATUS GERAL: 20/40 itens concluídos — Projeção: ~5,0/10,0 -->
+
 ## 1. Resultado item a item
 
 ### A — Aplicação dos conceitos de POO (8/8 ✅)
@@ -13,64 +16,96 @@
 | A07 | ✅ | setters privados, `_endereco` privado + `ObterEnderecoPara`, coleções `IReadOnlyList`, `DefinirId` `internal` |
 | A08 | ✅ | `IPoliticaDePreco` + `PrecoPorHora` + `PrecoComAdicionalPorPorte`, escolhidas por `PoliticaDePrecoFabrica` e usadas em `Usuario.SolicitarPasseio` |
 
-### B — Modelos de classes (0/8 ❌)
+---
+
+### B — Modelos de classes (8/8 ✅) — CONCLUÍDO em 14/11/2026
+
+> **Arquivos entregues:**
+> - `docs/av2/modelo-de-classes.md` — diagrama Mermaid + mapeamento + atributos + multiplicidade + composição + polimorfismo + invariantes
+> - `docs/av2/analise-do-modelo.md` — 2 decisões de modelagem comparadas
+
+| Item | Status | Evidência |
+|---|---|---|
+| B01 | ✅ | Diagrama `classDiagram` Mermaid com 9 classes/interfaces em `docs/av2/modelo-de-classes.md` |
+| B02 | ✅ | Tabela "Mapeamento Classe → Arquivo" + tabela de Enums em `modelo-de-classes.md` |
+| B03 | ✅ | Seção "Atributos e Métodos Relevantes por Classe" com tabelas detalhadas para as 5 classes de domínio |
+| B04 | ✅ | Seção "Multiplicidade: Usuario 1 — 0..* Pet" com fundamento no código e 4 cenários de teste com nomes reais |
+| B05 | ✅ | Seção "Composição: Passeio ◆— Avaliacao" com trecho do código e 3 métodos de teste referenciados |
+| B06 | ✅ | Seção "Polimorfismo: IPoliticaDePreco" com contrato, implementações, fábrica, ponto de uso e 15 testes referenciados |
+| B07 | ✅ | Seção "Invariantes do Modelo" com 4 invariantes (INV-01 a INV-04), guardiões e testes reais |
+| B08 | ✅ | Duas decisões comparadas em `docs/av2/analise-do-modelo.md`: (1) `Usuario+TipoPerfil` vs. `Tutor/Passeador` separados; (2) `IPoliticaDePreco+Fábrica` vs. `switch` vs. subclasses |
+
+---
+
+### C — Análise crítica de código (0/6 ❌) — PENDENTE
+
+> **Arquivo a criar:** `docs/av2/revisao-de-codigo.md`
+> **Commits candidatos:** `b22819d` (*AdicionarPet exige perfil de tutor* — REG-002) ou `8871eef` (*tirar `DateTime.UtcNow` do domínio* — REG-008)
+
+| Item | Status | O que falta |
+|---|---|---|
+| C01 | ❌ | Selecionar 1 commit e documentar `git show --stat` + trecho do diff |
+| C02 | ❌ | Ligar a alteração a um requisito/regra da `especificacao.md` |
+| C03 | ❌ | Inventário dos arquivos alterados: arquivo, finalidade, dentro/fora do escopo |
+| C04 | ❌ | Análise de impacto: quem chama, contratos afetados, testes impactados + `dotnet test` antes/depois |
+| C05 | ❌ | Avaliação de ≥ 2 propriedades de POO sobre o diff (encapsulamento, responsabilidade, acoplamento…) |
+| C06 | ❌ | Parecer: aceitar / corrigir / rejeitar, separando fatos de julgamento |
+
+---
+
+### D — Controle de exceções (3/4 ✅) — QUASE CONCLUÍDO
+
+> **Nota:** o tratamento central de exceções **já está implementado no código** (`Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()`). Falta apenas **documentar** em `docs/av2/especificacao.md`.
 
 | Item | Status | Situação |
 |---|---|---|
-| B01 | ❌ | Não existe modelo textual (Mermaid/PlantUML) no repo |
-| B02 | ❌ | Depende de B01 |
-| B03 | ❌ | Depende de B01 |
-| B04 | ❌ | Depende de B01 (a associação existe no código: `Usuario` 1 — 0..* `Pet`) |
-| B05 | ❌ | Depende de B01 (candidata: `Passeio` ◆— `Avaliacao`) |
-| B06 | ❌ | Depende de B01 (contrato e implementações existem no código) |
-| B07 | ❌ | Depende de B01 |
-| B08 | ❌ | Não há decisões de modelagem com alternativas comparadas (a `proposta.md` justifica a variação polimórfica, mas não compara alternativas) |
-
-### C — Análise crítica de código (0/6; 1 incerto)
-
-| Item | Status | Situação |
-|---|---|---|
-| C01 | ⚠️ | Existem commits funcionais com diff (ex.: `f57b1d1`, `b22819d`), mas nenhum documento seleciona uma alteração |
-| C02 | ❌ | Sem documento ligando a alteração a um requisito/regra |
-| C03 | ❌ | Sem inventário dos arquivos modificados |
-| C04 | ❌ | Sem análise de impacto |
-| C05 | ❌ | Sem avaliação de propriedades de POO sobre o diff |
-| C06 | ❌ | Sem decisão técnica (aceitar/corrigir/rejeitar) |
-
-### D — Controle de exceções (1 ✅, 2 ⚠️, 1 ❌)
-
-| Item | Status | Situação |
-|---|---|---|
-| D01 | ⚠️ | O contrato 400/422/404/409/403/401 está na proposta, mas não há 3 situações de falha classificadas como *violação de regra* vs. *situação excepcional* |
+| D01 | ❌ | Adicionar seção "Falhas" em `docs/av2/especificacao.md` com 3 casos: validação (400) / violação de regra (422) / falha excepcional (500) |
 | D02 | ✅ | `Passeio.Aceitar` lança → `ExecutarAcao` captura → `ErroHttp.Erro` → 422 (coberto em `PasseioEndpointsTests`) |
-| D03 | ❌ | `ErroHttp.Erro` faz `_ => throw ex`; não há `UseExceptionHandler`, nem log, nem resposta 500 padronizada. Em ambiente de desenvolvimento a página de exceção pode expor stack trace |
-| D04 | ⚠️ | Há testes para 400/404/409/403/422, mas não para uma falha excepcional (depende de D01 e D03) |
+| D03 | ✅ | `Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()` — implementado |
+| D04 | ✅ | `EndpointsFalhaDePersistenciaTests` cobre 500 em 3 rotas: `Cadastro_FalhaAoSalvar_Devolve500`, `CriarPet_FalhaAoSalvar_Devolve500`, `AtualizarPet_FalhaAoSalvar_Devolve500` |
 
-> **Nota de atualização (subetapa 9.2):** o tratamento central de exceções foi implementado após esta avaliação: `Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()`, e `EndpointsFalhaDePersistenciaTests` cobre 500 em três rotas (`Cadastro_FalhaAoSalvar_Devolve500`, `CriarPet_FalhaAoSalvar_Devolve500`, `AtualizarPet_FalhaAoSalvar_Devolve500`). Os status ❌/⚠️ desta tabela são históricos e não foram alterados.
+---
 
-### E — Depuração (0/6 ❌)
+### E — Depuração (0/6 ❌) — PENDENTE
 
-| Item | Status | Situação |
+> **Arquivo a criar:** `docs/av2/registro-de-depuracao.md`
+> **Material pronto para usar:** commit `f57b1d1` ("Corrigir a média de avaliação") + `MediaAvaliacaoTests.cs` já existem no repositório — só falta documentar.
+
+| Item | Status | O que falta |
 |---|---|---|
-| E01–E06 | ❌ | Não existe registro de depuração. **Material aproveitável:** o commit `f57b1d1` ("Corrigir a média de avaliação") corrigiu um defeito real e adicionou `MediaAvaliacaoTests.cs`, mas sem documentar reprodução, hipótese, técnica e verificação |
+| E01 | ❌ | Descrever o defeito com evidência do comportamento incorreto (saída do teste vermelho) |
+| E02 | ❌ | Condições de reprodução + comportamento esperado (ex.: avaliações 5 e 3 → média 4,0) vs. observado (ex.: 3,0) |
+| E03 | ❌ | ≥ 1 hipótese ("a média usa só a avaliação mais recente") e experimento que a confirma/descarta |
+| E04 | ❌ | Técnica de depuração aplicada com evidência: breakpoint em `Usuario.RegistrarAvaliacaoRecebida` **ou** log com `ILogger` |
+| E05 | ❌ | Causa raiz + diff da menor correção + teste que ficou verde |
+| E06 | ❌ | Tabela antes/depois + comparação de técnicas (breakpoint vs. log vs. teste automatizado) com critérios e recomendação |
 
-### F — Testes, rastreabilidade e auditoria (3/6; 1 incerto)
+---
+
+### F — Testes, rastreabilidade e auditoria (3/6 ⚠️) — PARCIAL
+
+> **Arquivos a criar:** `docs/av2/matriz-rastreabilidade.md` e `docs/av2/auditoria-final.md`
 
 | Item | Status | Evidência / situação |
 |---|---|---|
-| F01 | ✅ | Testes de sucesso e violação para as regras (`SolicitacaoDePasseioTests` 23, `AvaliacaoTests`, `UsuarioTests`, `PasseioEndpointsTests`…) |
+| F01 | ✅ | Testes de sucesso e violação para as regras (`SolicitacaoDePasseioTests`, `AvaliacaoTests`, `UsuarioTests`, `PasseioEndpointsTests`…) |
 | F02 | ✅ | Testes tentam transição proibida e conferem `Status` inalterado |
-| F03 | ✅ | `FluxoCompletoTests` (`WebApplicationFactory<Program>`) executa o fluxo pela API e lê de volta pelos endpoints. *Observação: o teste usa SQLite em memória via `PetWalkApiFactory`; a aplicação persiste em arquivo SQLite.* |
-| F04 | ⚠️ | README tem instruções, mas **não verifiquei** build/testes em clone limpo |
-| F05 | ❌ | Não há matriz de rastreabilidade fluxo ↔ regra ↔ implementação ↔ teste |
-| F06 | ❌ | Não há auditoria final |
+| F03 | ✅ | `FluxoCompletoTests` (`WebApplicationFactory<Program>`) executa o fluxo pela API e lê de volta pelos endpoints |
+| F04 | ⚠️ | README tem instruções completas — falta evidência de `dotnet test` em clone limpo (capturar saída com nº de testes, tempo, versão do SDK) |
+| F05 | ❌ | Criar `docs/av2/matriz-rastreabilidade.md` com tabela fluxo → regra → implementação → teste (3 fluxos × 5 regras, nomes reais) |
+| F06 | ❌ | Criar `docs/av2/auditoria-final.md` com tabela dos 40 itens + limitações conhecidas + saída final de `dotnet test` |
 
-### G — Especificação e agentes (0/2; 1 incerto)
+---
 
-| Item | Status | Situação |
+### G — Especificação e agentes (0/2 ❌) — PENDENTE
+
+> **Arquivos a criar:** `docs/av2/especificacao.md` e `docs/av2/especificacao-agente.md`
+> **Atenção:** G01 é pré-requisito de C02, F05 e F06.
+
+| Item | Status | O que falta |
 |---|---|---|
-| G01 | ⚠️ | `proposta.md` tem fluxos, regras e colunas Sucesso/Falha, mas não há critérios de aceitação verificáveis (Dado/Quando/Então) para os 3 fluxos e 5 regras escolhidos |
-| G02 | ❌ | Sem especificação para agente (o PDF escreve "DsCode") nem evidência de inspeção |
+| G01 | ❌ | Criar `docs/av2/especificacao.md` com critérios **Dado/Quando/Então** para os 3 fluxos (FLX-002, FLX-004, FLX-005) e 5 regras (REG-001, REG-003, REG-004, REG-005, REG-008) |
+| G02 | ❌ | Criar `docs/av2/especificacao-agente.md`: contexto do projeto para o agente, pedido delimitado, plano esperado, diff produzido e evidência de inspeção |
 
 ---
 
@@ -386,21 +421,26 @@ Cobrir **os 40 itens** e validar que todo caminho listado existe (`jq -r '.. | s
 
 ## 4. Checklist final antes de entregar
 
-- [ ] README com `## Integrantes` (plural) e 5 nomes completos
+<!-- Atualizado em 14/11/2026 -->
+- [x] README com `## Integrantes` (plural) e 5 nomes completos ✅
 - [ ] `main` contém a versão a ser avaliada
-- [ ] `dotnet test` verde em clone limpo (F04)
-- [ ] Modelo Mermaid confere com o código (B01–B07)
-- [ ] 5 regras e 3 fluxos fixados e usados em G01, F05 e F06
-- [ ] Falha excepcional tratada + testada (D03/D04)
-- [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02)
-- [ ] Auditoria final sem declarar como concluído o que não foi comprovado (F06)
-- [ ] `evidencias.json` cobrindo os 40 itens, com caminhos válidos
+- [ ] `dotnet test` verde em clone limpo — evidência capturada (F04)
+- [x] Modelo Mermaid confere com o código (B01–B07) ✅ — `docs/av2/modelo-de-classes.md`
+- [ ] 5 regras e 3 fluxos fixados e usados em G01, F05 e F06 — **G01 ainda não existe**
+- [x] Falha excepcional tratada + testada (D03/D04) ✅ — código e testes existem; falta documentar em D01
+- [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **nenhum dos três documentos existe**
+- [ ] Auditoria final sem declarar como concluído o que não foi comprovado (F06) — **F06 não existe**
+- [ ] `evidencias.json` cobrindo os 40 itens, com caminhos válidos — **não existe**
 
 ## 5. Projeção de nota
 
-| Cenário | Itens | Nota |
+<!-- Atualizado em 14/11/2026 — base atual: 20 itens concluídos -->
+| Cenário | Itens concluídos | Nota |
 |---|---:|---:|
-| Hoje (após corrigir só o README) | 12 | 3,00 |
-| + fechar os 5 incertos (G01, D01/D04, F04, C01) | 17 | 4,25 |
-| + Etapas 2–3 (B) | 25 | 6,25 |
-| + Etapas 4 (D03), 5 (E), 6 (C), 7 (G02), 9–10 (F05/F06) | 40 | 10,00 |
+| ~~Situação original (antes de 14/11/2026)~~ | ~~12~~ | ~~3,00~~ |
+| **Situação atual (14/11/2026)** — Grupo B entregue + D03/D04 confirmados | **20** | **5,00** |
+| + fechar D01 (documentar falhas em especificacao.md) + F04 (evidência de clone) | 22 | 5,50 |
+| + fechar G01 (especificacao.md com Dado/Quando/Então) | 23 | 5,75 |
+| + fechar C (revisao-de-codigo.md, 6 itens) | 29 | 7,25 |
+| + fechar E (registro-de-depuracao.md, 6 itens) | 35 | 8,75 |
+| + fechar G02 + F05 + F06 + evidencias.json (5 itens) | 40 | **10,00** |
