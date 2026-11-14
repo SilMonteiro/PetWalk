@@ -133,3 +133,87 @@ classDiagram
 | TipoCobranca | POR_HORA, POR_HORA_COM_ADICIONAL_DE_PORTE | Enums.cs |
 | Porte | PEQUENO, MEDIO, GRANDE | Enums.cs |
 | TipoNotificacao | PASSEIO_SOLICITADO, PASSEIO_ACEITO, PASSEIO_RECUSADO, PASSEIO_INICIADO, PASSEIO_FINALIZADO, PASSEIO_CANCELADO | Enums.cs |
+
+## Atributos e Métodos Relevantes por Classe
+
+### Usuario
+
+| Membro | Tipo | Visibilidade | Observação |
+|---|---|---|---|
+| Id | int | público 🔒 | setter privado |
+| Nome | string | público 🔒 | setter privado |
+| Email | string | público 🔒 | setter privado |
+| Telefone | string | público 🔒 | setter privado |
+| TipoPerfil | TipoPerfil | público 🔒 | setter privado |
+| Status | StatusUsuario | público 🔒 | setter privado |
+| ValorHora | decimal | público 🔒 | setter privado |
+| TipoCobranca | TipoCobranca | público 🔒 | setter privado |
+| MediaAvaliacao | double | público 🔒 | setter privado |
+| Pets | IReadOnlyList<Pet> | público | coleção somente leitura; _pets privado |
+| EhTutor | bool | público | propriedade calculada |
+| EhPasseador | bool | público | propriedade calculada |
+| _endereco | string | privado 🔒 | acessível só via ObterEnderecoPara() |
+| ObterEnderecoPara(solicitante) | string | público | lança se solicitante != this |
+| AdicionarPet(pet) | void | público | REG-002, REG-005 |
+| RemoverPet(pet) | void | público | |
+| SolicitarPasseio(...) | Passeio | público | REG-002, REG-005, REG-008, REG-009 |
+| DefinirCobranca(valorHora, tipoCobranca) | void | público | exige EhPasseador |
+| Bloquear() / Desbloquear() | void | público | altera Status |
+| DefinirId(id) | void | internal 🔒 | usado só pelo repositório |
+
+### Pet
+
+| Membro | Tipo | Visibilidade | Observação |
+|---|---|---|---|
+| Id | int | público 🔒 | setter privado |
+| Nome | string | público 🔒 | setter privado |
+| Especie | string | público 🔒 | setter privado |
+| Raca | string | público 🔒 | setter privado |
+| Porte | Porte | público 🔒 | setter privado |
+| Idade | int | público 🔒 | setter privado; 0–30 |
+| Observacoes | string | público 🔒 | setter privado |
+| Tutor | Usuario | público | referência ao dono |
+| Vacinas | IReadOnlyList<string> | público | _vacinas privado |
+| Atualizar(...) | void | público | valida Nome e Idade |
+| RegistrarVacina(vacina) | void | público | |
+
+### Passeio
+
+| Membro | Tipo | Visibilidade | Observação |
+|---|---|---|---|
+| Id | int | público 🔒 | setter privado |
+| DataHora | DateTime | público 🔒 | setter privado |
+| Duracao | TimeSpan | público 🔒 | setter privado |
+| Local | string | público 🔒 | setter privado |
+| Valor | decimal | público | calculado no construtor, sem setter |
+| Status | StatusPasseio | público 🔒 | alterado só por transições |
+| Tutor / Passeador / Pet | referências | público | sem setter |
+| Avaliacoes | IReadOnlyList<Avaliacao> | público | _avaliacoes privado |
+| Aceitar / Recusar / Iniciar / Finalizar(quem) | void | público | exigem ExigirPasseadorAtivo + ExigirStatus |
+| Cancelar(quem) | void | público | REG-004: só SOLICITADO ou ACEITO |
+| Avaliar(avaliador, nota, comentario, agora) | Avaliacao | público | REG-001: uma avaliação por usuário |
+| Participou(u) | bool | público | |
+
+### Avaliacao
+
+| Membro | Tipo | Visibilidade | Observação |
+|---|---|---|---|
+| Id | int | público 🔒 | setter privado |
+| Nota | int | público 🔒 | 1–5 |
+| Comentario | string | público 🔒 | |
+| Data | DateTime | público 🔒 | |
+| Avaliador / Avaliado | Usuario | público | sem setter |
+| Passeio | Passeio | público | sem setter; exige Status FINALIZADO |
+
+### Notificacao
+
+| Membro | Tipo | Visibilidade | Observação |
+|---|---|---|---|
+| Id | int | público 🔒 | setter privado |
+| Destinatario | Usuario | público | sem setter |
+| Tipo | TipoNotificacao | público | sem setter |
+| Mensagem | string | público 🔒 | gerada automaticamente por GerarMensagem() |
+| Lida | bool | público 🔒 | alterada só por MarcarComoLida() |
+| DataEnvio | DateTime | público 🔒 | |
+| Passeio | Passeio | público | sem setter |
+| MarcarComoLida() | void | público | |
