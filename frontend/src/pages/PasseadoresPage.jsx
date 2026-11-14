@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
+import AvatarIniciais from '../components/AvatarIniciais';
+import Icon from '../components/Icon';
+import PageShell, { EstadoVazio, PageHeading } from '../components/PageShell';
 import { useAuth } from '../context/AuthContext';
 import { listarPasseadores } from '../services/passeadorService';
 import { listarPets } from '../services/petService';
@@ -53,22 +55,20 @@ const PasseadoresPage = () => {
 
   if (!ehTutor) {
     return (
-      <div className="pagina-passeadores">
-        <Header />
+      <PageShell largura="estreita">
+        <PageHeading icone={<Icon nome="user" />} titulo="Passeadores" />
 
-        <main className="passeadores-conteudo">
-          <h1 className="passeadores-titulo">Passeadores</h1>
-
-          <div className="passeadores-aviso">
-            <p className="passeadores-aviso-texto">
-              Apenas usuários com perfil de tutor podem contratar passeadores.
-            </p>
-            <Link className="passeadores-botao" to="/home">
-              Voltar para a Home
+        <EstadoVazio
+          icone={<Icon nome="info" />}
+          titulo="Área para tutores"
+          texto="Apenas usuários com perfil de tutor podem contratar passeadores."
+          acao={
+            <Link className="btn" to="/home">
+              Voltar para o início
             </Link>
-          </div>
-        </main>
-      </div>
+          }
+        />
+      </PageShell>
     );
   }
 
@@ -77,72 +77,98 @@ const PasseadoresPage = () => {
   const semPets = !carregando && !erro && pets.length === 0;
 
   return (
-    <div className="pagina-passeadores">
-      <Header />
+    <PageShell>
+      <PageHeading
+        icone={<Icon nome="user" />}
+        titulo="Passeadores"
+        subtitulo="Escolha quem vai passear com o seu pet."
+      />
 
-      <main className="passeadores-conteudo">
-        <h1 className="passeadores-titulo">Passeadores</h1>
+      {carregando && (
+        <div className="carregando" role="status">
+          <span className="spinner" />
+          Carregando passeadores...
+        </div>
+      )}
 
-        {carregando && <p className="passeadores-carregando">Carregando passeadores...</p>}
+      {!carregando && erro && (
+        <div className="bloco-erro">
+          <p className="alerta alerta--erro" role="alert">
+            <Icon nome="alert" />
+            {erro}
+          </p>
+          <button type="button" className="btn btn--outline" onClick={carregar}>
+            Tentar de novo
+          </button>
+        </div>
+      )}
 
-        {!carregando && erro && (
-          <div className="passeadores-erro">
-            <p className="passeadores-erro-mensagem">{erro}</p>
-            <button type="button" className="passeadores-botao" onClick={carregar}>
-              Tentar de novo
-            </button>
-          </div>
-        )}
+      {semPets && (
+        <div className="passeadores-aviso">
+          <p className="alerta alerta--info">
+            <Icon nome="info" />
+            Cadastre um pet antes de solicitar um passeio.
+          </p>
+          <Link className="btn btn--sm" to="/pets/novo">
+            <Icon nome="plus" />
+            Cadastrar pet
+          </Link>
+        </div>
+      )}
 
-        {semPets && (
-          <div className="passeadores-aviso">
-            <p className="passeadores-aviso-texto">
-              Cadastre um pet antes de solicitar um passeio.
-            </p>
-            <Link className="passeadores-botao" to="/pets/novo">
-              Cadastrar pet
-            </Link>
-          </div>
-        )}
+      {!carregando && !erro && disponiveis.length === 0 && (
+        <EstadoVazio
+          icone={<Icon nome="user" />}
+          titulo="Nenhum passeador disponível no momento"
+          texto="Volte em breve: novos passeadores podem se cadastrar a qualquer momento."
+        />
+      )}
 
-        {!carregando && !erro && disponiveis.length === 0 && (
-          <p className="passeadores-vazio">Nenhum passeador disponível no momento.</p>
-        )}
+      {!carregando && !erro && disponiveis.length > 0 && (
+        <ul className="passeadores-lista">
+          {disponiveis.map((passeador) => {
+            const semAvaliacao = passeador.mediaAvaliacao === 0;
 
-        {!carregando && !erro && disponiveis.length > 0 && (
-          <ul className="passeadores-lista">
-            {disponiveis.map((passeador) => (
+            return (
               <li key={passeador.id} className="passeador-card">
-                <h2 className="passeador-nome">{passeador.nome}</h2>
+                <div className="passeador-topo">
+                  <AvatarIniciais nome={passeador.nome} tamanho="lg" />
+                  <div>
+                    <h2 className="passeador-nome">{passeador.nome}</h2>
+                    <p className={`passeador-media${semAvaliacao ? ' vazia' : ''}`}>
+                      <Icon nome="star" />
+                      {semAvaliacao
+                        ? 'Sem avaliações'
+                        : `Média ${FORMATO_MEDIA.format(passeador.mediaAvaliacao)}`}
+                    </p>
+                  </div>
+                </div>
 
-                <p className="passeador-detalhe">
-                  {passeador.mediaAvaliacao === 0
-                    ? 'Sem avaliações'
-                    : `Média: ${FORMATO_MEDIA.format(passeador.mediaAvaliacao)}`}
-                </p>
+                <div className="passeador-preco">
+                  <strong>{FORMATO_MOEDA.format(passeador.valorHora)}</strong>
+                  <span>por hora</span>
+                </div>
 
-                <p className="passeador-detalhe">
-                  {FORMATO_MOEDA.format(passeador.valorHora)} por hora
-                </p>
-
-                <p className="passeador-detalhe">
+                <p className="passeador-cobranca">
+                  <Icon nome="wallet" />
                   {ROTULO_TIPO_COBRANCA[passeador.tipoCobranca]}
                 </p>
 
                 <button
                   type="button"
-                  className="passeadores-botao"
+                  className="btn btn--block"
                   onClick={() => navigate(`/passeios/novo?passeadorId=${passeador.id}`)}
                   disabled={semPets}
                 >
-                  Solicitar
+                  <Icon nome="send" />
+                  Solicitar passeio
                 </button>
               </li>
-            ))}
-          </ul>
-        )}
-      </main>
-    </div>
+            );
+          })}
+        </ul>
+      )}
+    </PageShell>
   );
 };
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import Header from '../components/Header';
+import PageShell, { PageHeading } from '../components/PageShell';
+import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { atualizarPet, criarPet, obterPet } from '../services/petService';
 import { PORTE, ROTULO_PORTE } from '../constants/enums';
@@ -117,125 +118,155 @@ export default function PetFormPage() {
   };
 
   return (
-    <div className="pagina-pet-form">
-      <Header />
+    <PageShell largura="estreita">
+      <PageHeading
+        icone={<Icon nome="pata" />}
+        titulo={editando ? 'Editar pet' : 'Novo pet'}
+        subtitulo={
+          editando ? 'Atualize os dados do seu pet.' : 'Conte um pouco sobre o seu companheiro.'
+        }
+      />
 
-      <main className="pet-form-conteudo">
-        <h1 className="pet-form-titulo">{editando ? 'Editar pet' : 'Novo pet'}</h1>
+      {carregando && (
+        <div className="carregando" role="status">
+          <span className="spinner" />
+          Carregando pet...
+        </div>
+      )}
 
-        {carregando && <p className="pet-form-carregando">Carregando pet...</p>}
+      {!carregando && erroCarga && (
+        <div className="bloco-erro">
+          <p className="alerta alerta--erro" role="alert">
+            <Icon nome="alert" />
+            {erroCarga}
+          </p>
+          <Link className="btn btn--outline" to="/pets">
+            Voltar para Meus pets
+          </Link>
+        </div>
+      )}
 
-        {!carregando && erroCarga && (
-          <div className="pet-form-erro">
-            <p className="pet-form-erro-mensagem">{erroCarga}</p>
-            <Link className="pet-form-link" to="/pets">
-              Voltar para Meus pets
-            </Link>
+      {!carregando && !erroCarga && (
+        <form className="form-card" onSubmit={handleSubmit}>
+          <div className="campo">
+            <label htmlFor="nome">Nome do pet</label>
+            <input
+              type="text"
+              id="nome"
+              name="nome"
+              className="input"
+              value={form.nome}
+              onChange={handleChange}
+              placeholder="Ex.: Mel, Thor, Pipoca"
+              required
+            />
           </div>
-        )}
 
-        {!carregando && !erroCarga && (
-          <form className="pet-form" onSubmit={handleSubmit}>
-            <div className="pet-form-campo">
-              <label htmlFor="nome">Nome do pet</label>
+          <div className="linha-campos">
+            <div className="campo">
+              <label htmlFor="especie">Espécie</label>
               <input
                 type="text"
-                id="nome"
-                name="nome"
-                value={form.nome}
+                id="especie"
+                name="especie"
+                className="input"
+                value={form.especie}
                 onChange={handleChange}
-                placeholder="Ex.: Mel, Thor, Pipoca"
+                placeholder="Ex.: Cão, Gato"
                 required
               />
             </div>
 
-            <div className="pet-form-linha">
-              <div className="pet-form-campo">
-                <label htmlFor="especie">Espécie</label>
-                <input
-                  type="text"
-                  id="especie"
-                  name="especie"
-                  value={form.especie}
-                  onChange={handleChange}
-                  placeholder="Ex.: Cão, Gato"
-                  required
-                />
-              </div>
-
-              <div className="pet-form-campo">
-                <label htmlFor="raca">Raça</label>
-                <input
-                  type="text"
-                  id="raca"
-                  name="raca"
-                  value={form.raca}
-                  onChange={handleChange}
-                  placeholder="Ex.: Poodle, Vira-lata"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="pet-form-linha">
-              <div className="pet-form-campo">
-                <label htmlFor="porte">Porte</label>
-                <select id="porte" name="porte" value={form.porte} onChange={handlePorte}>
-                  {Object.entries(ROTULO_PORTE).map(([valor, rotulo]) => (
-                    <option key={valor} value={Number(valor)}>
-                      {rotulo}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="pet-form-campo">
-                <label htmlFor="idade">Idade (anos)</label>
-                <input
-                  type="number"
-                  id="idade"
-                  name="idade"
-                  min="0"
-                  max="30"
-                  step="1"
-                  value={form.idade}
-                  onChange={handleChange}
-                  placeholder="Ex.: 2"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="pet-form-campo">
-              <label htmlFor="observacoes">Observações</label>
-              <textarea
-                id="observacoes"
-                name="observacoes"
-                value={form.observacoes}
+            <div className="campo">
+              <label htmlFor="raca">Raça</label>
+              <input
+                type="text"
+                id="raca"
+                name="raca"
+                className="input"
+                value={form.raca}
                 onChange={handleChange}
-                placeholder="Ex.: Sociável com outros cães, precisa de guia curta"
-                rows="3"
+                placeholder="Ex.: Poodle, Vira-lata"
+                required
               />
             </div>
+          </div>
 
-            {erro && <p className="pet-form-erro-mensagem">{erro}</p>}
-
-            <div className="pet-form-acoes">
-              <button
-                type="button"
-                className="pet-form-botao pet-form-botao-secundario"
-                onClick={() => navigate('/pets')}
-                disabled={enviando}
+          <div className="linha-campos">
+            <div className="campo">
+              <label htmlFor="porte">Porte</label>
+              <select
+                id="porte"
+                name="porte"
+                className="select"
+                value={form.porte}
+                onChange={handlePorte}
               >
-                Cancelar
-              </button>
-              <button type="submit" className="pet-form-botao" disabled={enviando}>
-                Salvar pet
-              </button>
+                {Object.entries(ROTULO_PORTE).map(([valor, rotulo]) => (
+                  <option key={valor} value={Number(valor)}>
+                    {rotulo}
+                  </option>
+                ))}
+              </select>
             </div>
-          </form>
-        )}
-      </main>
-    </div>
+
+            <div className="campo">
+              <label htmlFor="idade">Idade (anos)</label>
+              <input
+                type="number"
+                id="idade"
+                name="idade"
+                className="input"
+                min="0"
+                max="30"
+                step="1"
+                value={form.idade}
+                onChange={handleChange}
+                placeholder="Ex.: 2"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="campo">
+            <label htmlFor="observacoes">Observações</label>
+            <textarea
+              id="observacoes"
+              name="observacoes"
+              className="textarea"
+              value={form.observacoes}
+              onChange={handleChange}
+              placeholder="Ex.: Sociável com outros cães, precisa de guia curta"
+              rows="3"
+            />
+            <span className="campo-ajuda">
+              Informações úteis para quem vai passear com o seu pet.
+            </span>
+          </div>
+
+          {erro && (
+            <p className="alerta alerta--erro" role="alert">
+              <Icon nome="alert" />
+              {erro}
+            </p>
+          )}
+
+          <div className="acoes-linha">
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => navigate('/pets')}
+              disabled={enviando}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="btn" disabled={enviando}>
+              {enviando ? <span className="spinner" /> : <Icon nome="check" />}
+              Salvar pet
+            </button>
+          </div>
+        </form>
+      )}
+    </PageShell>
   );
 }
