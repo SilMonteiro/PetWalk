@@ -108,3 +108,28 @@ classDiagram
 ```
 
 > Propriedades privadas omitidas do diagrama: `_endereco`, `_pets`, `_avaliacoesRecebidas` (Usuario); `_avaliacoes` (Passeio); `_vacinas` (Pet). Construtores privados para materialização pelo EF Core também omitidos.
+
+## Mapeamento Classe → Arquivo
+
+| Classe / Interface | Arquivo | Pasta |
+|---|---|---|
+| Usuario | Usuario.cs | backend/Projeto.Api/Dominio/ |
+| Pet | Pet.cs | backend/Projeto.Api/Dominio/ |
+| Passeio | Passeio.cs | backend/Projeto.Api/Dominio/ |
+| Avaliacao | Avaliacao.cs | backend/Projeto.Api/Dominio/ |
+| Notificacao | Notificacao.cs | backend/Projeto.Api/Dominio/ |
+| IPoliticaDePreco | IPoliticaDePreco.cs | backend/Projeto.Api/Dominio/ |
+| PrecoPorHora | PrecoPorHora.cs | backend/Projeto.Api/Dominio/ |
+| PrecoComAdicionalPorPorte | PrecoComAdicionalPorPorte.cs | backend/Projeto.Api/Dominio/ |
+| PoliticaDePrecoFabrica | PoliticaDePrecoFabrica.cs | backend/Projeto.Api/Dominio/ |
+
+## Enums Relevantes
+
+| Enum | Valores | Arquivo |
+|---|---|---|
+| TipoPerfil | TUTOR, PASSEADOR, AMBOS | Enums.cs |
+| StatusPasseio | SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO | Enums.cs |
+| StatusUsuario | ATIVO, BLOQUEADO | Enums.cs |
+| TipoCobranca | POR_HORA, POR_HORA_COM_ADICIONAL_DE_PORTE | Enums.cs |
+| Porte | PEQUENO, MEDIO, GRANDE | Enums.cs |
+| TipoNotificacao | PASSEIO_SOLICITADO, PASSEIO_ACEITO, PASSEIO_RECUSADO, PASSEIO_INICIADO, PASSEIO_FINALIZADO, PASSEIO_CANCELADO | Enums.cs |
