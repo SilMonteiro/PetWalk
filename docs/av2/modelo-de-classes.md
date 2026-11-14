@@ -326,3 +326,55 @@ Para adicionar um novo tipo de cobrança: criar nova classe que implemente `IPol
 |---|---|---|
 | `PoliticaDePrecoTests` | PoliticaDePrecoTests.cs | `Politicas_CalculamPeloMesmoContrato`, `PrecoPorHora_MultiplicaDuracaoEmHorasPeloValorHora`, `PrecoPorHora_ArredondaParaDuasCasasAfastandoDoPontoMedio`, `PrecoComAdicionalPorPorte_UsaOPrecoPorHoraComoBase`, `PrecoComAdicionalPorPorte_UsaABaseRecebida`, `PrecoPorHora_ComPasseioNulo_LancaErro`, `PrecoComAdicionalPorPorte_ComPasseioNulo_LancaErro`, `PrecoComAdicionalPorPorte_ComBaseNula_LancaErro` |
 | `PasseioValorTests` | PasseioValorTests.cs | `Passeio_PorHora_CalculaPelaDuracaoEValorHora`, `Passeio_ComAdicionalPorPorte_CobraAdicionalDePetGrande`, `Passeio_ComAdicionalPorPorte_NaoCobraAdicionalDePetMedio`, `Passeio_SemCobrancaConfigurada_TemValorZero`, `Passeio_MantemOValorDepoisDeMudarOValorHoraDoPasseador`, `Fabrica_DevolveAPoliticaCorretaParaCadaTipoCobranca`, `Fabrica_ComTipoForaDoEnum_LancaErro` |
+
+## Invariantes do Modelo
+
+Invariante: condição que o sistema garante sempre verdadeira, independente de quem chama o código.
+
+### INV-01 — Passeio só muda de estado por transição válida
+
+Guardião: `Passeio.ExigirStatus(StatusPasseio esperado)` (método privado)
+
+```csharp
+private void ExigirStatus(StatusPasseio esperado)
+{
+    if (Status != esperado)
+        throw new InvalidOperationException("Transição não permitida a partir do estado atual");
+}
+```
+
+Toda transição pública (`Aceitar`, `Recusar`, `Iniciar`, `Finalizar`) chama `ExigirStatus` antes de alterar `Status`. O setter de `Status` é privado — nenhum código externo pode saltar estados.
+
+Tabela de transições permitidas:
+
+| Método | Estado exigido | Próximo estado | Teste |
+|---|---|---|---|
+| Aceitar | SOLICITADO | ACEITO | `PasseadorEscolhido_AceitaPasseio` |
+| Recusar | SOLICITADO | RECUSADO (terminal) | `PasseadorEscolhido_RecusaPasseio` |
+| Iniciar | ACEITO | EM_ANDAMENTO | `CicloCompleto_SolicitadoAceitoEmAndamentoFinalizado` |
+| Finalizar | EM_ANDAMENTO | FINALIZADO (terminal) | `CicloCompleto_SolicitadoAceitoEmAndamentoFinalizado` |
+| Cancelar | SOLICITADO ou ACEITO | CANCELADO | `TutorEPasseador_CancelamPasseioSolicitadoOuAceito` |
+
+Testes das transições inválidas e do setter privado: `SaltosDeEstado_NaoSaoPermitidos`, `PasseioRecusado_NaoPermiteNovasTransicoes`, `PasseioFinalizado_NaoPermiteNovasTransicoes`, `PasseioForaDeSolicitadoOuAceito_NaoPodeSerCancelado` (`SolicitacaoDePasseioTests`); `Passeio_EstadoNaoMudaPorSetterPublico` (`ProtecaoDeEstadoTests`).
+
+### INV-02 — Cada participante avalia o passeio no máximo uma vez
+
+Guardião: loop em `Passeio.Avaliar` que lança "Passeio já avaliado por este usuário" se o avaliador já existe em `_avaliacoes`.
+
+Combinado com a multiplicidade 0..2 do diagrama: um passeio FINALIZADO pode ter 0, 1 ou 2 avaliações; nunca mais.
+
+Testes: `MesmoAvaliadorNaoPodeAvaliarDuasVezes`, `AmbosAvaliam_AsMediasSaoIndividuais`, `AvaliacoesSaoSomenteLeitura` (`AvaliacaoTests`).
+
+### INV-03 — E-mail de usuário é único no sistema (invariante multi-instância)
+
+Guardião: `AutenticacaoServico` (`backend/Projeto.Api/Servicos/`) verifica duplicidade antes de persistir, lançando exceção que o endpoint converte em 409. O repositório EF Core também tem índice único na coluna Email (`UsuarioConfiguration.cs`).
+
+Esta invariante ultrapassa uma única instância: protege a identidade de autenticação em todo o sistema (REG-010).
+
+Testes: `Cadastrar_ComEmailJaCadastrado_LancaErro`, `Cadastrar_ComEmailEmCaixaDiferente_LancaErro` (`AutenticacaoServicoTests`); `EmailDuplicado_MapeiaPara409` (`ErroDePersistenciaTests`); `Cadastro_EmailDuplicado_Continua409` (`EndpointsFalhaDePersistenciaTests`); `EmailDuplicadoSobCorrida_ViolacaoRealMapeiaPara409` (`UnicidadeSobConcorrenciaTests`).
+
+### INV-04 — Somente o passeador escolhido e ativo age no passeio
+
+Guardião: `Passeio.ExigirPasseadorAtivo(Usuario quem)` — verifica que `quem == Passeador`, que `quem.EhPasseador` e que `quem.Status != BLOQUEADO`. Chamado por `Aceitar`, `Recusar`, `Iniciar` e `Finalizar`.
+
+Testes: `UsuarioQueNaoEhOPasseador_NaoPodeAceitar`, `UsuarioQueNaoEhOPasseador_NaoPodeRecusar`, `UsuarioQueNaoEhOPasseador_NaoPodeIniciarNemFinalizar`, `PasseadorBloqueado_NaoPodeRecusar`, `PasseadorBloqueado_NaoPodeAceitarIniciarNemFinalizar` (`SolicitacaoDePasseioTests`).
