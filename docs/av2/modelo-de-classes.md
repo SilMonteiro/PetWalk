@@ -237,3 +237,92 @@ No código (`Usuario.cs` e `Pet.cs`):
 | Tutor com 1 pet solicita passeio com seu próprio pet → sucesso | `SolicitacaoDePasseioTests` | A multiplicidade 1 funciona | `TutorComPetVinculado_SolicitaPasseio_CriaPasseioSolicitado` |
 | Tutor tenta usar pet de outro tutor → `InvalidOperationException` | `SolicitacaoDePasseioTests` | Posse exclusiva: REG-005 | `PetDeOutroTutor_NaoPodeSerSolicitado` |
 | Usuário sem perfil de tutor tenta adicionar pet → `InvalidOperationException` | `UsuarioTests` | REG-002: só tutor tem pets | `AdicionarPet_ComPerfilDePasseador_LancaErro` |
+
+## Composição: Passeio ◆— Avaliacao
+
+### O que é composição
+
+Composição (◆—) significa que a parte (`Avaliacao`) não existe sem o todo (`Passeio`): é criada dentro dele e não faz sentido fora.
+
+### Fundamento no código
+
+Em `Passeio.cs`, o método `Avaliar`:
+
+```csharp
+public Avaliacao Avaliar(Usuario avaliador, int nota, string comentario, DateTime agora)
+{
+    // verifica se já avaliou...
+    var avaliacao = new Avaliacao(avaliador, this, nota, comentario, agora);
+    _avaliacoes.Add(avaliacao);
+    avaliacao.Avaliado.RegistrarAvaliacaoRecebida(avaliacao);
+    return avaliacao;
+}
+```
+
+### Pontos que caracterizam a composição
+
+- `Avaliacao` é criada dentro de `Passeio.Avaliar` — não há construtor público de `Avaliacao` chamável de fora do domínio sem um `Passeio`.
+- O construtor de `Avaliacao` recebe `Passeio passeio` e verifica `passeio.Status != StatusPasseio.FINALIZADO` — a avaliação depende do estado do passeio.
+- A lista `_avaliacoes` é privada em `Passeio` e exposta apenas como `IReadOnlyList<Avaliacao> Avaliacoes` — ninguém adiciona avaliações diretamente.
+- Multiplicidade máxima: 0..2 (uma avaliação por participante: tutor avalia passeador, passeador avalia tutor). A regra "Passeio já avaliado por este usuário" protege esse limite.
+
+### Testes que cobrem esta composição
+
+- Avaliação criada com sucesso após passeio FINALIZADO: `TutorAvaliaPasseador_RegistraAvaliacaoERecalculaMedia`, `PasseadorAvaliaTutor_RegistraAvaliacaoERecalculaMedia`
+- Avaliar passeio não finalizado → `InvalidOperationException`: `PasseioNaoFinalizado_NaoPodeSerAvaliado`
+- Avaliar duas vezes pelo mesmo usuário → `InvalidOperationException`: `MesmoAvaliadorNaoPodeAvaliarDuasVezes`
+
+## Polimorfismo: IPoliticaDePreco
+
+### Contrato
+
+```csharp
+// IPoliticaDePreco.cs
+public interface IPoliticaDePreco
+{
+    decimal Calcular(Passeio passeio);
+}
+```
+
+### Implementações
+
+| Classe | Arquivo | Comportamento |
+|---|---|---|
+| PrecoPorHora | PrecoPorHora.cs | `(decimal)passeio.Duracao.TotalHours * passeio.Passeador.ValorHora`, arredondado em 2 casas |
+| PrecoComAdicionalPorPorte | PrecoComAdicionalPorPorte.cs | Delega ao `_base` (`PrecoPorHora`) e aplica fator 1.3 se `Porte == GRANDE` |
+
+`PrecoComAdicionalPorPorte` usa o padrão Decorator: encapsula outra `IPoliticaDePreco` em `_base`, estendendo o comportamento sem herdar de `PrecoPorHora`.
+
+### Fábrica
+
+```csharp
+// PoliticaDePrecoFabrica.cs
+public static IPoliticaDePreco Para(TipoCobranca tipo) => tipo switch
+{
+    TipoCobranca.POR_HORA => new PrecoPorHora(),
+    TipoCobranca.POR_HORA_COM_ADICIONAL_DE_PORTE => new PrecoComAdicionalPorPorte(new PrecoPorHora()),
+    _ => throw new ArgumentOutOfRangeException(nameof(tipo))
+};
+```
+
+### Ponto de uso
+
+Em `Usuario.SolicitarPasseio` (`Usuario.cs`):
+
+```csharp
+var politica = PoliticaDePrecoFabrica.Para(passeador.TipoCobranca);
+return new Passeio(this, passeador, pet, dataHora, duracao, local, politica);
+```
+
+O construtor de `Passeio` chama `politica.Calcular(this)` e armazena em `Valor`. O tipo concreto de `politica` nunca é conhecido por `Passeio` — polimorfismo puro.
+
+### Vantagem (Aberto/Fechado)
+
+Para adicionar um novo tipo de cobrança: criar nova classe que implemente `IPoliticaDePreco`, adicionar um `case` em `PoliticaDePrecoFabrica` e um valor em `TipoCobranca`. Nenhuma linha de `Passeio` ou `Usuario` muda.
+
+### Testes de polimorfismo
+
+| Classe de teste | Arquivo | Métodos |
+|---|---|---|
+| `PoliticaDePrecoTests` | PoliticaDePrecoTests.cs | `Politicas_CalculamPeloMesmoContrato`, `PrecoPorHora_MultiplicaDuracaoEmHorasPeloValorHora`, `PrecoPorHora_ArredondaParaDuasCasasAfastandoDoPontoMedio`, `PrecoComAdicionalPorPorte_UsaOPrecoPorHoraComoBase`, `PrecoComAdicionalPorPorte_UsaABaseRecebida`, `PrecoPorHora_ComPasseioNulo_LancaErro`, `PrecoComAdicionalPorPorte_ComPasseioNulo_LancaErro`, `PrecoComAdicionalPorPorte_ComBaseNula_LancaErro` |
+| `PasseioValorTests` | PasseioValorTests.cs | `Passeio_PorHora_CalculaPelaDuracaoEValorHora`, `Passeio_ComAdicionalPorPorte_CobraAdicionalDePetGrande`, `Passeio_ComAdicionalPorPorte_NaoCobraAdicionalDePetMedio`, `Passeio_SemCobrancaConfigurada_TemValorZero`, `Passeio_MantemOValorDepoisDeMudarOValorHoraDoPasseador`, `Fabrica_DevolveAPoliticaCorretaParaCadaTipoCobranca`, `Fabrica_ComTipoForaDoEnum_LancaErro` |
