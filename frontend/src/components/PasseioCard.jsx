@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import AvaliacaoForm from './AvaliacaoForm';
+import AvatarIniciais from './AvatarIniciais';
+import Icon from './Icon';
+import PasseioTimeline from './PasseioTimeline';
+import StatusBadge from './StatusBadge';
 import { useNotificacoes } from '../context/NotificacoesContext';
 import { aceitar, cancelar, finalizar, iniciar, recusar } from '../services/passeioService';
-import { PAPEL, ROTULO_STATUS_PASSEIO } from '../constants/enums';
+import { PAPEL } from '../constants/enums';
+import { VISUAL_STATUS } from '../constants/statusPasseio';
 import { acoesDisponiveis } from '../utils/passeioAcoes';
 
 const FORMATO_MOEDA = new Intl.NumberFormat('pt-BR', {
@@ -15,13 +20,24 @@ const FORMATO_NOTA = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1
 });
 
-const ROTULO_ACAO = {
-  aceitar: 'Aceitar',
-  recusar: 'Recusar',
-  iniciar: 'Iniciar',
-  finalizar: 'Finalizar',
-  cancelar: 'Cancelar',
-  avaliar: 'Avaliar'
+const FORMATO_DATA = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'short',
+  day: '2-digit',
+  month: 'short'
+});
+
+const FORMATO_HORA = new Intl.DateTimeFormat('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit'
+});
+
+const ACOES = {
+  aceitar: { rotulo: 'Aceitar', icone: 'check', classe: 'btn' },
+  recusar: { rotulo: 'Recusar', icone: 'ban', classe: 'btn btn--perigo-suave' },
+  iniciar: { rotulo: 'Iniciar passeio', icone: 'play', classe: 'btn' },
+  finalizar: { rotulo: 'Finalizar passeio', icone: 'flag', classe: 'btn' },
+  cancelar: { rotulo: 'Cancelar', icone: 'x', classe: 'btn btn--perigo-suave' },
+  avaliar: { rotulo: 'Avaliar passeador', icone: 'star', classe: 'btn btn--lilas' }
 };
 
 const EXECUTORES = { aceitar, recusar, iniciar, finalizar, cancelar };
@@ -38,6 +54,8 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
   const acoes = acoesDisponiveis(passeio.papel, passeio.status);
   const ehTutor = passeio.papel === PAPEL.TUTOR;
   const outraParte = ehTutor ? passeio.passeador : passeio.tutor;
+  const data = new Date(passeio.dataHora);
+  const visual = VISUAL_STATUS[passeio.status];
 
   const ocupado = acaoEmAndamento !== null;
 
@@ -71,46 +89,86 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
     setAvaliarAberto(true);
   };
 
-  const podeMostrarAcoes =
-    acoes.length > 0 && !avaliacao && !avaliacaoIndisponivel;
+  const podeMostrarAcoes = acoes.length > 0 && !avaliacao && !avaliacaoIndisponivel;
 
   return (
-    <li className="passeio-card">
+    <li className={`passeio-card passeio-card--${passeio.status}`}>
       <div className="passeio-topo">
-        <h2 className="passeio-pet">{passeio.nomePet}</h2>
-        <span className={`passeio-status passeio-status-${passeio.status}`}>
-          {ROTULO_STATUS_PASSEIO[passeio.status]}
-        </span>
+        <div className="passeio-identidade">
+          <AvatarIniciais nome={passeio.nomePet} tamanho="lg" />
+          <div>
+            <h2 className="passeio-pet">{passeio.nomePet}</h2>
+            <p className="passeio-parte">
+              {ehTutor ? 'Passeador' : 'Tutor'}: <strong>{outraParte.nome}</strong>
+            </p>
+          </div>
+        </div>
+
+        <StatusBadge key={passeio.status} status={passeio.status} />
       </div>
 
-      <p className="passeio-detalhe">
-        Data e hora: {new Date(passeio.dataHora).toLocaleString('pt-BR')}
-      </p>
-      <p className="passeio-detalhe">Duração: {passeio.duracaoMinutos} minutos</p>
-      <p className="passeio-detalhe">Local: {passeio.local}</p>
-      <p className="passeio-detalhe">Valor: {FORMATO_MOEDA.format(passeio.valor)}</p>
-      <p className="passeio-detalhe">
-        {ehTutor ? 'Passeador' : 'Tutor'}: {outraParte.nome}
-      </p>
+      <PasseioTimeline status={passeio.status} />
 
-      {erro && <p className="passeio-erro">{erro}</p>}
+      {visual && (
+        <p className="passeio-descricao">
+          {ehTutor ? visual.descricaoTutor : visual.descricaoPasseador}
+        </p>
+      )}
+
+      <ul className="passeio-infos">
+        <li>
+          <Icon nome="calendar" />
+          <span>
+            <small>Data</small>
+            {FORMATO_DATA.format(data)}
+          </span>
+        </li>
+        <li>
+          <Icon nome="clock" />
+          <span>
+            <small>Horário</small>
+            {FORMATO_HORA.format(data)} · {passeio.duracaoMinutos} min
+          </span>
+        </li>
+        <li>
+          <Icon nome="pin" />
+          <span>
+            <small>Local</small>
+            {passeio.local}
+          </span>
+        </li>
+        <li>
+          <Icon nome="wallet" />
+          <span>
+            <small>Valor</small>
+            {FORMATO_MOEDA.format(passeio.valor)}
+          </span>
+        </li>
+      </ul>
+
+      {erro && (
+        <p className="alerta alerta--erro" role="alert">
+          <Icon nome="alert" />
+          {erro}
+        </p>
+      )}
 
       {avaliacao && (
-        <p className="passeio-avaliacao-sucesso">
-          Avaliação registrada: nota {avaliacao.nota}. Nova média de{' '}
-          {avaliacao.avaliado.nome}:{' '}
+        <p className="alerta alerta--sucesso" role="status">
+          <Icon nome="check" />
+          Avaliação registrada: nota {avaliacao.nota}. Nova média de {avaliacao.avaliado.nome}:{' '}
           {FORMATO_NOTA.format(avaliacao.mediaAvaliacao)}.
         </p>
       )}
 
       {confirmandoCancelamento ? (
         <div className="passeio-confirmacao">
-          <p className="passeio-confirmacao-texto">Cancelar este passeio?</p>
+          <p>Cancelar este passeio?</p>
 
-          <div className="passeio-acoes">
+          <div className="acoes-linha">
             <button
               type="button"
-              className="passeio-botao passeio-botao-secundario"
+              className="btn btn--ghost btn--sm"
               onClick={() => {
                 setConfirmandoCancelamento(false);
                 setErro('');
@@ -121,11 +179,12 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
             </button>
             <button
               type="button"
-              className="passeio-botao passeio-botao-perigo"
+              className="btn btn--perigo btn--sm"
               onClick={() => executar('cancelar')}
               disabled={ocupado}
             >
-              Confirmar
+              {ocupado ? <span className="spinner" /> : <Icon nome="x" />}
+              Confirmar cancelamento
             </button>
           </div>
         </div>
@@ -144,7 +203,7 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
               <button
                 key={acao}
                 type="button"
-                className={`passeio-botao passeio-botao-${acao}`}
+                className={`${ACOES[acao].classe} btn--sm`}
                 onClick={() => {
                   if (acao === 'cancelar') {
                     setConfirmandoCancelamento(true);
@@ -156,7 +215,12 @@ export default function PasseioCard({ passeio, usuarioId, onAtualizado }) {
                 }}
                 disabled={ocupado}
               >
-                {ROTULO_ACAO[acao]}
+                {acaoEmAndamento === acao ? (
+                  <span className="spinner" />
+                ) : (
+                  <Icon nome={ACOES[acao].icone} />
+                )}
+                {ACOES[acao].rotulo}
               </button>
             ))}
           </div>

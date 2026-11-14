@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { NotificacoesProvider } from './context/NotificacoesContext';
 import RotaProtegida from './components/RotaProtegida';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import CadastroPage from './pages/CadastroPage';
 import HomePage from './pages/HomePage';
@@ -18,7 +19,8 @@ function App() {
       <AuthProvider>
         <NotificacoesProvider>
           <Routes>
-            <Route path="/" element={<LoginPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/cadastro" element={<CadastroPage />} />
             <Route
               path="/home"

@@ -183,9 +183,10 @@ No frontend, rotas protegidas redirecionam para o login quando não há usuário
 
 | Rota | Tela |
 | :-- | :-- |
-| `/` | Login de usuário real da API |
+| `/` | Landing page pública do PetWalk |
+| `/login` | Login de usuário real da API |
 | `/cadastro` | Cadastro de tutor, passeador ou ambos |
-| `/home` | Home com cards conforme o `tipoPerfil` |
+| `/home` | Painel inicial conforme o `tipoPerfil` (tutor, passeador ou ambos) |
 | `/pets` | Meus pets (listar e excluir) |
 | `/pets/novo` | Cadastro de pet |
 | `/pets/:id/editar` | Edição de pet |
@@ -234,6 +235,7 @@ PetWalk
 │       ├── App.jsx              # Configuração de rotas e providers
 │       ├── main.jsx             # Renderização principal do React
 │       ├── components
+│       │   ├── AuthLayout.jsx
 │       │   ├── AvaliacaoForm.jsx
 │       │   ├── Header.jsx
 │       │   ├── PasseioCard.jsx

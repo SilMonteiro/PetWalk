@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { avaliar } from '../services/passeioService';
+import Icon from './Icon';
 
 const MSG_JA_AVALIADO = 'Passeio já avaliado por este usuário';
+
+const ROTULO_NOTA = {
+  1: 'Ruim',
+  2: 'Regular',
+  3: 'Bom',
+  4: 'Muito bom',
+  5: 'Excelente'
+};
 
 export default function AvaliacaoForm({
   passeioId,
@@ -41,50 +50,68 @@ export default function AvaliacaoForm({
   };
 
   return (
-    <div className="passeio-avaliacao">
-      <h3 className="passeio-avaliacao-titulo">Avaliar passeio</h3>
+    <div className="avaliacao">
+      <h3 className="avaliacao-titulo">Como foi o passeio?</h3>
 
-      <form className="passeio-avaliacao-form" onSubmit={handleSubmit}>
-        <div className="passeio-avaliacao-campo">
-          <label htmlFor={`nota-${passeioId}`}>Nota (1 a 5)</label>
-          <select
-            id={`nota-${passeioId}`}
-            value={nota}
-            onChange={(evento) => setNota(Number(evento.target.value))}
-            disabled={enviando}
+      <form className="avaliacao-form" onSubmit={handleSubmit}>
+        <div className="campo">
+          <span className="campo-rotulo" id={`nota-rotulo-${passeioId}`}>
+            Nota: {ROTULO_NOTA[nota]}
+          </span>
+
+          <div
+            className="estrelas"
+            role="radiogroup"
+            aria-labelledby={`nota-rotulo-${passeioId}`}
           >
             {[1, 2, 3, 4, 5].map((valor) => (
-              <option key={valor} value={valor}>
-                {valor}
-              </option>
+              <button
+                key={valor}
+                type="button"
+                role="radio"
+                aria-checked={nota === valor}
+                aria-label={`${valor} ${valor === 1 ? 'estrela' : 'estrelas'}`}
+                className={`estrela${valor <= nota ? ' cheia' : ''}`}
+                onClick={() => setNota(valor)}
+                disabled={enviando}
+              >
+                <Icon nome="star" />
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
-        <div className="passeio-avaliacao-campo">
+        <div className="campo">
           <label htmlFor={`comentario-${passeioId}`}>Comentário</label>
           <textarea
             id={`comentario-${passeioId}`}
+            className="textarea"
             value={comentario}
             onChange={(evento) => setComentario(evento.target.value)}
-            rows="2"
-            placeholder="Como foi o passeio?"
+            rows="3"
+            placeholder="Conte como foi a experiência"
             disabled={enviando}
           />
         </div>
 
-        {erro && <p className="passeio-erro">{erro}</p>}
+        {erro && (
+          <p className="alerta alerta--erro" role="alert">
+            <Icon nome="alert" />
+            {erro}
+          </p>
+        )}
 
-        <div className="passeio-avaliacao-acoes">
+        <div className="acoes-linha">
           <button
             type="button"
-            className="passeio-botao passeio-botao-secundario"
+            className="btn btn--ghost btn--sm"
             onClick={onCancelar}
             disabled={enviando}
           >
             Cancelar
           </button>
-          <button type="submit" className="passeio-botao" disabled={enviando}>
+          <button type="submit" className="btn btn--lilas btn--sm" disabled={enviando}>
+            {enviando ? <span className="spinner" /> : <Icon nome="send" />}
             Enviar avaliação
           </button>
         </div>

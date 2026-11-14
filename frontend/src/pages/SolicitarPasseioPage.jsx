@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import Header from '../components/Header';
+import PageShell, { EstadoVazio, PageHeading } from '../components/PageShell';
+import AvatarIniciais from '../components/AvatarIniciais';
+import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { listarPasseadores } from '../services/passeadorService';
 import { listarPets } from '../services/petService';
@@ -123,187 +125,165 @@ const SolicitarPasseioPage = () => {
     }
   };
 
+  const aviso = (texto, destino, rotuloDestino) => (
+    <PageShell largura="estreita">
+      <PageHeading icone={<Icon nome="send" />} titulo="Solicitar passeio" />
+
+      <EstadoVazio
+        icone={<Icon nome="info" />}
+        titulo={texto}
+        acao={
+          <Link className="btn" to={destino}>
+            {rotuloDestino}
+          </Link>
+        }
+      />
+    </PageShell>
+  );
+
   if (!ehTutor) {
-    return (
-      <div className="pagina-solicitar">
-        <Header />
-
-        <main className="solicitar-conteudo">
-          <h1 className="solicitar-titulo">Solicitar passeio</h1>
-
-          <div className="solicitar-aviso">
-            <p className="solicitar-aviso-texto">
-              Apenas usuários com perfil de tutor podem solicitar passeios.
-            </p>
-            <Link className="solicitar-link" to="/home">
-              Voltar para a Home
-            </Link>
-          </div>
-        </main>
-      </div>
+    return aviso(
+      'Apenas usuários com perfil de tutor podem solicitar passeios.',
+      '/home',
+      'Voltar para o início'
     );
   }
 
   if (carregando) {
     return (
-      <div className="pagina-solicitar">
-        <Header />
-
-        <main className="solicitar-conteudo">
-          <h1 className="solicitar-titulo">Solicitar passeio</h1>
-          <p className="solicitar-carregando">Carregando...</p>
-        </main>
-      </div>
+      <PageShell largura="estreita">
+        <PageHeading icone={<Icon nome="send" />} titulo="Solicitar passeio" />
+        <div className="carregando" role="status">
+          <span className="spinner" />
+          Carregando...
+        </div>
+      </PageShell>
     );
   }
 
   if (erroCarga) {
-    return (
-      <div className="pagina-solicitar">
-        <Header />
-
-        <main className="solicitar-conteudo">
-          <h1 className="solicitar-titulo">Solicitar passeio</h1>
-
-          <div className="solicitar-aviso">
-            <p className="solicitar-aviso-texto">{erroCarga}</p>
-            <Link className="solicitar-link" to="/passeadores">
-              Voltar para passeadores
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
+    return aviso(erroCarga, '/passeadores', 'Voltar para passeadores');
   }
 
   if (!passeador) {
-    return (
-      <div className="pagina-solicitar">
-        <Header />
-
-        <main className="solicitar-conteudo">
-          <h1 className="solicitar-titulo">Solicitar passeio</h1>
-
-          <div className="solicitar-aviso">
-            <p className="solicitar-aviso-texto">Passeador não encontrado.</p>
-            <Link className="solicitar-link" to="/passeadores">
-              Voltar para passeadores
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
+    return aviso('Passeador não encontrado.', '/passeadores', 'Voltar para passeadores');
   }
 
   if (pets.length === 0) {
-    return (
-      <div className="pagina-solicitar">
-        <Header />
-
-        <main className="solicitar-conteudo">
-          <h1 className="solicitar-titulo">Solicitar passeio</h1>
-
-          <div className="solicitar-aviso">
-            <p className="solicitar-aviso-texto">
-              Cadastre um pet antes de solicitar um passeio.
-            </p>
-            <Link className="solicitar-link" to="/pets/novo">
-              Cadastrar pet
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
+    return aviso('Cadastre um pet antes de solicitar um passeio.', '/pets/novo', 'Cadastrar pet');
   }
 
   return (
-    <div className="pagina-solicitar">
-      <Header />
+    <PageShell largura="estreita">
+      <PageHeading
+        icone={<Icon nome="send" />}
+        titulo="Solicitar passeio"
+        subtitulo="Informe quando e onde o passeio vai acontecer."
+      />
 
-      <main className="solicitar-conteudo">
-        <h1 className="solicitar-titulo">Solicitar passeio</h1>
-
-        <div className="solicitar-passeador">
+      <div className="solicitar-passeador">
+        <AvatarIniciais nome={passeador.nome} tamanho="lg" />
+        <div>
           <p className="solicitar-passeador-nome">{passeador.nome}</p>
           <p className="solicitar-passeador-detalhe">
             {FORMATO_MOEDA.format(passeador.valorHora)} por hora
           </p>
         </div>
+        <span className="pill pill--verde">O valor final é calculado ao solicitar</span>
+      </div>
 
-        <form className="solicitar-form" onSubmit={handleSubmit}>
-          <div className="solicitar-campo">
-            <label htmlFor="pet">Pet</label>
-            <select
-              id="pet"
-              value={petId}
-              onChange={(evento) => setPetId(evento.target.value)}
+      <form className="form-card" onSubmit={handleSubmit}>
+        <div className="campo">
+          <label htmlFor="pet">Pet</label>
+          <select
+            id="pet"
+            className="select"
+            value={petId}
+            onChange={(evento) => setPetId(evento.target.value)}
+            required
+          >
+            {pets.map((pet) => (
+              <option key={pet.id} value={pet.id}>
+                {pet.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="linha-campos">
+          <div className="campo">
+            <label htmlFor="dataHora">Data e hora</label>
+            <input
+              type="datetime-local"
+              id="dataHora"
+              className="input"
+              value={dataHora}
+              min={paraDataHoraLocal(new Date())}
+              onChange={(evento) => setDataHora(evento.target.value)}
               required
-            >
-              {pets.map((pet) => (
-                <option key={pet.id} value={pet.id}>
-                  {pet.nome}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
-          <div className="solicitar-linha">
-            <div className="solicitar-campo">
-              <label htmlFor="dataHora">Data e hora</label>
-              <input
-                type="datetime-local"
-                id="dataHora"
-                value={dataHora}
-                min={paraDataHoraLocal(new Date())}
-                onChange={(evento) => setDataHora(evento.target.value)}
-                required
-              />
-            </div>
-
-            <div className="solicitar-campo">
-              <label htmlFor="duracaoMinutos">Duração (minutos)</label>
-              <input
-                type="number"
-                id="duracaoMinutos"
-                min="15"
-                step="15"
-                value={duracaoMinutos}
-                onChange={(evento) => setDuracaoMinutos(evento.target.value)}
-                required
-              />
-            </div>
+          <div className="campo">
+            <label htmlFor="duracaoMinutos">Duração (minutos)</label>
+            <input
+              type="number"
+              id="duracaoMinutos"
+              className="input"
+              min="15"
+              step="15"
+              value={duracaoMinutos}
+              onChange={(evento) => setDuracaoMinutos(evento.target.value)}
+              placeholder="Ex.: 60"
+              required
+            />
           </div>
+        </div>
 
-          <div className="solicitar-campo">
-            <label htmlFor="local">Local do passeio</label>
+        <div className="campo">
+          <label htmlFor="local">Local do passeio</label>
+          <div className="input-com-icone">
+            <Icon nome="pin" />
             <input
               type="text"
               id="local"
+              className="input"
               value={local}
               onChange={(evento) => setLocal(evento.target.value)}
               required
             />
           </div>
+        </div>
 
-          {erro && <p className="solicitar-erro">{erro}</p>}
-          {sucesso && <p className="solicitar-sucesso">{sucesso}</p>}
+        {erro && (
+          <p className="alerta alerta--erro" role="alert">
+            <Icon nome="alert" />
+            {erro}
+          </p>
+        )}
+        {sucesso && (
+          <p className="alerta alerta--sucesso" role="status">
+            <Icon nome="check" />
+            {sucesso}
+          </p>
+        )}
 
-          <div className="solicitar-acoes">
-            <button
-              type="button"
-              className="solicitar-botao solicitar-botao-secundario"
-              onClick={() => navigate('/passeadores')}
-              disabled={enviando}
-            >
-              Cancelar
-            </button>
-            <button type="submit" className="solicitar-botao" disabled={enviando}>
-              Solicitar passeio
-            </button>
-          </div>
-        </form>
-      </main>
-    </div>
+        <div className="acoes-linha">
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => navigate('/passeadores')}
+            disabled={enviando}
+          >
+            Cancelar
+          </button>
+          <button type="submit" className="btn" disabled={enviando}>
+            {enviando ? <span className="spinner" /> : <Icon nome="send" />}
+            Solicitar passeio
+          </button>
+        </div>
+      </form>
+    </PageShell>
   );
 };
 

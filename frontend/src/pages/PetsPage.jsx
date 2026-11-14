@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Header from '../components/Header';
+import PageShell, { EstadoVazio, PageHeading } from '../components/PageShell';
 import PetCard from '../components/PetCard';
+import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { listarPets } from '../services/petService';
 import { TIPO_PERFIL } from '../constants/enums';
@@ -42,66 +43,83 @@ const PetsPage = () => {
 
   if (!ehTutor) {
     return (
-      <div className="pagina-pets">
-        <Header />
+      <PageShell largura="estreita">
+        <PageHeading icone={<Icon nome="pata" />} titulo="Meus pets" />
 
-        <main className="pets-conteudo">
-          <h1 className="pets-titulo">Meus pets</h1>
-          <p className="pets-aviso">Apenas usuários com perfil de tutor possuem pets.</p>
-          <Link className="pets-botao" to="/home">
-            Voltar para a Home
-          </Link>
-        </main>
-      </div>
+        <EstadoVazio
+          icone={<Icon nome="info" />}
+          titulo="Área para tutores"
+          texto="Apenas usuários com perfil de tutor possuem pets."
+          acao={
+            <Link className="btn" to="/home">
+              Voltar para o início
+            </Link>
+          }
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="pagina-pets">
-      <Header />
-
-      <main className="pets-conteudo">
-        <div className="pets-topo">
-          <h1 className="pets-titulo">Meus pets</h1>
-          <Link className="pets-botao" to="/pets/novo">
+    <PageShell>
+      <PageHeading
+        icone={<Icon nome="pata" />}
+        titulo="Meus pets"
+        subtitulo="Quem faz parte da sua família."
+        acao={
+          <Link className="btn" to="/pets/novo">
+            <Icon nome="plus" />
             Novo pet
           </Link>
+        }
+      />
+
+      {carregando && (
+        <div className="carregando" role="status">
+          <span className="spinner" />
+          Carregando pets...
         </div>
+      )}
 
-        {carregando && <p className="pets-carregando">Carregando pets...</p>}
+      {!carregando && erro && (
+        <div className="bloco-erro">
+          <p className="alerta alerta--erro" role="alert">
+            <Icon nome="alert" />
+            {erro}
+          </p>
+          <button type="button" className="btn btn--outline" onClick={carregarPets}>
+            Tentar de novo
+          </button>
+        </div>
+      )}
 
-        {!carregando && erro && (
-          <div className="pets-erro">
-            <p className="pets-erro-mensagem">{erro}</p>
-            <button type="button" className="pets-botao" onClick={carregarPets}>
-              Tentar de novo
-            </button>
-          </div>
-        )}
-
-        {!carregando && !erro && pets.length === 0 && (
-          <div className="pets-vazio">
-            <p>Você ainda não cadastrou pets</p>
-            <Link className="pets-botao" to="/pets/novo">
+      {!carregando && !erro && pets.length === 0 && (
+        <EstadoVazio
+          icone={<Icon nome="pata" />}
+          titulo="Você ainda não cadastrou pets"
+          texto="Cadastre seu primeiro pet para poder solicitar passeios."
+          acao={
+            <Link className="btn" to="/pets/novo">
+              <Icon nome="plus" />
               Cadastrar pet
             </Link>
-          </div>
-        )}
+          }
+        />
+      )}
 
-        {!carregando && !erro && pets.length > 0 && (
-          <ul className="pets-lista">
-            {pets.map((pet) => (
-              <PetCard
-                key={pet.id}
-                pet={pet}
-                usuarioId={usuario.id}
-                onExcluido={handleExcluido}
-              />
-            ))}
-          </ul>
-        )}
-      </main>
-    </div>
+      {!carregando && !erro && pets.length > 0 && (
+        <ul className="pets-lista">
+          {pets.map((pet) => (
+            <PetCard
+              key={pet.id}
+              pet={pet}
+              usuarioId={usuario.id}
+              onExcluido={handleExcluido}
+            />
+          ))}
+        </ul>
+      )}
+    </PageShell>
   );
 };
 

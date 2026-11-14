@@ -1,267 +1,325 @@
-.pagina-passeios {
-  min-height: 100vh;
-  background-color: #f0f4f8;
-  font-family: Arial, sans-serif;
+.passeios-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
 }
 
-.passeios-conteudo {
-  max-width: 820px;
-  margin: 32px auto;
-  padding: 0 20px 40px;
-}
-
-.passeios-titulo {
-  margin: 0 0 16px;
-  color: #1b4332;
-  font-size: 1.6rem;
-}
-
-.passeios-carregando,
-.passeios-vazio {
-  color: #6b7280;
-  font-size: 0.95rem;
-}
-
-.passeios-erro {
-  padding: 24px 20px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.passeios-erro-mensagem {
-  margin: 0 0 16px;
-  color: #b91c1c;
-}
-
-.passeios-botao {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  background-color: #2d6a4f;
-  color: #ffffff;
-  font-size: 0.95rem;
+.filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font: 700 0.9rem var(--fonte-texto);
+  color: var(--tinta-700);
+  background: var(--branco);
+  border: 2px solid var(--linha);
+  border-radius: var(--r-pill);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s var(--ease);
 }
 
-.passeios-botao:hover {
-  background-color: #1b4332;
+.filtro:hover {
+  border-color: var(--lilas-300);
+  background: var(--lilas-50);
+}
+
+.filtro[aria-pressed='true'] {
+  color: var(--branco);
+  background: var(--lilas-600);
+  border-color: var(--lilas-600);
+}
+
+.filtro-contagem {
+  min-width: 22px;
+  padding: 1px 7px;
+  font-size: 0.78rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: var(--r-pill);
 }
 
 .passeios-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  display: grid;
+  gap: var(--s-5);
 }
 
 .passeio-card {
-  padding: 20px 22px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-left: 8px solid var(--tinta-300);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sombra-sm);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  animation: sobe 0.45s var(--ease) both;
 }
+
+.passeio-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sombra-md);
+}
+
+.passeio-card--0 { border-left-color: var(--st-solicitado-dot); }
+.passeio-card--1 { border-left-color: var(--st-aceito-dot); }
+.passeio-card--2 { border-left-color: var(--st-andamento-dot); }
+.passeio-card--3 { border-left-color: var(--st-finalizado-dot); }
+.passeio-card--4 { border-left-color: var(--st-recusado-dot); }
+.passeio-card--5 { border-left-color: var(--st-cancelado-dot); }
 
 .passeio-topo {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: var(--s-3);
+}
+
+.passeio-identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
 }
 
 .passeio-pet {
-  margin: 0;
-  color: #1b4332;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
 }
 
-.passeio-status {
-  padding: 4px 10px;
-  border-radius: 999px;
+.passeio-parte {
+  color: var(--tinta-500);
+  font-weight: 600;
+}
+
+.passeio-parte strong {
+  color: var(--tinta-900);
+}
+
+.passeio-descricao {
+  font-weight: 700;
+  color: var(--tinta-700);
+}
+
+/* Linha do tempo */
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: var(--s-2) 0 0;
+}
+
+.timeline-etapa {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.timeline-etapa::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  width: 100%;
+  height: 4px;
+  background: var(--linha);
+  border-radius: 4px;
+}
+
+.timeline-etapa:first-child::before {
+  display: none;
+}
+
+.timeline-etapa--feita::before,
+.timeline-etapa--atual::before {
+  background: var(--verde-400);
+}
+
+.timeline-ponto {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--branco);
+  background: var(--branco);
+  border: 4px solid var(--linha);
+  border-radius: 50%;
+  transition: all 0.4s var(--ease);
+}
+
+.timeline-ponto .icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 3.5;
+}
+
+.timeline-etapa--feita .timeline-ponto {
+  background: var(--verde-400);
+  border-color: var(--verde-400);
+}
+
+.timeline-etapa--atual .timeline-ponto {
+  background: var(--branco);
+  border-color: var(--verde-500);
+  animation: pulsar 2s ease-in-out infinite;
+}
+
+.passeio-card--3 .timeline-etapa--atual .timeline-ponto {
+  background: var(--verde-700);
+  border-color: var(--verde-700);
+  animation: none;
+}
+
+.timeline-rotulo {
   font-size: 0.78rem;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--tinta-300);
 }
 
-.passeio-status-0 {
-  color: #075985;
-  background-color: #e0f2fe;
+.timeline-etapa--feita .timeline-rotulo,
+.timeline-etapa--atual .timeline-rotulo {
+  color: var(--tinta-900);
 }
 
-.passeio-status-1 {
-  color: #166534;
-  background-color: #dcfce7;
+.timeline-final {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  font-weight: 800;
+  border-radius: var(--r-md);
 }
 
-.passeio-status-2 {
-  color: #92400e;
-  background-color: #fef3c7;
+.timeline-final--4 { color: var(--st-recusado-fg); background: var(--st-recusado-bg); }
+.timeline-final--5 { color: var(--st-cancelado-fg); background: var(--st-cancelado-bg); }
+
+/* Informações do passeio */
+.passeio-infos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--s-3);
 }
 
-.passeio-status-3 {
-  color: #374151;
-  background-color: #e5e7eb;
+.passeio-infos li {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  background: var(--lilas-50);
+  border-radius: var(--r-md);
 }
 
-.passeio-status-4 {
-  color: #991b1b;
-  background-color: #fee2e2;
+.passeio-infos .icon {
+  width: 1.5em;
+  height: 1.5em;
+  color: var(--lilas-600);
 }
 
-.passeio-status-5 {
-  color: #6b7280;
-  background-color: #f3f4f6;
+.passeio-infos span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
-.passeio-detalhe {
-  margin: 0 0 5px;
-  color: #4b5563;
-  font-size: 0.9rem;
-}
-
-.passeio-erro {
-  margin: 10px 0 0;
-  padding: 8px 10px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #b91c1c;
-  font-size: 0.85rem;
+.passeio-infos small {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--tinta-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .passeio-acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.passeio-botao {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 6px;
-  background-color: #2d6a4f;
-  color: #ffffff;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.passeio-botao:hover:not(:disabled) {
-  background-color: #1b4332;
-}
-
-.passeio-botao:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.passeio-botao-recusar,
-.passeio-botao-perigo {
-  background-color: #dc2626;
-}
-
-.passeio-botao-recusar:hover:not(:disabled),
-.passeio-botao-perigo:hover:not(:disabled) {
-  background-color: #b91c1c;
-}
-
-.passeio-botao-secundario {
-  background-color: #e5e7eb;
-  color: #374151;
-}
-
-.passeio-botao-secundario:hover:not(:disabled) {
-  background-color: #d1d5db;
+  gap: var(--s-2);
+  padding-top: var(--s-4);
+  border-top: 1px dashed var(--linha);
 }
 
 .passeio-confirmacao {
-  margin-top: 14px;
-  padding: 12px;
-  background-color: #fef2f2;
-  border: 1px dashed #fca5a5;
-  border-radius: 8px;
-}
-
-.passeio-confirmacao-texto {
-  margin: 0;
-  color: #991b1b;
-  font-size: 0.9rem;
-  font-weight: bold;
-}
-
-.passeio-confirmacao .passeio-acoes {
-  margin-top: 10px;
-}
-
-.passeio-avaliacao {
-  margin-top: 14px;
-  padding: 16px;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.passeio-avaliacao-titulo {
-  margin: 0 0 10px;
-  color: #1b4332;
-  font-size: 1rem;
-}
-
-.passeio-avaliacao-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.passeio-avaliacao-campo {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 12px;
-}
-
-.passeio-avaliacao-campo label {
-  margin-bottom: 4px;
-  color: #34495e;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.passeio-avaliacao-campo select,
-.passeio-avaliacao-campo textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  background-color: #ffffff;
-  font-family: inherit;
-  font-size: 0.9rem;
-}
-
-.passeio-avaliacao-campo select:focus,
-.passeio-avaliacao-campo textarea:focus {
-  outline: none;
-  border-color: #2d6a4f;
-  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15);
-}
-
-.passeio-avaliacao-acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  font-weight: 800;
+  color: #7a1b18;
+  background: var(--st-cancelado-bg);
+  border-radius: var(--r-md);
 }
 
-.passeio-avaliacao-sucesso {
-  margin: 12px 0 0;
-  padding: 10px 12px;
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+/* Avaliação */
+.avaliacao {
+  padding: var(--s-4);
+  background: var(--lilas-50);
+  border: 1px solid var(--lilas-200);
+  border-radius: var(--r-md);
+}
+
+.avaliacao-titulo {
+  margin-bottom: var(--s-3);
+  font-size: 1.15rem;
+  color: var(--lilas-700);
+}
+
+.avaliacao-form {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.estrelas {
+  display: flex;
+  gap: 4px;
+}
+
+.estrela {
+  padding: 4px;
+  color: var(--lilas-200);
+  background: none;
+  border: none;
   border-radius: 8px;
-  color: #166534;
-  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.estrela .icon {
+  width: 2em;
+  height: 2em;
+}
+
+.estrela:hover:not(:disabled) {
+  transform: scale(1.18) rotate(-6deg);
+}
+
+.estrela.cheia {
+  color: #f2a900;
+}
+
+.estrela.cheia .icon {
+  fill: currentColor;
+}
+
+@media (max-width: 560px) {
+  .timeline-rotulo {
+    font-size: 0.7rem;
+  }
+
+  .passeio-card {
+    padding: var(--s-4);
+    border-left-width: 6px;
+  }
+
+  .passeio-acoes .btn {
+    flex: 1 1 100%;
+  }
 }
