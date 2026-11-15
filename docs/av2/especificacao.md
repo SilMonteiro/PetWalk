@@ -248,7 +248,88 @@ Lacuna de cobertura: o teste de endpoint confere o tipo da notificação, não a
 
 ### FLX-005 — Avaliar passeador
 
-<!-- a preencher na Fatia N -->
+**Ator:** tutor do passeio (perfil TUTOR ou AMBOS), na tela `/passeios`. O frontend envia `AvaliacaoRequest` (`usuarioId`, `nota`, `comentario`) e a API não usa token: quem age é o `UsuarioId` informado.
+
+**Pré-condições**
+
+- Passeio existente (senão **404** `"Passeio não encontrado"`).
+- Usuário existente (senão **404** `"Usuário não encontrado"`).
+- Passeio FINALIZADO, isto é, o FLX-004 já foi concluído.
+- O avaliador é participante do passeio — tutor ou passeador (REG-006); neste fluxo, o tutor.
+- O avaliador ainda não avaliou este passeio (REG-001).
+- Nota inteira de 1 a 5; o comentário é livre e pode ser vazio.
+
+**Passos**
+
+1. O card do passeio com `papel = "TUTOR"` e `status = FINALIZADO` mostra o botão "Avaliar passeador" (`frontend/src/components/PasseioCard.jsx`); o `AvaliacaoForm` abre com as estrelas de 1 a 5 (nota inicial 5) e o campo de comentário.
+2. O tutor confirma; `avaliar(passeioId, usuarioId, nota, comentario.trim())` envia `POST /passeios/{id}/avaliacoes` com `{ usuarioId, nota, comentario }` (`frontend/src/services/passeioService.js`).
+3. A API carrega o passeio com `ObterParaAvaliacao` (avaliações do passeio e histórico de avaliações recebidas dos dois participantes); ausente → **404** `"Passeio não encontrado"`. Carrega o avaliador; ausente → **404** `"Usuário não encontrado"`.
+4. A API chama `passeio.Avaliar(avaliador, nota, comentario, agora)`: verifica duplicidade, cria a `Avaliacao` (status FINALIZADO, nota 1 a 5, participação), define `Avaliado` como o outro participante (o passeador, neste fluxo) e `Data = agora`, adiciona a avaliação em `_avaliacoes` e recalcula a média em memória com `Usuario.RegistrarAvaliacaoRecebida`.
+5. A API chama `unidade.Salvar()`: na mesma transação, insere a avaliação e recalcula a média do avaliado na tabela `Avaliacoes` (`AVG(Nota)`), atualiza `Usuarios.MediaAvaliacao` e sincroniza o objeto rastreado com a média persistida.
+6. A resposta é **201** com `AvaliacaoResponse` — `nota`, `comentario`, `data`, `avaliado` (`Id` e `Nome`) e `mediaAvaliacao`; o corpo não tem `id` de avaliação nem cabeçalho `Location`.
+
+**Resultado**
+
+- Corpo `AvaliacaoResponse` com a nota, o comentário, a data (`agora`), o passeador como `avaliado` e a média atualizada.
+- O frontend mostra "Avaliação registrada: nota X. Nova média de {passeador}: Y." e esconde as ações daquele card.
+
+**Estado final**
+
+- Avaliação criada e vinculada ao passeio em `Passeio.Avaliacoes` (`IReadOnlyList`); o máximo é 2 por passeio, uma por participante.
+- Média do passeador recalculada com todas as avaliações que ele já recebeu, não só a deste passeio, e persistida em `Usuarios.MediaAvaliacao`; a média do tutor não muda neste fluxo.
+- Avaliação e média gravadas na mesma transação, e a resposta devolve a média persistida.
+- Em falha, nada é criado nem gravado: a avaliação não entra na coleção, a média não muda e `unidade.Salvar()` não é chamado.
+
+**Violações do fluxo (REG-001 e REG-006)**
+
+- Passeio fora de FINALIZADO → **422** `"Passeio não finalizado"`.
+- Segunda avaliação do mesmo avaliador → **422** `"Passeio já avaliado por este usuário"`; a primeira avaliação permanece e a média não muda.
+- Nota fora de 1 a 5 → **400** `"Nota deve estar entre 1 e 5"` (a validação lança `ArgumentException`, que `ErroHttp.Erro` converte em 400).
+- Usuário que não é tutor nem passeador → **422** `"Usuário não participou deste passeio"` (REG-006).
+- Ordem: a duplicidade é verificada em `Passeio.Avaliar` antes das validações do construtor de `Avaliacao`; uma segunda tentativa com nota inválida devolve a mensagem de duplicidade, não a da nota.
+
+**Regras exercitadas**
+
+- Das cinco regras fixadas: **REG-001**. A participação (REG-006) também é verificada pelo construtor de `Avaliacao`, mas está fora das cinco.
+
+**Evidência no código**
+
+| Etapa | Evidência |
+| :-- | :-- |
+| Rota | `backend/Projeto.Api/Endpoints/PasseioEndpoints.cs:PasseioEndpoints.MapPasseioEndpoints` (`MapPost("/passeios/{id:int}/avaliacoes", ...)`) e `PasseioEndpoints.Avaliar` |
+| Regra e criação | `backend/Projeto.Api/Dominio/Passeio.cs:Passeio.Avaliar`, `Passeio.ObterOutroParticipante`; `backend/Projeto.Api/Dominio/Avaliacao.cs:construtor de Avaliacao` |
+| Média no domínio | `backend/Projeto.Api/Dominio/Usuario.cs:Usuario.RegistrarAvaliacaoRecebida` |
+| Carga do histórico | `backend/Projeto.Api/Repositorios/IPasseioRepositorio.cs:ObterParaAvaliacao`, `Repositorios/Ef/PasseioRepositorio.cs:ObterParaAvaliacao` |
+| Média persistida | `backend/Projeto.Api/Repositorios/UnidadeDeTrabalho.cs:UnidadeDeTrabalho.Salvar`, `Dominio/Usuario.cs:Usuario.AtualizarMediaAvaliacao` |
+| Resposta | `backend/Projeto.Api/Endpoints/PasseioEndpoints.cs:PasseioEndpoints.ParaResposta(Avaliacao)` sobre `Contratos/AvaliacaoResponse.cs`; entrada em `Contratos/AvaliacaoRequest.cs` |
+| Erros | `backend/Projeto.Api/Endpoints/ErroHttp.cs:ErroHttp.Erro` e `ErroHttp.NaoEncontrado` |
+| Frontend | `frontend/src/components/PasseioCard.jsx`, `frontend/src/components/AvaliacaoForm.jsx`, `frontend/src/services/passeioService.js:avaliar` |
+
+**Testes que cobrem**
+
+| Teste | Arquivo | O que verifica |
+| :-- | :-- | :-- |
+| `TutorAvaliaPasseador_RegistraAvaliacaoERecalculaMedia` | `backend/Projeto.Tests/AvaliacaoTests.cs` | Avaliação com avaliador, avaliado, passeio, nota, comentário e data; média do passeador 5 e do tutor 0 |
+| `MesmoAvaliadorNaoPodeAvaliarDuasVezes` | `backend/Projeto.Tests/AvaliacaoTests.cs` | Segunda tentativa lança `"Passeio já avaliado por este usuário"`; coleção e média preservadas |
+| `PasseioNaoFinalizado_NaoPodeSerAvaliado` | `backend/Projeto.Tests/AvaliacaoTests.cs` | `"Passeio não finalizado"` e nenhuma avaliação criada |
+| `UsuarioQueNaoParticipou_NaoPodeAvaliar` | `backend/Projeto.Tests/AvaliacaoTests.cs` | `"Usuário não participou deste passeio"` (REG-006) |
+| `NotaForaDoIntervalo_NaoPodeSerAvaliada` | `backend/Projeto.Tests/AvaliacaoTests.cs` | Notas 0 e 6 lançam `"Nota deve estar entre 1 e 5"` |
+| `AmbosAvaliam_AsMediasSaoIndividuais` | `backend/Projeto.Tests/AvaliacaoTests.cs` | Duas avaliações no mesmo passeio; médias individuais (5 e 3) |
+| `Avaliar_PasseioFinalizado_Devolve201ComAMediaAtualizada` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 201; corpo com nota, comentário, data, avaliado e média 5; uma gravação |
+| `Avaliar_PasseioNaoFinalizado_Devolve422` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 422 `"Passeio não finalizado"`, nenhuma avaliação e nenhuma gravação |
+| `Avaliar_DuasVezes_Devolve422` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 422 `"Passeio já avaliado por este usuário"` e uma única avaliação |
+| `Avaliar_NotaForaDoIntervalo_Devolve400` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 400 `"Nota deve estar entre 1 e 5"` para notas 0 e 6 |
+| `Avaliar_GravaDepoisDaMutacaoDeDominio` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | Na gravação a avaliação já existe e a média já está recalculada; 201 e uma gravação |
+| `Avaliar_FalhaDePersistencia_NaoEhConvertidaEm4xx` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | Falha de persistência propaga (500 no pipeline), não 4xx |
+| `AvaliacaoResponse_NaoTemCampoId` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | O contrato da resposta não expõe `Id` de avaliação |
+| `FluxoCompleto_DoCadastroAteAvaliacaoENotificacao` | `backend/Projeto.Tests/FluxoCompletoTests.cs` | Pela API real: 201, nota 5, `mediaAvaliacao` 5 e `avaliado.id` do passeador |
+| `AvaliarDuasVezes_Devolve422` | `backend/Projeto.Tests/FluxoCompletoTests.cs` | Pela API real: 201 na primeira e 422 com a mensagem de duplicidade na segunda |
+| `MediaConsideraAvaliacoesDePasseiosDiferentesDoMesmoPasseador` | `backend/Projeto.Tests/MediaAvaliacaoTests.cs` | Notas 5 e 1 em passeios diferentes geram média 3 |
+| `MediaPersistida_NaoDependeDoHistoricoCarregado` | `backend/Projeto.Tests/MediaAvaliacaoConcorrenciaTests.cs` | Sem o histórico carregado, a média persistida e a devolvida são 4 (notas 3 e 5) |
+
+Lacuna de cobertura: não há teste de endpoint para passeio ou avaliador inexistente (404) nem para usuário que não participou (a REG-006 é testada só no domínio); e o teste de 201 usa repositório em memória, então o recálculo por `AVG(Nota)` no banco é coberto por `MediaAvaliacaoConcorrenciaTests` e pelo `FluxoCompletoTests`, não por ele.
+
+**Fora do fluxo especificado:** o código também permite que o passeador avalie o tutor (`Passeio.Avaliar` + `ObterOutroParticipante`, coberto por `PasseadorAvaliaTutor_RegistraAvaliacaoERecalculaMedia`), mas o frontend só oferece "Avaliar passeador" ao tutor; a tela do passeador avaliando o tutor segue fora do escopo da proposta.
 
 ## Regras
 
