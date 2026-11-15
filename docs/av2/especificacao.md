@@ -177,7 +177,74 @@ O `POST /passeios` grava e devolve exatamente o `Local` recebido e nunca chama `
 
 ### FLX-004 — Finalizar passeio
 
-<!-- a preencher na Fatia N -->
+**Ator:** passeador escolhido no passeio, com perfil PASSEADOR ou AMBOS e status ATIVO (REG-003). O frontend envia `{ usuarioId }` no corpo (`AcaoPasseioRequest`); a API não usa token, então quem age é o `UsuarioId` informado.
+
+**Pré-condições**
+
+- Passeio existente (senão **404** `"Passeio não encontrado"`).
+- Usuário existente (senão **404** `"Usuário não encontrado"`).
+- O usuário é o passeador do passeio, tem perfil de passeador e está ATIVO (REG-003).
+- Passeio em EM_ANDAMENTO, isto é, já passou por SOLICITADO → ACEITO → EM_ANDAMENTO.
+
+**Passos**
+
+1. O passeador vê o card do passeio em `/passeios`; com `papel = "PASSEADOR"` e `status = EM_ANDAMENTO`, `acoesDisponiveis` libera apenas `finalizar` e o botão "Finalizar passeio" aparece (`frontend/src/components/PasseioCard.jsx`).
+2. O passeador aciona o botão; o serviço envia `POST /passeios/{id}/finalizar` com `{ usuarioId }` (`frontend/src/services/passeioService.js:finalizar` → `executarAcao`).
+3. A API resolve o passeio por id; ausente → **404** `"Passeio não encontrado"`. Resolve o usuário por `UsuarioId`; ausente → **404** `"Usuário não encontrado"`.
+4. A API chama `passeio.Finalizar(quem)`, que executa nesta ordem: `ExigirPasseadorAtivo(quem)` (REG-003) e `ExigirStatus(EM_ANDAMENTO)`.
+5. Se o estado não for EM_ANDAMENTO, `ExigirStatus` lança `InvalidOperationException("Transição não permitida a partir do estado atual")`; `ExecutarAcao` converte em **422** com `ErroHttp.Erro` e não notifica ninguém.
+6. Em sucesso, o status passa a FINALIZADO; a API envia `PASSEIO_FINALIZADO` ao outro participante (o tutor) e chama `unidade.Salvar()` uma única vez.
+7. A resposta é **200 OK** com `PasseioResponse` na perspectiva do passeador (`papel = "PASSEADOR"`).
+
+**Resultado**
+
+- Corpo `PasseioResponse` com `status = FINALIZADO`, `papel = "PASSEADOR"` e os demais campos do passeio (pet, data e hora, duração, local, valor, tutor e passeador com `Id` e `Nome`).
+- Notificação `PASSEIO_FINALIZADO` para o tutor, com a mensagem fixa `"Seu passeio foi finalizado."`, `Lida = false` e `DataEnvio = agora`.
+
+**Estado final**
+
+- Passeio FINALIZADO (terminal): nenhuma outra transição é aceita depois, e o registro permanece no histórico (o fluxo não exclui nem recria o passeio).
+- Avaliação liberada: o construtor de `Avaliacao` exige `Passeio.Status == FINALIZADO`, o que habilita o FLX-005.
+- Passeio e notificação são persistidos na mesma gravação, no fim do fluxo.
+- Em falha, nada muda: sem notificação, sem gravação e `Status` preservado (a atribuição só ocorre depois das checagens).
+
+**Violação do fluxo (finalizar fora de EM_ANDAMENTO)**
+
+Dado um passeio em SOLICITADO, ACEITO, FINALIZADO, RECUSADO ou CANCELADO e o passeador escolhido
+Quando o passeador tenta finalizar
+Então a operação é rejeitada com **422** e `"Transição não permitida a partir do estado atual"`
+E o status permanece o anterior, sem notificação e sem gravação.
+
+- Ator não autorizado tem precedência sobre o estado: `ExigirPasseadorAtivo` roda antes de `ExigirStatus`, então um usuário diferente do passeador recebe `"Passeio não pertence a este passeador"`; sem perfil, `"Usuário não possui perfil de passeador"`; bloqueado, `"Usuário está bloqueado"` — sempre **422**, com o estado inalterado.
+- Não há teste de endpoint finalizando fora de EM_ANDAMENTO; o caminho é o mesmo `ExecutarAcao`, coberto para iniciar em `Iniciar_SemAceite_Devolve422SemNotificar` (422, estado inalterado e nenhuma notificação). As violações de estado ao finalizar são testadas no domínio por `SaltosDeEstado_NaoSaoPermitidos` e `PasseioFinalizado_NaoPermiteNovasTransicoes`.
+
+**Regras exercitadas**
+
+- Das cinco regras fixadas: **REG-003**. A transição EM_ANDAMENTO → FINALIZADO é a regra de ciclo de vida descrita em "Estados e transições do Passeio"; a avaliação (FLX-005, REG-001) só se torna possível depois deste fluxo.
+
+**Evidência no código**
+
+| Etapa | Evidência |
+| :-- | :-- |
+| Rota | `backend/Projeto.Api/Endpoints/PasseioEndpoints.cs:PasseioEndpoints.MapPasseioEndpoints` (`MapPost("/passeios/{id:int}/finalizar", ...)`) e `PasseioEndpoints.ExecutarAcao` |
+| Regra do fluxo | `backend/Projeto.Api/Dominio/Passeio.cs:Passeio.Finalizar`, `Passeio.ExigirPasseadorAtivo`, `Passeio.ExigirStatus` |
+| Notificação | `backend/Projeto.Api/Servicos/NotificacaoServico.cs:NotificacaoServico.Enviar`, `backend/Projeto.Api/Dominio/Notificacao.cs:construtor de Notificacao` (`GerarMensagem`) |
+| Resposta | `backend/Projeto.Api/Endpoints/PasseioEndpoints.cs:PasseioEndpoints.ParaResposta(Passeio, Usuario)` sobre `Contratos/PasseioResponse.cs`; entrada em `Contratos/AcaoPasseioRequest.cs` |
+| Erros | `backend/Projeto.Api/Endpoints/ErroHttp.cs:ErroHttp.Erro` e `ErroHttp.NaoEncontrado` |
+| Frontend | `frontend/src/components/PasseioCard.jsx`, `frontend/src/utils/passeioAcoes.js:acoesDisponiveis`, `frontend/src/services/passeioService.js:finalizar` |
+
+**Testes que cobrem**
+
+| Teste | Arquivo | O que verifica |
+| :-- | :-- | :-- |
+| `Finalizar_EmAndamento_NotificaOTutor` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 200; status FINALIZADO; notificação `PASSEIO_FINALIZADO` ao tutor |
+| `CicloCompleto_SolicitadoAceitoEmAndamentoFinalizado` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | SOLICITADO → ACEITO → EM_ANDAMENTO → FINALIZADO |
+| `SaltosDeEstado_NaoSaoPermitidos` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | `Finalizar` lança em SOLICITADO e em ACEITO; estado preservado |
+| `UsuarioQueNaoEhOPasseador_NaoPodeIniciarNemFinalizar` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | `"Passeio não pertence a este passeador"` e status EM_ANDAMENTO preservado |
+| `PasseioFinalizado_NaoPermiteNovasTransicoes` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | Após FINALIZADO, `Aceitar`, `Recusar`, `Iniciar` e `Finalizar` lançam e o status permanece |
+| `PasseadorBloqueado_NaoPodeAceitarIniciarNemFinalizar` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | `"Usuário está bloqueado"` em `Finalizar`, com EM_ANDAMENTO preservado |
+
+Lacuna de cobertura: o teste de endpoint confere o tipo da notificação, não a mensagem `"Seu passeio foi finalizado."` nem `Lida = false`; e não há teste de endpoint para finalizar fora de EM_ANDAMENTO (o caminho equivalente é `Iniciar_SemAceite_Devolve422SemNotificar`).
 
 ### FLX-005 — Avaliar passeador
 
