@@ -80,3 +80,13 @@
     will-change: auto;
   }
 }
+
+/* Utilitário: classe no container pai para manter as patinhas atrás do conteúdo. */
+.patinhas-pai {
+  position: relative;
+  isolation: isolate;
+}
+
+.patinhas-pai > .patinhas {
+  z-index: -1;
+}
