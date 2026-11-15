@@ -1,4 +1,5 @@
 import Header from './Header';
+import PatinhasFlutuantes from './PatinhasFlutuantes';
 import '../styles/shell.css';
 
 // Moldura de todas as páginas internas: cabeçalho, fundo decorativo e entrada suave.
@@ -8,6 +9,7 @@ export default function PageShell({ children, largura = 'padrao' }) {
       <div className="shell-fundo" aria-hidden="true">
         <span className="shell-bolha shell-bolha--1" />
         <span className="shell-bolha shell-bolha--2" />
+        <PatinhasFlutuantes />
       </div>
 
       <Header />
