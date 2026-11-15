@@ -385,7 +385,7 @@
 
 /* Fotos das seções de passeadores: leve movimento ao passar o mouse (só em telas com mouse). */
 .lp-divisao-foto {
-  transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
+  transition: opacity 0.7s var(--ease), transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
 }
 
 @media (hover: hover) {
