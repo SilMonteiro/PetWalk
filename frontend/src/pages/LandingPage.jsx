@@ -296,7 +296,8 @@ export default function LandingPage() {
       </section>
 
       {/* ---------- Para quem ama seus pets ---------- */}
-      <section id="tutores" className="lp-secao lp-secao--lilas">
+      <section id="tutores" className="lp-secao lp-secao--lilas patinhas-pai">
+        <PatinhasFlutuantes quantidade={8} />
         <div className="container">
           <div className="lp-titulo revelar">
             <span className="lp-sobretitulo">Para quem ama seus pets</span>
