@@ -313,7 +313,7 @@ export default function LandingPage() {
               <Foto src="/img/tutor-e-pet.jpg" alt="Tutora abraçando seu cachorro" />
             </div>
             <div className="lp-galeria-item revelar" style={{ transitionDelay: '200ms' }}>
-              <Foto src="/img/gato.jpg" alt="Gato de olhos atentos" />
+              <Foto src="/img/gato.jpg" alt="Gato descansando na grama ao lado de um filhote" />
             </div>
           </div>
         </div>
