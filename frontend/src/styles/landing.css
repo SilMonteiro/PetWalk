@@ -383,6 +383,18 @@
   box-shadow: var(--sombra-lg);
 }
 
+/* Fotos das seções de passeadores: leve movimento ao passar o mouse (só em telas com mouse). */
+.lp-divisao-foto {
+  transition: opacity 0.7s var(--ease), transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
+}
+
+@media (hover: hover) {
+  .lp-divisao-foto:hover {
+    transform: translateY(-6px) rotate(-1deg);
+    box-shadow: 0 30px 70px rgba(54, 40, 96, 0.22);
+  }
+}
+
 .lp-divisao-foto--marrom {
   border-color: var(--branco);
   border-radius: 60% 40% 54% 46% / 40% 52% 48% 60%;
@@ -454,6 +466,7 @@
 }
 
 .lp-galeria-item {
+  position: relative;
   overflow: hidden;
   background: var(--lilas-200);
   border-radius: var(--r-xl);
@@ -466,6 +479,15 @@
 
 .lp-galeria-item .foto {
   transition: transform 0.6s var(--ease);
+}
+
+/* Véu suave no rodapé da foto: dá profundidade sem esconder a imagem. */
+.lp-galeria-item::after {
+  content: '';
+  position: absolute;
+  inset: 55% 0 0;
+  background: linear-gradient(180deg, transparent, rgba(54, 40, 96, 0.22));
+  pointer-events: none;
 }
 
 .lp-galeria-item:hover .foto {

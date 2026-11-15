@@ -21,6 +21,7 @@ export default function Foto({ src, alt, className = '', posicao = 'center' }) {
       alt={alt}
       style={{ objectPosition: posicao }}
       loading="lazy"
+      decoding="async"
       onError={() => setFalhou(true)}
     />
   );

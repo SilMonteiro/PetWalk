@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Foto from '../components/Foto';
 import Icon from '../components/Icon';
 import Logo from '../components/Logo';
+import PatinhasFlutuantes from '../components/PatinhasFlutuantes';
 import useReveal from '../hooks/useReveal';
 import { useAuth } from '../context/AuthContext';
 import '../styles/landing.css';
@@ -162,6 +163,7 @@ export default function LandingPage() {
       <section className="lp-hero">
         <span className="lp-hero-forma lp-hero-forma--1" aria-hidden="true" />
         <span className="lp-hero-forma lp-hero-forma--2" aria-hidden="true" />
+        <PatinhasFlutuantes quantidade={8} />
 
         <div className="container lp-hero-grade">
           <div className="lp-hero-texto">
@@ -294,7 +296,8 @@ export default function LandingPage() {
       </section>
 
       {/* ---------- Para quem ama seus pets ---------- */}
-      <section id="tutores" className="lp-secao lp-secao--lilas">
+      <section id="tutores" className="lp-secao lp-secao--lilas patinhas-pai">
+        <PatinhasFlutuantes quantidade={8} />
         <div className="container">
           <div className="lp-titulo revelar">
             <span className="lp-sobretitulo">Para quem ama seus pets</span>
@@ -313,7 +316,7 @@ export default function LandingPage() {
               <Foto src="/img/tutor-e-pet.jpg" alt="Tutora abraçando seu cachorro" />
             </div>
             <div className="lp-galeria-item revelar" style={{ transitionDelay: '200ms' }}>
-              <Foto src="/img/gato.jpg" alt="Gato de olhos atentos" />
+              <Foto src="/img/gato.jpg" alt="Gato descansando na grama ao lado de um filhote" />
             </div>
           </div>
         </div>

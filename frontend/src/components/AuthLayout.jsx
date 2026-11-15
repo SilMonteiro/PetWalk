@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import Foto from './Foto';
 import Icon from './Icon';
 import Logo from './Logo';
+import PatinhasFlutuantes from './PatinhasFlutuantes';
 import '../styles/auth.css';
 
 // Moldura das telas de login e cadastro: painel da marca + formulário.
@@ -31,7 +32,8 @@ export default function AuthLayout({ titulo, subtitulo, children, rodape }) {
         </span>
       </aside>
 
-      <main className="auth-lado">
+      <main className="auth-lado patinhas-pai">
+        <PatinhasFlutuantes quantidade={8} />
         <div className="auth-topo">
           <Logo altura={46} />
           <Link to="/" className="auth-voltar">
