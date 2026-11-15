@@ -1,0 +1,61 @@
+/* ==========================================================================
+   Patinhas flutuantes — decoração de fundo reutilizável (PatinhasFlutuantes).
+   Só transform e opacity são animados; fica atrás do conteúdo e ignora cliques.
+   ========================================================================== */
+
+.patinhas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.patinha {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--tam);
+  height: var(--tam);
+  color: var(--verde-300);
+  opacity: 0;
+  transform: rotate(var(--rot));
+  animation: patinha-flutua var(--dur) ease-in-out var(--atraso) infinite;
+  will-change: transform, opacity;
+}
+
+.patinha:nth-child(3n + 2) {
+  color: var(--lilas-300);
+}
+
+.patinha:nth-child(3n) {
+  color: var(--marrom-300);
+}
+
+.patinha .icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Surge devagar, sobe balançando um pouco e some antes de voltar ao início. */
+@keyframes patinha-flutua {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) rotate(var(--rot));
+  }
+  20% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.22;
+    transform: translate3d(10px, -22px, 0) rotate(calc(var(--rot) + 12deg));
+  }
+  80% {
+    opacity: 0.28;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-6px, -64px, 0) rotate(calc(var(--rot) - 8deg));
+  }
+}
