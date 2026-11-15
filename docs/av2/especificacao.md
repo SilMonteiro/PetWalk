@@ -99,7 +99,81 @@ Nas linhas de estado terminal, supõe-se um ator autorizado: o passeador escolhi
 
 ### FLX-002 — Solicitar passeio
 
-<!-- a preencher na Fatia N -->
+**Ator:** tutor com perfil TUTOR ou AMBOS, autenticado na sessão do frontend. A API recebe quem age no corpo da requisição (`UsuarioId` de `SolicitacaoPasseioRequest`); não há token de autenticação (fora do escopo registrado na proposta).
+
+**Pré-condições**
+
+- Tutor existente, com perfil TUTOR ou AMBOS (REG-002).
+- Pet existente e já vinculado à lista do tutor (REG-005).
+- Passeador existente, com perfil PASSEADOR ou AMBOS e status ATIVO (REG-009).
+- `DataHora` estritamente futura em relação ao relógio injetado (`agora`); data igual a "agora" também é recusada (REG-008).
+- Corpo conforme `SolicitacaoPasseioRequest`: `UsuarioId`, `PetId`, `PasseadorId`, `DataHora`, `DuracaoMinutos` (inteiro, convertido em `TimeSpan` pelo endpoint) e `Local`.
+
+**Passos**
+
+1. O tutor escolhe o passeador na listagem e abre o formulário; o campo local vem pré-preenchido com o endereço do próprio perfil (`frontend/src/pages/SolicitarPasseioPage.jsx`) e pode ser mantido ou alterado.
+2. O tutor preenche pet, data e hora, duração e local e confirma; o frontend envia `POST /passeios` com `dataHora` em ISO UTC e `duracaoMinutos` numérico.
+3. A API localiza o tutor por `UsuarioId`; se não existir, responde **404** `"Usuário não encontrado"`. Localiza o passeador por `PasseadorId`; se não existir, responde **404** `"Passeador não encontrado"`.
+4. A API procura o pet por `PetId` dentro de `tutor.Pets`. Pet inexistente ou de outro tutor chega ao domínio como nulo.
+5. A API chama `Usuario.SolicitarPasseio`, que valida nesta ordem: perfil de tutor (REG-002), posse do pet (REG-005), perfil e status do passeador (REG-009) e data futura (REG-008). Toda falha de regra é `InvalidOperationException` e a API responde **422** com a mensagem da regra.
+6. O construtor de `Passeio` grava o status SOLICITADO e calcula `Valor` com a política devolvida por `PoliticaDePrecoFabrica.Para(passeador.TipoCobranca)`.
+7. A API adiciona o passeio ao repositório, envia a notificação `PASSEIO_SOLICITADO` ao passeador e chama `unidade.Salvar()` uma única vez.
+8. A resposta é **201 Created**, com `Location: /passeios/{id}` e corpo `PasseioResponse`.
+
+**Resultado**
+
+- Corpo `PasseioResponse`: `id`, `status = SOLICITADO`, `dataHora`, `duracaoMinutos`, `local` exatamente como informado, `valor`, `nomePet`, `tutor` e `passeador` (cada participante apenas com `Id` e `Nome`) e `papel = "TUTOR"`.
+- Notificação `PASSEIO_SOLICITADO` para o passeador, com a mensagem fixa `"Novo passeio solicitado."`, `Lida = false` e `DataEnvio = agora`.
+
+**Estado final**
+
+- Passeio em SOLICITADO com o valor calculado na solicitação; `Valor` só tem getter, então mudar `ValorHora` do passeador depois não recalcula o passeio já criado (`Passeio_MantemOValorDepoisDeMudarOValorHoraDoPasseador`).
+- Cálculo do valor: `PrecoPorHora` multiplica `Duracao.TotalHours` por `Passeador.ValorHora` e arredonda em 2 casas com `MidpointRounding.AwayFromZero`; `PrecoComAdicionalPorPorte` usa essa base e aplica fator 1,3 quando o pet é GRANDE. Passeador sem cobrança configurada tem `ValorHora = 0`, logo `Valor = 0` (`Passeio_SemCobrancaConfigurada_TemValorZero`).
+- Passeio e notificação são persistidos na mesma gravação (`unidade.Salvar()` chamado uma vez, no fim do fluxo).
+- Em falha de regra, nada é criado: a exceção ocorre antes de `passeios.Adicionar` e de `notificacoes.Enviar`, e `unidade.Salvar()` não é chamado.
+
+**Regras exercitadas**
+
+- Das cinco regras fixadas: **REG-005** e **REG-008**. A mesma operação aplica REG-002 e REG-009 e respeita a REG-007 (o endereço do perfil não é lido nem devolvido).
+
+**Evidência no código**
+
+| Etapa | Evidência |
+| :-- | :-- |
+| Rota | `backend/Projeto.Api/Endpoints/PasseioEndpoints.cs:PasseioEndpoints.MapPasseioEndpoints` (`MapPost("/passeios", ...)`) e `PasseioEndpoints.Solicitar` |
+| Regras do fluxo | `backend/Projeto.Api/Dominio/Usuario.cs:Usuario.SolicitarPasseio` |
+| Criação e status inicial | `backend/Projeto.Api/Dominio/Passeio.cs:construtor de Passeio` |
+| Escolha e cálculo do valor | `backend/Projeto.Api/Dominio/PoliticaDePrecoFabrica.cs:PoliticaDePrecoFabrica.Para`, `Dominio/PrecoPorHora.cs:PrecoPorHora.Calcular`, `Dominio/PrecoComAdicionalPorPorte.cs:PrecoComAdicionalPorPorte.Calcular` |
+| Notificação | `backend/Projeto.Api/Servicos/NotificacaoServico.cs:NotificacaoServico.Enviar`, `backend/Projeto.Api/Dominio/Notificacao.cs:construtor de Notificacao` (`GerarMensagem`) |
+| Resposta | `backend/Projeto.Api/Endpoints/PasseioEndpoints.cs:PasseioEndpoints.ParaResposta(Passeio, Usuario)` sobre `Contratos/PasseioResponse.cs` |
+| Erros | `backend/Projeto.Api/Endpoints/ErroHttp.cs:ErroHttp.Erro` e `ErroHttp.NaoEncontrado` |
+
+**Testes que cobrem**
+
+| Teste | Arquivo | O que verifica |
+| :-- | :-- | :-- |
+| `Solicitar_GravaOPasseioENotificaOPasseador` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 201; passeio SOLICITADO com tutor, passeador e local informados; notificação `PASSEIO_SOLICITADO` não lida; uma única gravação |
+| `Solicitar_Resposta_NaoVazaEnderecoDoPerfil` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | Resposta com o local informado, nomes, nome do pet, duração e `papel = "TUTOR"` |
+| `Solicitar_TutorInexistente_Devolve404` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 404 `"Usuário não encontrado"` e nenhuma gravação |
+| `Solicitar_PasseadorInexistente_Devolve404` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 404 `"Passeador não encontrado"` |
+| `Solicitar_PetDeOutroTutor_Devolve422ComAMensagemDaREG005` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | 422 `"O pet informado não pertence ao tutor solicitante"` e nenhum passeio criado |
+| `Solicitar_GravaDepoisDeCriarOPasseioENotificar` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | Ordem domínio → repositórios → `Salvar`; 201 e uma única gravação |
+| `Solicitar_FalhaDePersistencia_NaoEhConvertidaEm4xx` | `backend/Projeto.Tests/PasseioEndpointsTests.cs` | Falha de persistência propaga para o tratamento central (500), nunca 4xx |
+| `TutorComPetVinculado_SolicitaPasseio_CriaPasseioSolicitado` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | Passeio SOLICITADO com as referências de tutor, passeador e pet |
+| `UsuarioSemPerfilDeTutor_NaoPodeSolicitar` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | REG-002: `"Usuário não possui perfil de tutor"` |
+| `PetDeOutroTutor_NaoPodeSerSolicitado` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | REG-005: `"O pet informado não pertence ao tutor solicitante"` |
+| `DataNoPassado_NaoPodeSerSolicitada` / `DataIgualAAgora_NaoPodeSerSolicitada` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | REG-008: `"A data e hora do passeio devem ser futuras"` (passado e instante igual a `agora`) |
+| `PasseadorEscolhidoSemPerfilDePasseador_NaoPodeReceberSolicitacao` | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs` | REG-009: `"Usuário não possui perfil de passeador"` |
+| `Passeio_PorHora_CalculaPelaDuracaoEValorHora` | `backend/Projeto.Tests/PasseioValorTests.cs` | Valor por hora calculado na criação |
+| `Passeio_ComAdicionalPorPorte_CobraAdicionalDePetGrande` | `backend/Projeto.Tests/PasseioValorTests.cs` | Adicional de 30% para pet GRANDE |
+| `Passeio_SemCobrancaConfigurada_TemValorZero` | `backend/Projeto.Tests/PasseioValorTests.cs` | Passeador sem cobrança configurada gera valor 0 |
+| `Passeio_MantemOValorDepoisDeMudarOValorHoraDoPasseador` | `backend/Projeto.Tests/PasseioValorTests.cs` | Valor não é recalculado depois da solicitação |
+
+Lacunas de cobertura: não há teste para passeador bloqueado na solicitação (a mensagem `"Usuário está bloqueado"` da REG-009 é testada nas ações do passeio, em `PasseadorBloqueado_NaoPodeRecusar` e `PasseadorBloqueado_NaoPodeAceitarIniciarNemFinalizar`); a REG-002 e a REG-008 são testadas só no domínio, sem teste de endpoint; e `DuracaoMinutos` e `Local` não têm validação de faixa ou obrigatoriedade no domínio nem na API — o formulário limita a duração a `min="15"` e `step="15"`. Nenhum teste de endpoint confere o `Valor` devolvido no `POST /passeios`; o cálculo é coberto no domínio por `PasseioValorTests`.
+
+**Nota sobre o endereço (REG-007)**
+
+O `POST /passeios` grava e devolve exatamente o `Local` recebido e nunca chama `Usuario.ObterEnderecoPara`. O endereço do perfil do tutor só é usado como sugestão de preenchimento no próprio formulário (`SolicitarPasseioPage.jsx`, `useState(usuario.endereco ?? '')`); o valor que o tutor confirma é o único endereço que o passeador vê no passeio. `PasseioResponse` expõe de cada participante apenas `Id` e `Nome`, sem e-mail, telefone ou endereço.
 
 ### FLX-004 — Finalizar passeio
 
