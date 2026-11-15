@@ -454,6 +454,7 @@
 }
 
 .lp-galeria-item {
+  position: relative;
   overflow: hidden;
   background: var(--lilas-200);
   border-radius: var(--r-xl);
@@ -466,6 +467,15 @@
 
 .lp-galeria-item .foto {
   transition: transform 0.6s var(--ease);
+}
+
+/* Véu suave no rodapé da foto: dá profundidade sem esconder a imagem. */
+.lp-galeria-item::after {
+  content: '';
+  position: absolute;
+  inset: 55% 0 0;
+  background: linear-gradient(180deg, transparent, rgba(54, 40, 96, 0.22));
+  pointer-events: none;
 }
 
 .lp-galeria-item:hover .foto {
