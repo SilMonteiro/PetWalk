@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Foto from '../components/Foto';
 import Icon from '../components/Icon';
 import Logo from '../components/Logo';
+import PatinhasFlutuantes from '../components/PatinhasFlutuantes';
 import useReveal from '../hooks/useReveal';
 import { useAuth } from '../context/AuthContext';
 import '../styles/landing.css';
@@ -162,6 +163,7 @@ export default function LandingPage() {
       <section className="lp-hero">
         <span className="lp-hero-forma lp-hero-forma--1" aria-hidden="true" />
         <span className="lp-hero-forma lp-hero-forma--2" aria-hidden="true" />
+        <PatinhasFlutuantes quantidade={8} />
 
         <div className="container lp-hero-grade">
           <div className="lp-hero-texto">
