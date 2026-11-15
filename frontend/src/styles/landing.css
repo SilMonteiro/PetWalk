@@ -383,6 +383,18 @@
   box-shadow: var(--sombra-lg);
 }
 
+/* Fotos das seções de passeadores: leve movimento ao passar o mouse (só em telas com mouse). */
+.lp-divisao-foto {
+  transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
+}
+
+@media (hover: hover) {
+  .lp-divisao-foto:hover {
+    transform: translateY(-6px) rotate(-1deg);
+    box-shadow: 0 30px 70px rgba(54, 40, 96, 0.22);
+  }
+}
+
 .lp-divisao-foto--marrom {
   border-color: var(--branco);
   border-radius: 60% 40% 54% 46% / 40% 52% 48% 60%;
