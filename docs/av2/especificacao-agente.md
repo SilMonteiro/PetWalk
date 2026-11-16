@@ -650,3 +650,50 @@ não de cliente) — aceitável, mas é o único vetor.
 Nenhuma aplicada nesta fatia; os achados acima ficam para decisão do grupo. O código-fonte não foi alterado.
 
 Revisão humana por: Sarah - 15/11/2026
+
+## Rastreio
+
+Comandos usados (15/11/2026, antes desta escrita):
+
+```text
+$ git log --reverse --format="%H %an %ad %s" --date=iso bae1c75..HEAD
+$ git diff --name-status bae1c75..HEAD -- backend frontend
+```
+
+| Hash completo | Autor | Data (ISO) | Assunto | Tipo |
+| :-- | :-- | :-- | :-- | :-- |
+| `cc926b5ceef21d42cc24c378bff0990b4b0c3e6e` | Sarah Domingues | 2026-11-15 23:20:25 -0300 | Documento, parte 1 (contexto e pedido delimitado) | documentação |
+| `0a0093f6d487d063ccfb2c5aeafb16f75d1f9c75` | Sarah Domingues | 2026-11-15 23:22:06 -0300 | Documento, parte 2 (plano esperado e checklist) | documentação |
+| `7dc49225061497abee052fe11baf1c326d64f688` | Sarah Domingues | 2026-11-15 23:26:57 -0300 | Implementação, passo 1 (testes primeiro, vermelhos) | testes |
+| `5a4b11716c3d850db06173d74311b9a6f0539722` | Sarah Domingues | 2026-11-15 23:29:54 -0300 | Implementação, passo 2 (handler e registro, verde) | handler |
+| `8ca150a40a2864fde3e0887587934883962b31fb` | Sarah Domingues | 2026-11-15 23:33:18 -0300 | Registrar o diff e os resultados no documento | documentação |
+| `e72233159f10a89d96d6037b958c587e462cd061` | Sarah Domingues | 2026-11-15 23:37:02 -0300 | Inspeção do diff (checklist) | documentação |
+| `a6979ef58c224923260b6ed54034bc2ec2aa9ef2` | Sarah Domingues | 2026-11-16 00:15:15 -0300 | inspeção diff | documentação |
+
+| Campo | Valor |
+| :-- | :-- |
+| Commit base | `bae1c756c94e20e5948d03ab9ccfe2656aea6493` |
+| Branch | `feature/d03-falha-inesperada` |
+| HEAD no momento do rastreio | `a6979ef58c224923260b6ed54034bc2ec2aa9ef2` |
+| PR | **não aberto** (nenhum link inventado) |
+
+**Ordem dos commits de código (verificada, não presumida):** `git log --reverse` mostra `7dc4922` (testes)
+**antes** de `5a4b117` (handler e registro) — os testes nasceram vermelhos primeiro, como o plano exigia.
+
+**Escopo do código no intervalo:** `git diff --name-status bae1c75..HEAD -- backend frontend` devolve
+exatamente:
+
+```text
+A	backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs
+M	backend/Projeto.Api/Program.cs
+A	backend/Projeto.Tests/FalhaInesperadaTests.cs
+```
+
+Nenhum outro arquivo de `backend/` ou `frontend/` foi tocado. Conferi commit a commit que os cinco commits
+de documentação (`cc926b5`, `0a0093f`, `8ca150a`, `e722331`, `a6979ef`) alteram **apenas**
+`docs/av2/especificacao-agente.md`.
+
+**Como repetir o processo:** criar uma branch nova a partir de `bae1c756c94e20e5948d03ab9ccfe2656aea6493`,
+entregar ao agente as seções "Contexto fornecido ao agente" e "Pedido delimitado" deste documento, seguir
+"Plano esperado" e validar com "Comandos de verificação". O resultado esperado é o mesmo conjunto de três
+arquivos e os quatro testes de `FalhaInesperadaTests` aprovados.
