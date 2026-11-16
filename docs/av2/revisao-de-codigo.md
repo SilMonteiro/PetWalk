@@ -209,7 +209,7 @@ git grep -n "RegistrarPet" -- backend frontend
 ```
 
 No commit, `git grep "AdicionarPet" b22819d -- backend frontend` retorna 1 referência de produção
-(`UsuarioRepositorioEmMemoria.cs:29`) e 10 de teste; no `HEAD`, retorna 2 de produção
+(`UsuarioRepositorioEmMemoria.cs:29`) e 10 chamadas em teste; no `HEAD`, retorna 2 de produção
 (`UsuarioRepositorioEmMemoria.cs:29` e `backend/Projeto.Api/Repositorios/Ef/UsuarioRepositorio.cs:49`) e o restante em testes. Nenhuma
 referência no `frontend` em nenhum dos dois estados (`AdicionarPet` é símbolo C#, não existe em JS).
 
@@ -570,3 +570,6 @@ Uma imprecisão de redação, sem contradição de conteúdo: **C04** diz que o 
 "10 de teste"; o grep retorna 12 linhas em arquivos de teste, das quais 2 são as declarações dos métodos novos
 e 10 são chamadas. A correção sugerida é trocar "10 de teste" por "10 chamadas em teste". Não editei a seção
 — decisão sua.
+
+Correção aplicada em 16/11/2026: a expressão da seção C04 foi trocada por "10 chamadas em teste"; as duas
+menções entre aspas acima ficam como registro da análise original.
