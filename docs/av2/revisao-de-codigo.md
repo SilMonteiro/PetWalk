@@ -210,7 +210,7 @@ git grep -n "RegistrarPet" -- backend frontend
 
 No commit, `git grep "AdicionarPet" b22819d -- backend frontend` retorna 1 referência de produção
 (`UsuarioRepositorioEmMemoria.cs:29`) e 10 de teste; no `HEAD`, retorna 2 de produção
-(`UsuarioRepositorioEmMemoria.cs:29` e `Ef/UsuarioRepositorio.cs:49`) e o restante em testes. Nenhuma
+(`UsuarioRepositorioEmMemoria.cs:29` e `backend/Projeto.Api/Repositorios/Ef/UsuarioRepositorio.cs:49`) e o restante em testes. Nenhuma
 referência no `frontend` em nenhum dos dois estados (`AdicionarPet` é símbolo C#, não existe em JS).
 
 ### Impacto direto
@@ -234,7 +234,7 @@ não há endpoint nem tela. E o commit só expõe três rotas: `Program.cs` mape
 **A cadeia para no método de repositório — não existe rota HTTP nem tela que alcance a mudança.**
 
 **No HEAD (para comparação):** a cadeia está completa —
-`Usuario.AdicionarPet` (`Usuario.cs:58`) ← `RegistrarPet` (`Ef/UsuarioRepositorio.cs:49` e
+`Usuario.AdicionarPet` (`Usuario.cs:58`) ← `RegistrarPet` (`backend/Projeto.Api/Repositorios/Ef/UsuarioRepositorio.cs:49` e
 `UsuarioRepositorioEmMemoria.cs:29`) ← `PetEndpoints.cs:50`, dentro do `MapPost("/usuarios/{id:int}/pets")`
 (linha 35) ← `frontend/src/services/petService.js:12` (`POST /usuarios/${usuarioId}/pets`) ←
 `frontend/src/pages/PetFormPage.jsx:6` (importa `criarPet`). Aqui a cadeia termina em endpoint e tela.
@@ -249,7 +249,7 @@ não há endpoint nem tela. E o commit só expõe três rotas: `Program.cs` mape
 | Mensagem literal `"Usuário não possui perfil de tutor"` | **Não** (o texto é o mesmo) | O diff adiciona a mesma string que `Usuario.SolicitarPasseio` já lançava (linhas 85–87 em `b22819d^`); o que muda é o caminho que passa a emiti-la |
 | Status HTTP | **Não** no commit | Não há rota que alcance `AdicionarPet` em `b22819d`; no `HEAD` o mesmo `InvalidOperationException` vira **422** (`backend/Projeto.Api/Endpoints/ErroHttp.cs:19`) |
 | Corpo `{ "erro": ... }` | **Não** | O commit não toca `ErroHttp` nem `Program.cs`; o formato é do `HEAD` |
-| Chamadas do frontend | **Não** | No commit, `frontend/src/components/PetRegistrationScreen.jsx` não faz nenhuma requisição (`grep -n "fetch\|localhost\|/pets"` no arquivo do commit não retorna nada); no `HEAD` existe `petService.js` chamando a rota |
+| Chamadas do frontend | **Não** | No commit (arquivo que existe em `b22819d`, não no `HEAD`), `frontend/src/components/PetRegistrationScreen.jsx` não faz nenhuma requisição (`grep -n "fetch\|localhost\|/pets"` no arquivo do commit não retorna nada); no `HEAD` existe `petService.js` chamando a rota |
 
 **Nenhum contrato público foi alterado pelo commit.** O único contrato que muda de fato é comportamental: uma
 chamada que antes retornava normalmente agora pode lançar `InvalidOperationException`.
@@ -275,7 +275,7 @@ abaixo.
 | :-- | :-- | :-- |
 | Corpo de `AdicionarPet` | guarda de perfil + `pet is null` + posse + duplicidade | **idêntico** (comparei os dois trechos com `diff`; saída vazia) |
 | Linha de `AdicionarPet` | 50 | 58 |
-| Chamadores de produção de `RegistrarPet` | 1 (só `UsuarioRepositorioEmMemoria`) | 2 (inclui `Ef/UsuarioRepositorio.cs:49`) |
+| Chamadores de produção de `RegistrarPet` | 1 (só `UsuarioRepositorioEmMemoria`) | 2 (inclui `backend/Projeto.Api/Repositorios/Ef/UsuarioRepositorio.cs:49`) |
 | Rotas de pet | nenhuma | 5 em `PetEndpoints.cs` (GET, GET por id, POST, PUT, DELETE) |
 | DTOs de pet | nenhum | `PetRequest.cs` e `PetResponse.cs` |
 | Frontend | tela de cadastro de pet sem chamada de API | `petService.js` + `PetFormPage.jsx` chamando `POST /usuarios/{id}/pets` |
@@ -290,7 +290,7 @@ verificação:
 - `C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk-revisao-depois` — commit revisado `b22819d` ("depois")
 
 Projeto de testes nos dois estados: `backend/Projeto.Tests/Projeto.Tests.csproj` (o caminho não mudou entre
-os commits; conferido com `git ls-tree -r --name-only <hash> | grep "\.csproj$"`). Em cada worktree rodei
+os commits; conferido com `git ls-tree -r --name-only 8871eef` e `git ls-tree -r --name-only b22819d`, filtrando por `\.csproj$`). Em cada worktree rodei
 `dotnet restore` e depois dois `dotnet test`: a suíte completa e a focada nas classes levantadas em C04-d.
 
 Nota de ambiente: o processo do shell não herda `APPDATA`/`ProgramFiles`, e sem elas o NuGet falha com

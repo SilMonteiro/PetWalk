@@ -1,5 +1,5 @@
-<!-- ÚLTIMA ATUALIZAÇÃO: 15/11/2026 22:03 -->
-<!-- STATUS GERAL: 30/40 itens concluídos — Projeção: ~7,5/10,0 -->
+<!-- ÚLTIMA ATUALIZAÇÃO: 15/11/2026 22:57 -->
+<!-- STATUS GERAL: 36/40 itens concluídos — Projeção: ~9,0/10,0 -->
 
 ## 1. Resultado item a item
 
@@ -37,19 +37,19 @@
 
 ---
 
-### C — Análise crítica de código (0/6 ❌) — PENDENTE
+### C — Análise crítica de código (6/6 ✅) — CONCLUÍDO
 
-> **Arquivo a criar:** `docs/av2/revisao-de-codigo.md`
-> **Commits candidatos:** `b22819d` (*AdicionarPet exige perfil de tutor* — REG-002) ou `8871eef` (*tirar `DateTime.UtcNow` do domínio* — REG-008)
+> **Arquivo entregue:** `docs/av2/revisao-de-codigo.md`
+> **Alteração revisada:** `b22819d` (*AdicionarPet exige perfil de tutor* — REG-002), de danielmdelgado. A alternativa `8871eef` não foi usada.
 
-| Item | Status | O que falta |
+| Item | Status | Situação |
 |---|---|---|
-| C01 | ❌ | Selecionar 1 commit e documentar `git show --stat` + trecho do diff |
-| C02 | ❌ | Ligar a alteração a um requisito/regra da `especificacao.md` |
-| C03 | ❌ | Inventário dos arquivos alterados: arquivo, finalidade, dentro/fora do escopo |
-| C04 | ❌ | Análise de impacto: quem chama, contratos afetados, testes impactados + `dotnet test` antes/depois |
-| C05 | ❌ | Avaliação de ≥ 2 propriedades de POO sobre o diff (encapsulamento, responsabilidade, acoplamento…) |
-| C06 | ❌ | Parecer: aceitar / corrigir / rejeitar, separando fatos de julgamento |
+| C01 | ✅ | Commit, autor, data, `git show --stat` literal e diff de produção integral; nenhuma omissão não declarada |
+| C02 | ✅ | Ligação com a REG-002: enunciado da `proposta.md:48`, menções da `especificacao.md` (106, 118, 163) e tabela critério → implementação. Registra que a especificação **não tem seção REG-002** e que nenhum critério dela é satisfeito pelo diff |
+| C03 | ✅ | 2 arquivos (`Usuario.cs` +6/−0 e `UsuarioTests.cs` +23/−0); nenhuma mudança fora do escopo |
+| C04 | ✅ | Cadeia de chamadas no commit e no HEAD, contratos inalterados, testes impactados e suíte antes × depois: 118/118 → 120/120 e 17/17 → 19/19, 0 falhas, 0 não executados |
+| C05 | ✅ | Encapsulamento atende; lugar da regra atende parcialmente (guarda duplicada em `SolicitarPasseio`); acoplamento atende |
+| C06 | ✅ | Parecer **Aceitar**, com riscos residuais (ordenação `null` × perfil sem teste) e o que mudaria a decisão |
 
 ---
 
@@ -428,17 +428,16 @@ Cobrir **os 40 itens** e validar que todo caminho listado existe (`jq -r '.. | s
 - [x] Modelo Mermaid confere com o código (B01–B07) ✅ — `docs/av2/modelo-de-classes.md`
 - [x] 5 regras e 3 fluxos fixados em `docs/av2/especificacao.md` (G01) ✅ — F05 e F06 ainda precisam reutilizá-los
 - [x] Falha excepcional tratada + testada (D03/D04) ✅ — documentada em `docs/av2/especificacao.md` (seção "Falhas"); corpo e log do 500 não verificados
-- [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **E concluída** (`docs/av2/registro-de-depuracao.md`); **C e G02 continuam pendentes**
+- [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **E e C concluídas** (`docs/av2/registro-de-depuracao.md`, `docs/av2/revisao-de-codigo.md`); **G02 pendente**
 - [ ] Auditoria final sem declarar como concluído o que não foi comprovado (F06) — **F06 não existe**
 - [ ] `evidencias.json` cobrindo os 40 itens, com caminhos válidos — **não existe**
 
 ## 5. Projeção de nota
 
-<!-- Atualizado em 15/11/2026 — base atual: 30 itens concluídos (cada item = 0,25) -->
+<!-- Atualizado em 15/11/2026 — base atual: 36 itens concluídos (cada item = 0,25) -->
 | Cenário | Itens concluídos | Nota |
 |---|---:|---:|
 | ~~Situação original (antes de 14/11/2026)~~ | ~~12~~ | ~~3,00~~ |
-| **Situação atual (15/11/2026)** — E entregue; A (8) + B (8) + D (4) + E (6) + F (3) + G (1) | **30** | **7,50** |
-| + F04 (evidência de clone limpo) | 31 | 7,75 |
-| + C (revisao-de-codigo.md, 6 itens) | 37 | 9,25 |
+| **Situação atual (15/11/2026)** — E e C entregues; A (8) + B (8) + C (6) + D (4) + E (6) + F (3) + G (1) | **36** | **9,00** |
+| + F04 (evidência de clone limpo) | 37 | 9,25 |
 | + G02 + F05 + F06 (3 itens; `evidencias.json` é o índice final, não um item) | 40 | **10,00** |
