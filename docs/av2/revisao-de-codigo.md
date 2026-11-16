@@ -282,7 +282,98 @@ abaixo.
 
 ### Verificação com dotnet test (antes × depois)
 
-_A preencher na próxima fatia._
+**Ambiente.** Windows 10 (build 10.0.19045), shell Git Bash/MSYS, SDK .NET `10.0.400`. Execução em
+15/11/2026, ~21:56–21:57. Dois *worktrees* criados **fora** do repositório e usados apenas para esta
+verificação:
+
+- `C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk-revisao-antes` — commit pai `8871eef` ("antes")
+- `C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk-revisao-depois` — commit revisado `b22819d` ("depois")
+
+Projeto de testes nos dois estados: `backend/Projeto.Tests/Projeto.Tests.csproj` (o caminho não mudou entre
+os commits; conferido com `git ls-tree -r --name-only <hash> | grep "\.csproj$"`). Em cada worktree rodei
+`dotnet restore` e depois dois `dotnet test`: a suíte completa e a focada nas classes levantadas em C04-d.
+
+Nota de ambiente: o processo do shell não herda `APPDATA`/`ProgramFiles`, e sem elas o NuGet falha com
+`error : Value cannot be null. (Parameter 'path1')` antes de compilar. Os comandos foram executados com essas
+variáveis restauradas apenas no processo (mesma adaptação registrada em
+`docs/av2/registro-de-depuracao.md`, seção E02). Nenhum arquivo de configuração foi alterado.
+
+**Tabela antes × depois**
+
+| Execução | Comando | Total | Aprovados | Falhas | Não executados | Tempo |
+| :-- | :-- | --: | --: | --: | --: | --: |
+| Antes — suíte completa | `dotnet test backend/Projeto.Tests/Projeto.Tests.csproj --logger "console;verbosity=normal"` | 118 | 118 | 0 | 0 | 7,9523 s |
+| Antes — focada | `dotnet test backend/Projeto.Tests/Projeto.Tests.csproj --filter "FullyQualifiedName~UsuarioTests|FullyQualifiedName~UsuarioRepositorioTests" --logger "console;verbosity=normal"` | 17 | 17 | 0 | 0 | 1,4680 s |
+| Depois — suíte completa | `dotnet test backend/Projeto.Tests/Projeto.Tests.csproj --logger "console;verbosity=normal"` | 120 | 120 | 0 | 0 | 6,1337 s |
+| Depois — focada | `dotnet test backend/Projeto.Tests/Projeto.Tests.csproj --filter "FullyQualifiedName~UsuarioTests|FullyQualifiedName~UsuarioRepositorioTests" --logger "console;verbosity=normal"` | 19 | 19 | 0 | 0 | 1,6823 s |
+
+**Saída literal dos resumos:**
+
+```text
+# ANTES (8871eef) — suíte completa
+Execução de Teste Bem-sucedida.
+Total de testes: 118
+     Aprovados: 118
+Tempo total: 7,9523 Segundos
+
+# ANTES (8871eef) — focada
+Execução de Teste Bem-sucedida.
+Total de testes: 17
+     Aprovados: 17
+Tempo total: 1,4680 Segundos
+
+# DEPOIS (b22819d) — suíte completa
+Execução de Teste Bem-sucedida.
+Total de testes: 120
+     Aprovados: 120
+Tempo total: 6,1337 Segundos
+
+# DEPOIS (b22819d) — focada
+Execução de Teste Bem-sucedida.
+Total de testes: 19
+     Aprovados: 19
+Tempo total: 1,6823 Segundos
+```
+
+**Fatos (diferenças nos números e nas saídas).**
+
+- O total sobe de **118 para 120** (+2) e a suíte focada de **17 para 19** (+2) — exatamente os dois métodos
+  criados pelo commit (`AdicionarPet_ComPerfilDePasseador_LancaErro` e `AdicionarPet_ComPerfilAmbos_AdicionaOPet`).
+- **Nenhuma falha** em nenhuma das quatro execuções, antes ou depois; nenhum teste mudou de vermelho para
+  verde ou de verde para vermelho.
+- **Nenhum teste não executado** (`Não executados: 0`): a limitação do App Control citada no README
+  (`0x800711C7`, `FileLoadException`) **não se manifestou** neste ambiente para essas suítes — elas são de
+  domínio/repositório em memória e não carregam o SQLite nativo. O `restore` e o `build` do commit pai
+  **não falharam**.
+- Os tempos caem de 7,9523 s para 6,1337 s (completa) e sobem de 1,4680 s para 1,6823 s (focada); variação
+  de ambiente, sem relação com o diff.
+
+**Leitura.**
+
+- O "antes" passar **118/118** é o dado mais importante: a suíte anterior não detectava a ausência da regra.
+  O commit **não corrige** algo que a suíte acusava — ele adiciona a **primeira cobertura** da regra em
+  `AdicionarPet`, e é por isso que o total de testes aumenta exatamente na mesma medida que a suíte focada.
+- Nenhum teste existente regrediu, o que é coerente com C04-d: os cenários pré-existentes montam o tutor com
+  `TipoPerfil.TUTOR` e não passam pelo novo caminho de exceção. O risco de a guarda quebrar uso legítimo fica
+  baixo, mas isso é **ausência de evidência contrária**, não prova de que não exista uso quebrado fora da
+  suíte.
+- O ganho de cobertura é local: nenhuma rota HTTP foi exercitada (no commit não há rota de pet), então o
+  caminho "requisição → 422" continua sem verificação neste commit.
+
+**Limitações (o que esta verificação NÃO prova).**
+
+- As duas suítes são as **da época do commit** (14 arquivos de teste em `backend/Projeto.Tests`), **não** os
+  291 casos de hoje; os números não são comparáveis ao `HEAD` nem ao README.
+- **Não** rodei os dois testes novos contra o código do pai: isso exigiria alterar o worktree "antes", o que
+  não estava autorizado. Portanto "o commit torna o critério C2 verdadeiro" está sustentado pelo diff e pela
+  leitura do código, não por um teste vermelho no pai.
+- Nada de frontend foi executado; nenhum endpoint foi chamado; o formato de erro HTTP não foi verificado.
+- Os tempos incluem apenas a execução dos testes (o `dotnet test` compila antes, em etapa separada).
+
+**Limpeza:** os dois worktrees foram removidos ao final — `git worktree remove` no "antes" e, no "depois",
+`git worktree remove` desregistrou a árvore mas não apagou a pasta (o shell ainda a mantinha aberta);
+`git worktree prune` + `rmdir` da pasta vazia concluíram a remoção. `git worktree list` mostra **apenas** o
+repositório principal.
 
 ## C05 — Propriedades de POO
 
