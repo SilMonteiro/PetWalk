@@ -502,4 +502,71 @@ testes verdes na suíte focada sem setup adicional.
 
 ## C06 — Parecer
 
-_A preencher na fatia correspondente._
+**Decisão: Aceitar.**
+
+Síntese: a alteração faz uma coisa só, no lugar certo, com a primeira cobertura da regra e sem nenhuma
+regressão; o que resta são dívidas de cobertura e de rastreabilidade, não defeitos de correção.
+
+### Fatos
+
+| Item | Fato verificado | Origem |
+| :-- | :-- | :-- |
+| Diff | 2 arquivos, `+29/−0`: 1 de produção (`Usuario.cs`, +6) e 1 de teste (`UsuarioTests.cs`, +23) | C01, C03 |
+| Escopo | **Nenhuma mudança fora do escopo**; o arquivo de produção tem uma única hunk, dentro de `AdicionarPet` | C03 |
+| Testes antes × depois | 118/118 → **120/120** (suíte completa) e 17/17 → **19/19** (focada); 0 falhas, **0 não executados** nos dois estados | C04 |
+| Contratos | Assinatura, interface `IUsuarioRepositorio`, DTOs, mensagem literal, status HTTP e corpo `{ "erro": ... }`: **todos inalterados** | C04 |
+| POO — encapsulamento | **atende**: guarda dentro da entidade; `_pets` privado, `Pets` como `IReadOnlyList` | C05 |
+| POO — lugar da regra | **atende parcialmente**: no domínio e ausente dos endpoints, mas a guarda é idêntica à de `SolicitarPasseio` (53–56 × 91–94) | C05 |
+| POO — acoplamento | **atende**: nenhum `using`, campo, construtor ou relógio novo | C05 |
+| Cobertura dos critérios | **Nenhum critério da especificação é satisfeito pelo diff**: a especificação não tem seção REG-002 e descreve a regra em `SolicitarPasseio`; C1/C2 foram reconstruídos do enunciado da proposta | C02 |
+| Lacuna comportamental | a guarda vem antes de `pet is null`, então PASSEADOR + `null` deixou de receber `ArgumentNullException`; sem teste e sem critério | C02, C05 |
+
+### Julgamento
+
+*(opinião fundamentada, separada dos fatos acima)*
+
+- **Aceito porque o risco é baixo e mensurável.** São 6 linhas, em um único método, que fecham um caminho
+  público que antes permitia violar o invariante; os dois testes novos cobrem sucesso e violação, e nenhum
+  teste antigo mudou de estado. Um revisor consegue reproduzir tudo com o que está neste documento.
+- **A duplicação não me parece bloqueante.** A checagem de perfil aparece duas vezes, mas o arquivo já repete
+  guardas do mesmo tipo — `pet is null` está em três métodos (linhas 58, 77 e 96 do commit) e a validação de
+  posse em duas. O commit segue o estilo existente em vez de introduzir um padrão novo; cobrar a extração de
+  `ExigirPerfilTutor()` aqui seria uma melhoria, não uma correção.
+- **A lacuna de rastreabilidade pesa, mas contra o projeto, não contra o código.** A especificação não
+  documenta `AdicionarPet` nem o FLX-007; isso limita o que C02 pode afirmar, porém a regra implementada é a
+  mesma da REG-002 e a mensagem é a mesma já usada em `SolicitarPasseio`.
+- **A mudança de ordenação é o ponto mais frágil.** Ela é silenciosa (não está no título do commit) e não tem
+  teste; ainda assim, o efeito é trocar um erro de programação por um erro de regra, e no commit não existe
+  chamador HTTP que dependa de `ArgumentNullException`. Registro como risco residual, não como bloqueio.
+
+### Condições
+
+Decisão **Aceitar** — riscos residuais e monitoramento:
+
+1. **Ordenação `null` × perfil:** registrar como item pendente; se algum cliente passar a exibir a mensagem da
+   REG-002 onde antes via erro de argumento, reabrir a decisão. A correção, se desejada, é mover a guarda para
+   depois de `pet is null` ou adicionar um teste do caso.
+2. **Duplicação da guarda:** se um terceiro método passar a precisar da checagem, extrair `ExigirPerfilTutor()`
+   em vez de copiar uma terceira vez; hoje são 2 cópias com o texto idêntico.
+3. **Rastreabilidade:** abrir item para a especificação cobrir o caminho de pets (REG-002 em `AdicionarPet`,
+   FLX-007); sem isso, C02 não pode citar um critério documentado.
+4. **Monitoramento:** manter os dois testes novos verdes em CI. A suíte do commit não usa SQLite nativo, então
+   a limitação de App Control do README não afeta esta verificação — mas ela afeta a suíte atual do projeto.
+
+### O que mudaria minha decisão
+
+- **Para Corrigir:** aparecer um chamador de produção que hoje dependa de `ArgumentNullException` em
+  `AdicionarPet` (o revisor veria a mensagem mudar), ou um teste que documente esse contrato; ou a duplicação
+  passar a divergir (duas mensagens diferentes para a mesma regra).
+- **Para Rejeitar:** existir outro caminho público que insira pets em `_pets` sem passar por `AdicionarPet` —
+  a guarda seria contornável e a regra não valeria; ou a suíte mostrar regressão em cenário com perfil
+  `PASSEADOR` que deveria funcionar.
+- **Para reabrir a aceitação sem mudar a decisão:** a especificação passar a documentar o caso `null` com
+  status ou mensagem diferente do que o commit produz.
+
+### Nota de consistência entre as seções
+
+Uma imprecisão de redação, sem contradição de conteúdo: **C04** diz que o grep de `AdicionarPet` retorna
+"10 de teste"; o grep retorna 12 linhas em arquivos de teste, das quais 2 são as declarações dos métodos novos
+e 10 são chamadas. A correção sugerida é trocar "10 de teste" por "10 chamadas em teste". Não editei a seção
+— decisão sua.
