@@ -193,7 +193,96 @@ arquivo nem de outro propósito.
 
 ## C04 — Análise de impacto
 
-_A preencher na fatia correspondente._
+**Símbolos alterados.** O diff não cria, remove nem renomeia símbolo algum: altera o **comportamento** de um
+método público que já existia, `Usuario.AdicionarPet(Pet pet)`
+(`backend/Projeto.Api/Dominio/Usuario.cs`, linha 50 no commit). Não há mudança de assinatura, de parâmetro,
+de construtor, de propriedade nem de DTO. A guarda nova consome `Usuario.EhTutor` (propriedade preexistente,
+linha 20 no commit), que **não** foi alterada.
+
+**Comandos usados** (executados nesta sessão, no estado do commit e no `HEAD`):
+
+```bash
+git grep -n "AdicionarPet" b22819d -- backend frontend
+git grep -n "AdicionarPet" -- backend frontend
+git grep -n "RegistrarPet" b22819d -- backend frontend
+git grep -n "RegistrarPet" -- backend frontend
+```
+
+No commit, `git grep "AdicionarPet" b22819d -- backend frontend` retorna 1 referência de produção
+(`UsuarioRepositorioEmMemoria.cs:29`) e 10 de teste; no `HEAD`, retorna 2 de produção
+(`UsuarioRepositorioEmMemoria.cs:29` e `Ef/UsuarioRepositorio.cs:49`) e o restante em testes. Nenhuma
+referência no `frontend` em nenhum dos dois estados (`AdicionarPet` é símbolo C#, não existe em JS).
+
+### Impacto direto
+
+| Símbolo | Quem chama/referencia | Tipo | Alterado pelo commit? |
+| :-- | :-- | :-- | :-- |
+| `Usuario.AdicionarPet` | `UsuarioRepositorioEmMemoria.RegistrarPet` — `backend/Projeto.Api/Repositorios/UsuarioRepositorioEmMemoria.cs:29` (no commit) | produção | **não** |
+| `Usuario.AdicionarPet` | `Fabrica.CriarPasseioSolicitadoPara` — `backend/Projeto.Tests/Fabrica.cs:43` | teste | **não** |
+| `Usuario.AdicionarPet` | `SolicitacaoDePasseioTests` — linhas 17, 61, 75 e 89 | teste | **não** |
+| `Usuario.AdicionarPet` | `PasseioValorTests:68` e `ProtecaoDeEstadoTests:116` | teste | **não** |
+| `Usuario.AdicionarPet` | `UsuarioTests` — linhas 12 e 24 (métodos novos) e 34 (teste que já existia) | teste | **sim** (2 métodos) |
+| `IUsuarioRepositorio.RegistrarPet` | declarado em `backend/Projeto.Api/Repositorios/IUsuarioRepositorio.cs:13`, implementado em `UsuarioRepositorioEmMemoria.cs:27` (no commit) | produção | **não** |
+
+### Impacto transitivo
+
+**No commit (b22819d):** a cadeia é `Usuario.AdicionarPet` ← `UsuarioRepositorioEmMemoria.RegistrarPet`
+(linhas 27–29) ← **ninguém em produção**. O `git grep "RegistrarPet" b22819d -- backend frontend` mostra
+apenas a interface (linha 13), a implementação (27) e dois usos em teste (`UsuarioRepositorioTests.cs:63–64`);
+não há endpoint nem tela. E o commit só expõe três rotas: `Program.cs` mapeia `/teste` e
+`MapUsuarioEndpoints()`, e `UsuarioEndpoints.cs` declara apenas `/cadastro` (linha 5) e `/login` (linha 25).
+**A cadeia para no método de repositório — não existe rota HTTP nem tela que alcance a mudança.**
+
+**No HEAD (para comparação):** a cadeia está completa —
+`Usuario.AdicionarPet` (`Usuario.cs:58`) ← `RegistrarPet` (`Ef/UsuarioRepositorio.cs:49` e
+`UsuarioRepositorioEmMemoria.cs:29`) ← `PetEndpoints.cs:50`, dentro do `MapPost("/usuarios/{id:int}/pets")`
+(linha 35) ← `frontend/src/services/petService.js:12` (`POST /usuarios/${usuarioId}/pets`) ←
+`frontend/src/pages/PetFormPage.jsx:6` (importa `criarPet`). Aqui a cadeia termina em endpoint e tela.
+
+### Contratos afetados
+
+| Contrato | Mudou? | Evidência |
+| :-- | :-- | :-- |
+| Assinatura `public void AdicionarPet(Pet pet)` | **Não** | O diff (`git show b22819d -- backend/Projeto.Api/Dominio/Usuario.cs`) só adiciona linhas **dentro** do corpo; a linha da assinatura aparece como contexto, não como `+`/`−` |
+| Interface `IUsuarioRepositorio` / `RegistrarPet` | **Não** | Arquivo não aparece no `--name-status` do commit |
+| DTOs de `Contratos/` | **Não** | No commit a pasta só tem `LoginRequest.cs` e `UsuarioRequest.cs` (`git ls-tree -r --name-only b22819d -- backend/Projeto.Api/Contratos`); nenhum DTO de pet existe e nenhum arquivo dela foi tocado |
+| Mensagem literal `"Usuário não possui perfil de tutor"` | **Não** (o texto é o mesmo) | O diff adiciona a mesma string que `Usuario.SolicitarPasseio` já lançava (linhas 85–87 em `b22819d^`); o que muda é o caminho que passa a emiti-la |
+| Status HTTP | **Não** no commit | Não há rota que alcance `AdicionarPet` em `b22819d`; no `HEAD` o mesmo `InvalidOperationException` vira **422** (`backend/Projeto.Api/Endpoints/ErroHttp.cs:19`) |
+| Corpo `{ "erro": ... }` | **Não** | O commit não toca `ErroHttp` nem `Program.cs`; o formato é do `HEAD` |
+| Chamadas do frontend | **Não** | No commit, `frontend/src/components/PetRegistrationScreen.jsx` não faz nenhuma requisição (`grep -n "fetch\|localhost\|/pets"` no arquivo do commit não retorna nada); no `HEAD` existe `petService.js` chamando a rota |
+
+**Nenhum contrato público foi alterado pelo commit.** O único contrato que muda de fato é comportamental: uma
+chamada que antes retornava normalmente agora pode lançar `InvalidOperationException`.
+
+### Testes impactados
+
+| Teste (classe.método) | Situação no commit | Exercita |
+| :-- | :-- | :-- |
+| `UsuarioTests.AdicionarPet_ComPerfilDePasseador_LancaErro` | **criado** | `AdicionarPet` com PASSEADOR → exceção + lista vazia |
+| `UsuarioTests.AdicionarPet_ComPerfilAmbos_AdicionaOPet` | **criado** | `AdicionarPet` com AMBOS → pet adicionado |
+| `UsuarioRepositorioTests.RegistrarPet_VinculaAoTutor_AtribuiIdEPermiteObterPet` (linha 56) | intacto | `RegistrarPet` → `AdicionarPet` |
+| `SolicitacaoDePasseioTests` (linhas 17, 61, 75, 89) e `Fabrica.CriarPasseioSolicitadoPara` (43) | intacto | monta cenário chamando `AdicionarPet` |
+| `PasseioValorTests` (68) e `ProtecaoDeEstadoTests` (116) | intacto | idem |
+
+Nenhum teste existente foi modificado ou removido (`--numstat` do arquivo de teste: `+23/−0`). Os testes
+intactos montam o tutor com `Fabrica.CriarUsuario(TipoPerfil.TUTOR)` (`Fabrica.cs` no commit), portanto não
+passam pelo novo caminho de exceção. **Não executei a suíte nesta fatia**; a confirmação fica na subseção
+abaixo.
+
+### Diferenças entre o commit e o HEAD
+
+| Aspecto | No commit `b22819d` | No `HEAD` |
+| :-- | :-- | :-- |
+| Corpo de `AdicionarPet` | guarda de perfil + `pet is null` + posse + duplicidade | **idêntico** (comparei os dois trechos com `diff`; saída vazia) |
+| Linha de `AdicionarPet` | 50 | 58 |
+| Chamadores de produção de `RegistrarPet` | 1 (só `UsuarioRepositorioEmMemoria`) | 2 (inclui `Ef/UsuarioRepositorio.cs:49`) |
+| Rotas de pet | nenhuma | 5 em `PetEndpoints.cs` (GET, GET por id, POST, PUT, DELETE) |
+| DTOs de pet | nenhum | `PetRequest.cs` e `PetResponse.cs` |
+| Frontend | tela de cadastro de pet sem chamada de API | `petService.js` + `PetFormPage.jsx` chamando `POST /usuarios/{id}/pets` |
+
+### Verificação com dotnet test (antes × depois)
+
+_A preencher na próxima fatia._
 
 ## C05 — Propriedades de POO
 
