@@ -271,7 +271,7 @@ Lacuna de cobertura: o teste de endpoint confere o tipo da notificação, não a
 **Resultado**
 
 - Corpo `AvaliacaoResponse` com a nota, o comentário, a data (`agora`), o passeador como `avaliado` e a média atualizada.
-- O frontend mostra "Avaliação registrada: nota X. Nova média de {passeador}: Y." e esconde as ações daquele card.
+- O frontend exibe a confirmação montada em `PasseioCard.jsx` (`Avaliação registrada: nota` + a nota, seguida de `Nova média de` + nome e média) e esconde as ações daquele card.
 
 **Estado final**
 

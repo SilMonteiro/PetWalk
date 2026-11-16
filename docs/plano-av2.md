@@ -1,5 +1,5 @@
-<!-- ÚLTIMA ATUALIZAÇÃO: 14/11/2026 15:35 -->
-<!-- STATUS GERAL: 20/40 itens concluídos — Projeção: ~5,0/10,0 -->
+<!-- ÚLTIMA ATUALIZAÇÃO: 15/11/2026 21:10 -->
+<!-- STATUS GERAL: 24/40 itens concluídos — Projeção: ~6,0/10,0 -->
 
 ## 1. Resultado item a item
 
@@ -53,13 +53,13 @@
 
 ---
 
-### D — Controle de exceções (3/4 ✅) — QUASE CONCLUÍDO
+### D — Controle de exceções (4/4 ✅) — CONCLUÍDO
 
-> **Nota:** o tratamento central de exceções **já está implementado no código** (`Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()`). Falta apenas **documentar** em `docs/av2/especificacao.md`.
+> **Nota:** o tratamento central de exceções está implementado no código (`Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()`) e documentado em `docs/av2/especificacao.md`, seção **Falhas**.
 
 | Item | Status | Situação |
 |---|---|---|
-| D01 | ❌ | Adicionar seção "Falhas" em `docs/av2/especificacao.md` com 3 casos: validação (400) / violação de regra (422) / falha excepcional (500) |
+| D01 | ✅ | Seção "Falhas" em `docs/av2/especificacao.md`: 3 situações (validação 400 / violação de regra 422 / excepcional 500), critério de distinção e nota sobre corpo e log do 500 (não verificados) |
 | D02 | ✅ | `Passeio.Aceitar` lança → `ExecutarAcao` captura → `ErroHttp.Erro` → 422 (coberto em `PasseioEndpointsTests`) |
 | D03 | ✅ | `Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()` — implementado |
 | D04 | ✅ | `EndpointsFalhaDePersistenciaTests` cobre 500 em 3 rotas: `Cadastro_FalhaAoSalvar_Devolve500`, `CriarPet_FalhaAoSalvar_Devolve500`, `AtualizarPet_FalhaAoSalvar_Devolve500` |
@@ -97,14 +97,14 @@
 
 ---
 
-### G — Especificação e agentes (0/2 ❌) — PENDENTE
+### G — Especificação e agentes (1/2 ⚠️) — PARCIAL
 
-> **Arquivos a criar:** `docs/av2/especificacao.md` e `docs/av2/especificacao-agente.md`
-> **Atenção:** G01 é pré-requisito de C02, F05 e F06.
+> **Arquivo a criar:** `docs/av2/especificacao-agente.md`
+> **Atenção:** o vocabulário de G01 (`docs/av2/especificacao.md`) é usado em C02, F05 e F06.
 
 | Item | Status | O que falta |
 |---|---|---|
-| G01 | ❌ | Criar `docs/av2/especificacao.md` com critérios **Dado/Quando/Então** para os 3 fluxos (FLX-002, FLX-004, FLX-005) e 5 regras (REG-001, REG-003, REG-004, REG-005, REG-008) |
+| G01 | ✅ | `docs/av2/especificacao.md` com critérios **Dado/Quando/Então** dos 3 fluxos (FLX-002, FLX-004, FLX-005) e das 5 regras (REG-001, REG-003, REG-004, REG-005, REG-008), estados/transições e seção "Falhas" |
 | G02 | ❌ | Criar `docs/av2/especificacao-agente.md`: contexto do projeto para o agente, pedido delimitado, plano esperado, diff produzido e evidência de inspeção |
 
 ---
@@ -421,26 +421,25 @@ Cobrir **os 40 itens** e validar que todo caminho listado existe (`jq -r '.. | s
 
 ## 4. Checklist final antes de entregar
 
-<!-- Atualizado em 14/11/2026 -->
+<!-- Atualizado em 15/11/2026 -->
 - [x] README com `## Integrantes` (plural) e 5 nomes completos ✅
 - [ ] `main` contém a versão a ser avaliada
 - [ ] `dotnet test` verde em clone limpo — evidência capturada (F04)
 - [x] Modelo Mermaid confere com o código (B01–B07) ✅ — `docs/av2/modelo-de-classes.md`
-- [ ] 5 regras e 3 fluxos fixados e usados em G01, F05 e F06 — **G01 ainda não existe**
-- [x] Falha excepcional tratada + testada (D03/D04) ✅ — código e testes existem; falta documentar em D01
+- [x] 5 regras e 3 fluxos fixados em `docs/av2/especificacao.md` (G01) ✅ — F05 e F06 ainda precisam reutilizá-los
+- [x] Falha excepcional tratada + testada (D03/D04) ✅ — documentada em `docs/av2/especificacao.md` (seção "Falhas"); corpo e log do 500 não verificados
 - [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **nenhum dos três documentos existe**
 - [ ] Auditoria final sem declarar como concluído o que não foi comprovado (F06) — **F06 não existe**
 - [ ] `evidencias.json` cobrindo os 40 itens, com caminhos válidos — **não existe**
 
 ## 5. Projeção de nota
 
-<!-- Atualizado em 14/11/2026 — base atual: 20 itens concluídos -->
+<!-- Atualizado em 15/11/2026 — base atual: 24 itens concluídos (cada item = 0,25) -->
 | Cenário | Itens concluídos | Nota |
 |---|---:|---:|
 | ~~Situação original (antes de 14/11/2026)~~ | ~~12~~ | ~~3,00~~ |
-| **Situação atual (14/11/2026)** — Grupo B entregue + D03/D04 confirmados | **20** | **5,00** |
-| + fechar D01 (documentar falhas em especificacao.md) + F04 (evidência de clone) | 22 | 5,50 |
-| + fechar G01 (especificacao.md com Dado/Quando/Então) | 23 | 5,75 |
-| + fechar C (revisao-de-codigo.md, 6 itens) | 29 | 7,25 |
-| + fechar E (registro-de-depuracao.md, 6 itens) | 35 | 8,75 |
-| + fechar G02 + F05 + F06 + evidencias.json (5 itens) | 40 | **10,00** |
+| **Situação atual (15/11/2026)** — G01 e D01 entregues; A (8) + B (8) + D (4) + F (3) + G (1) | **24** | **6,00** |
+| + F04 (evidência de clone limpo) | 25 | 6,25 |
+| + C (revisao-de-codigo.md, 6 itens) | 31 | 7,75 |
+| + E (registro-de-depuracao.md, 6 itens) | 37 | 9,25 |
+| + G02 + F05 + F06 (3 itens; `evidencias.json` é o índice final, não um item) | 40 | **10,00** |
