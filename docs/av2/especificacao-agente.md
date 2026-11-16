@@ -177,3 +177,426 @@ e `EndpointsFalhaDePersistenciaTests.Cadastro_EmailDuplicado_Continua409`), que 
 - [ ] **Baseline respeitado:** a suíte completa mantém exatamente as 2 falhas pré-existentes de `VerificacaoDeSchemaTests`.
 
 Revisão humana por: [ ] pendente — nome e data a preencher pelo grupo
+
+## Diff produzido
+
+O grupo commitou o trabalho em dois commits na branch `feature/d03-falha-inesperada`: `7dc4922`
+(*Implementação, passo 1 (testes primeiro, vermelhos)*) e `5a4b117` (*Implementação, passo 2 (handler e
+registro, verde)*). Por isso `git status --short` e `git diff --stat` estão **vazios** nesta data: o diff
+abaixo é o dos commits, não da árvore de trabalho.
+
+| Arquivo | Situação | Linhas | Permitido pelo pedido? |
+| :-- | :-- | :-- | :-- |
+| `backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs` | novo | 33 (`+33/−0`, commit `5a4b117`) | sim |
+| `backend/Projeto.Api/Program.cs` | modificado | 5 inseridas, 2 removidas (commit `5a4b117`) | sim |
+| `backend/Projeto.Tests/FalhaInesperadaTests.cs` | novo | 253 (`+253/−0`, commit `7dc4922`) | sim |
+
+Total: **+291 / −2** em 3 arquivos.
+
+**`git show 5a4b117 --numstat`:**
+
+```text
+33	0	backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs
+5	2	backend/Projeto.Api/Program.cs
+```
+
+**`git show 7dc4922 --numstat`:**
+
+```text
+253	0	backend/Projeto.Tests/FalhaInesperadaTests.cs
+```
+
+**Diff literal de `backend/Projeto.Api/Program.cs` (`git show HEAD -- backend/Projeto.Api/Program.cs`):**
+
+```diff
+diff --git a/backend/Projeto.Api/Program.cs b/backend/Projeto.Api/Program.cs
+index fd50355..448754f 100644
+--- a/backend/Projeto.Api/Program.cs
++++ b/backend/Projeto.Api/Program.cs
+@@ -52,9 +52,12 @@ builder.Services.AddScoped<AutenticacaoServico>();
+ builder.Services.AddScoped<NotificacaoServico>();
+ 
+ // Tradução única de falhas de constraint do EF/SQLite (409/422) — ver ErroDePersistencia.
+-// AddProblemDetails cobre o caso não tratado: é o fallback exigido pelo UseExceptionHandler()
+-// sem path; as exceções reconhecidas continuam respondendo pelo handler abaixo.
++// A ordem de registro define a ordem de execução: primeiro a falha de persistência
++// conhecida vira 409/422; o que ela não reconhecer cai no FalhaInesperadaHandler, que
++// registra a exceção no log e devolve 500 com a mensagem genérica. AddProblemDetails
++// continua como fallback do UseExceptionHandler() sem path, caso nenhum handler reconheça.
+ builder.Services.AddExceptionHandler<ErroDePersistenciaHandler>();
++builder.Services.AddExceptionHandler<FalhaInesperadaHandler>();
+ builder.Services.AddProblemDetails();
+ 
+ // Relógio injetável: os endpoints leem "agora" de time.GetUtcNow().UtcDateTime em vez de DateTime.UtcNow.
+```
+
+**Conteúdo integral de `backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs` (33 linhas):**
+
+```csharp
+using Microsoft.AspNetCore.Diagnostics;
+
+// Última barreira do tratamento de erros. O ErroDePersistenciaHandler já converteu as
+// falhas de constraint conhecidas em 409/422; o que chega aqui é defeito não previsto.
+// O cliente recebe só a mensagem genérica porque, por definição, ele não consegue corrigir
+// a falha mudando a requisição; o detalhe (mensagem real e stack trace) fica no log.
+public sealed class FalhaInesperadaHandler : IExceptionHandler
+{
+    private const string MensagemPadrao = "Erro interno. Tente novamente mais tarde.";
+
+    private readonly ILogger<FalhaInesperadaHandler> _logger;
+
+    public FalhaInesperadaHandler(ILogger<FalhaInesperadaHandler> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext contexto, Exception excecao, CancellationToken cancelamento)
+    {
+        // O log não é opcional: quando um IExceptionHandler trata a exceção, o middleware
+        // considera o caso resolvido e não registra nada por conta própria. Sem esta linha,
+        // a falha desapareceria sem rastro.
+        _logger.LogError(excecao, "Falha inesperada em {Metodo} {Caminho}",
+            contexto.Request.Method, contexto.Request.Path);
+
+        contexto.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+        await contexto.Response.WriteAsJsonAsync(new { erro = MensagemPadrao }, cancelamento);
+
+        return true;
+    }
+}
+```
+
+**Conteúdo integral de `backend/Projeto.Tests/FalhaInesperadaTests.cs` (253 linhas):**
+
+```csharp
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+
+// Critérios (a)–(d) do D03: uma falha inesperada na gravação deve virar 500 com o corpo
+// genérico, sem vazar o detalhe interno, com a exceção registrada em log do projeto e sem
+// nada persistido. O critério (e) — 422 para regra violada e 409 para e-mail duplicado —
+// já é coberto pelos testes existentes e não é duplicado aqui.
+//
+// A API é a real (PetWalkApiFactory, SQLite em memória). Só a IUnidadeDeTrabalho é
+// substituída, por um fake que lança uma exceção simples: não é DbUpdateException, então o
+// ErroDePersistenciaHandler não a reconhece e é o caminho do D03 que fica exposto.
+public class FalhaInesperadaTests
+{
+    private const string MensagemGenerica = "Erro interno. Tente novamente mais tarde.";
+    private const string SegredoInterno = "segredo-interno";
+
+    // O handler ainda não existe nesta fatia: o nome é literal de propósito, para o teste
+    // compilar e falhar por comportamento, não por símbolo ausente.
+    private const string NomeDoHandler = "FalhaInesperadaHandler";
+
+    // (a) A falha inesperada responde 500 com o corpo do contrato, lido pelo frontend.
+    [Fact]
+    public async Task FalhaInesperada_Devolve500ComMensagemGenerica()
+    {
+        using var fabrica = new FabricaComFalhaInesperada();
+        var (tutorId, petId, passeadorId) = Semear(fabrica);
+        using var cliente = fabrica.CreateClient();
+
+        var resposta = await cliente.PostAsJsonAsync("/passeios", Requisicao(tutorId, petId, passeadorId));
+        var corpo = await resposta.Content.ReadAsStringAsync();
+
+        // A falha tem de ser a da gravação: se o fake não foi chamado, o 500 veio de outro lugar.
+        Assert.Equal(1, fabrica.Unidade.Chamadas);
+        Assert.Equal(HttpStatusCode.InternalServerError, resposta.StatusCode);
+
+        Assert.True(
+            TentarLerErro(corpo, out var mensagem),
+            $"corpo sem o campo 'erro': {corpo}");
+        Assert.Equal(MensagemGenerica, mensagem);
+    }
+
+    // (b) O cliente não recebe a mensagem interna, o nome do tipo nem stack trace.
+    [Fact]
+    public async Task FalhaInesperada_NaoExpoeMensagemInternaNemStackTrace()
+    {
+        using var fabrica = new FabricaComFalhaInesperada();
+        var (tutorId, petId, passeadorId) = Semear(fabrica);
+        using var cliente = fabrica.CreateClient();
+
+        var resposta = await cliente.PostAsJsonAsync("/passeios", Requisicao(tutorId, petId, passeadorId));
+        var corpo = await resposta.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.InternalServerError, resposta.StatusCode);
+        Assert.DoesNotContain(SegredoInterno, corpo);
+        Assert.DoesNotContain("StackTrace", corpo);
+        Assert.DoesNotContain("System.Exception", corpo);
+        Assert.DoesNotContain(NomeDoHandler, corpo);
+
+        // Só faz sentido falar em "não vazar" se o corpo for o contrato de erro esperado;
+        // sem esta linha, um corpo vazio também "não vazaria" nada.
+        Assert.True(
+            TentarLerErro(corpo, out var mensagem),
+            $"corpo sem o campo 'erro': {corpo}");
+        Assert.Equal(MensagemGenerica, mensagem);
+    }
+
+    // (c) O detalhe da exceção fica no log do projeto, com o método e o caminho HTTP.
+    [Fact]
+    public async Task FalhaInesperada_RegistraErroNoLogComMetodoECaminho()
+    {
+        using var fabrica = new FabricaComFalhaInesperada();
+        var (tutorId, petId, passeadorId) = Semear(fabrica);
+        using var cliente = fabrica.CreateClient();
+
+        var resposta = await cliente.PostAsJsonAsync("/passeios", Requisicao(tutorId, petId, passeadorId));
+        Assert.Equal(HttpStatusCode.InternalServerError, resposta.StatusCode);
+
+        var registro = Assert.Single(
+            fabrica.Coletor.Entradas,
+            entrada => entrada.Nivel == LogLevel.Error
+                       && entrada.Excecao?.Message == SegredoInterno
+                       && entrada.Categoria.EndsWith(NomeDoHandler, StringComparison.Ordinal));
+
+        Assert.Contains("POST", registro.Mensagem);
+        Assert.Contains("/passeios", registro.Mensagem);
+    }
+
+    // (d) A resposta 500 é a tratada e nada foi gravado: sem passeio e sem notificação.
+    //
+    // Nota: "nada persistido" já era verdadeiro antes do D03, porque a exceção acontece
+    // antes do SaveChanges. A pré-condição do corpo tratado existe para o teste não passar
+    // em silêncio quando a requisição falha em outro ponto.
+    [Fact]
+    public async Task FalhaInesperada_NaoPersistePasseioNemNotificacao()
+    {
+        using var fabrica = new FabricaComFalhaInesperada();
+        var (tutorId, petId, passeadorId) = Semear(fabrica);
+        using var cliente = fabrica.CreateClient();
+
+        var resposta = await cliente.PostAsJsonAsync("/passeios", Requisicao(tutorId, petId, passeadorId));
+        var corpo = await resposta.Content.ReadAsStringAsync();
+
+        Assert.Equal(1, fabrica.Unidade.Chamadas);
+        Assert.True(
+            TentarLerErro(corpo, out var mensagem),
+            $"corpo sem o campo 'erro': {corpo}");
+        Assert.Equal(MensagemGenerica, mensagem);
+
+        using var escopo = fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+
+        Assert.Empty(contexto.Passeios);
+        Assert.Empty(contexto.Notificacoes);
+    }
+
+    private static SolicitacaoPasseioRequest Requisicao(int tutorId, int petId, int passeadorId) =>
+        new(tutorId, petId, passeadorId, Fabrica.Agora.AddDays(1), 60, "Rua A, 10");
+
+    // Mesmo padrão de EndpointsFalhaDePersistenciaTests: escopo novo sobre o banco da fábrica.
+    private static (int TutorId, int PetId, int PasseadorId) Semear(PetWalkApiFactory fabrica)
+    {
+        using var escopo = fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<PetWalkDbContext>();
+
+        var tutor = Fabrica.CriarUsuario(TipoPerfil.TUTOR);
+        var pet = Fabrica.CriarPet(tutor);
+        tutor.AdicionarPet(pet);
+
+        var passeador = Fabrica.CriarUsuario(TipoPerfil.PASSEADOR);
+        passeador.DefinirCobranca(30m, TipoCobranca.POR_HORA);
+
+        contexto.Usuarios.Add(tutor);
+        contexto.Usuarios.Add(passeador);
+        contexto.Pets.Add(pet);
+        contexto.SaveChanges();
+
+        return (tutor.Id, pet.Id, passeador.Id);
+    }
+
+    private static bool TentarLerErro(string corpo, out string? mensagem)
+    {
+        mensagem = null;
+
+        try
+        {
+            using var json = JsonDocument.Parse(corpo);
+
+            if (json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty("erro", out var erro))
+            {
+                mensagem = erro.GetString();
+                return true;
+            }
+
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private sealed class FabricaComFalhaInesperada : PetWalkApiFactory
+    {
+        public UnidadeDeTrabalhoComExcecaoSimples Unidade { get; } = new();
+
+        public ColetorDeLogs Coletor { get; } = new();
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+
+            builder.ConfigureServices(servicos =>
+            {
+                servicos.RemoveAll<IUnidadeDeTrabalho>();
+                servicos.AddSingleton<IUnidadeDeTrabalho>(Unidade);
+
+                // Provider escrito no próprio teste: o projeto não depende de pacote de log
+                // de teste, e o coletor só existe nesta fábrica.
+                servicos.AddSingleton<ILoggerProvider>(Coletor);
+            });
+        }
+    }
+
+    private sealed class UnidadeDeTrabalhoComExcecaoSimples : IUnidadeDeTrabalho
+    {
+        public int Chamadas { get; private set; }
+
+        public void Salvar()
+        {
+            Chamadas++;
+            throw new Exception(SegredoInterno);
+        }
+    }
+
+    private sealed class ColetorDeLogs : ILoggerProvider
+    {
+        private readonly List<EntradaDeLog> _entradas = new();
+        private readonly object _trava = new();
+
+        public IReadOnlyList<EntradaDeLog> Entradas
+        {
+            get
+            {
+                lock (_trava)
+                {
+                    return _entradas.ToArray();
+                }
+            }
+        }
+
+        public ILogger CreateLogger(string categoria) => new Coletor(categoria, this);
+
+        public void Dispose()
+        {
+        }
+
+        private void Registrar(EntradaDeLog entrada)
+        {
+            lock (_trava)
+            {
+                _entradas.Add(entrada);
+            }
+        }
+
+        public sealed record EntradaDeLog(string Categoria, LogLevel Nivel, string Mensagem, Exception? Excecao);
+
+        private sealed class Coletor : ILogger
+        {
+            private readonly string _categoria;
+            private readonly ColetorDeLogs _dono;
+
+            public Coletor(string categoria, ColetorDeLogs dono)
+            {
+                _categoria = categoria;
+                _dono = dono;
+            }
+
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+                Func<TState, Exception?, string> formatter) =>
+                _dono.Registrar(new EntradaDeLog(_categoria, logLevel, formatter(state, exception), exception));
+        }
+    }
+}
+```
+
+### Verificação de escopo
+
+```text
+$ git status --short
+(vazio)
+
+$ git diff --stat
+(vazio)
+
+$ git diff --name-only
+(vazio)
+```
+
+A árvore está limpa porque tudo foi commitado. Comparando o que os commits produziram com o que o pedido
+permitia:
+
+| Permitido pelo pedido | Produzido | Situação |
+| :-- | :-- | :-- |
+| `backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs` | sim (`5a4b117`, +33) | dentro |
+| `backend/Projeto.Api/Program.cs` (só registro + comentário) | sim (`5a4b117`, +5/−2) | dentro |
+| `backend/Projeto.Tests/FalhaInesperadaTests.cs` | sim (`7dc4922`, +253) | dentro |
+| Qualquer outro arquivo | não | — |
+
+Verificações complementares: `grep -rn "ex.Message\|StackTrace"` no handler → **nenhuma linha** (`exit=1`);
+`ErroHttp.cs`, `ErroDePersistenciaHandler.cs`, `ErroDePersistencia.cs`, `Dominio/`, `Contratos/`,
+`Repositorios/`, `Migracoes/` e `frontend/` não aparecem em nenhum dos dois commits.
+
+## Resultado da verificação
+
+| Momento | Comando | Total | Aprovados | Falhas | Não executados | Tempo |
+| :-- | :-- | --: | --: | --: | --: | --: |
+| Baseline, antes de qualquer escrita (Fatia 2, `bae1c75`) | suíte completa | 291 | 289 | 2 | 0 | 14 s |
+| Testes novos antes do handler (Fatia 5) | `--filter "FullyQualifiedName~FalhaInesperadaTests"` | 4 | 0 | 4 | 0 | 5 s |
+| Testes novos depois do handler (Fatia 6) | `--filter "FullyQualifiedName~FalhaInesperadaTests"` | 4 | 4 | 0 | 0 | 4 s |
+| Suíte completa, 1ª medição pós-D03 (Fatia 6) | suíte completa | 295 | 293 | 2 | 0 | 19 s |
+| Suíte completa, registro desta fatia | suíte completa | 295 | 293 | 2 | 0 | 13 s |
+
+Diferença entre baseline e depois: **+4 no total e +4 nos aprovados** — exatamente os quatro testes de
+`FalhaInesperadaTests`. As falhas são as mesmas duas, `VerificacaoDeSchemaTests.BancoEmMemoria_NaoEhValidado`
+e `VerificacaoDeSchemaTests.BancoComMigrationsAplicadas_NaoInterrompe`, pré-existentes. Nenhum ignorado em
+nenhuma execução.
+
+**Saídas literais dos resumos:**
+
+```text
+# Baseline (Fatia 2)
+Com falha! – Com falha:     2, Aprovado:   289, Ignorado:     0, Total:   291, Duração: 14 s - Projeto.Tests.dll (net10.0)
+
+# Testes novos antes do handler (Fatia 5)
+Com falha! – Com falha:     4, Aprovado:     0, Ignorado:     0, Total:     4, Duração: 5 s - Projeto.Tests.dll (net10.0)
+
+# Testes novos depois do handler (Fatia 6)
+Aprovado!  – Com falha:     0, Aprovado:     4, Ignorado:     0, Total:     4, Duração: 4 s - Projeto.Tests.dll (net10.0)
+
+# Suíte completa (registro desta fatia)
+Com falha! – Com falha:     2, Aprovado:   293, Ignorado:     0, Total:   295, Duração: 13 s - Projeto.Tests.dll (net10.0)
+```
+
+**Ambiente:** SDK .NET `10.0.400` (`dotnet --version`); Windows 10.0.19045, win-x64; branch
+`feature/d03-falha-inesperada`; commit base `bae1c75`; HEAD `5a4b117`. Neste shell o restore do NuGet falha
+com `Value cannot be null. (Parameter 'path1')`; as execuções prefixaram `APPDATA`, `ProgramData`,
+`ProgramFiles` e `ProgramFiles(x86)` via `env`, sem alterar o repositório.
+
+**Limitações — o que esta verificação NÃO prova:**
+
+- O log foi conferido pelo provider de teste (categoria, nível e mensagem), não pela saída real do
+  `ILogger` em execução normal da API.
+- O comportamento quando a resposta já começou (`Response.HasStarted`) não foi testado; os endpoints atuais
+  não escrevem corpo antes da gravação.
+- Nenhum teste de frontend foi executado; `frontend/src/services/api.js` apenas foi lido.
+- Não há teste dedicado do handler novo sob concorrência nem sob carga.
+- O bloqueio de SQLite por App Control não ocorreu nesta máquina (0 não executados), mas não há CI
+  configurado: a repetição em outra máquina **não foi verificada**.
+- A revisão humana do checklist permanece pendente; o checklist não foi preenchido nesta fatia.
