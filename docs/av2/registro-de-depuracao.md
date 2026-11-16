@@ -253,7 +253,80 @@ histórico permanece intacto.
 
 ## E04 — Técnica de depuração
 
-<!-- a preencher na Fatia N -->
+Foram preparadas duas técnicas. A **Técnica 1 (log temporário) foi executada**; a **Técnica 2 (breakpoint)**
+está roteirizada para execução no IDE e **não foi executada** nesta automação.
+
+### Técnica 1 — Log temporário (executada)
+
+**Adaptação do plano:** o plano sugeria `ILogger` no ponto de cálculo. O domínio não recebe `ILogger` e
+injetá-lo exigiria alterar construtores de `Usuario`/`Passeio` e o caminho de criação de entidades — mudança
+fora do escopo desta depuração. A técnica foi adaptada: o log temporário é emitido **do teste**, via
+`ITestOutputHelper`, no mesmo cenário de E02, sem tocar em produção.
+
+**Experimento:** teste `T1_LogTemporario_RegistrarAvaliacaoRecebida` (arquivo temporário
+`backend/Projeto.Tests/DepuracaoTemporariaTests.cs`, removido na Fatia 5): um passeador, dois passeios
+finalizados, notas **5** e **1**; após cada `Avaliar`, imprime a nota registrada, a contagem de avaliações
+recebidas e o valor de `MediaAvaliacao`.
+
+**Comando** (15/11/2026 ~21:52, SDK `10.0.400`, mesmo prefixo de ambiente de E02):
+
+```bash
+dotnet test backend/Projeto.Tests/Projeto.Tests.csproj \
+  --filter "FullyQualifiedName~T1_LogTemporario" --logger "console;verbosity=detailed"
+```
+
+**Saída real:**
+
+```text
+  Aprovado DepuracaoTemporariaTests.T1_LogTemporario_RegistrarAvaliacaoRecebida [29 ms]
+  Mensagens de saída padrão:
+ LOG passo=1 | avaliacao.Nota=5 | AvaliacoesRecebidas.Count=1 | media=5
+ LOG passo=2 | avaliacao.Nota=1 | AvaliacoesRecebidas.Count=2 | media=1
+ LOG notas acumuladas=[5, 1] | media esperada=(5+1)/2=3
+
+
+Execução de Teste Bem-sucedida.
+Total de testes: 1
+     Aprovados: 1
+```
+
+**O que o log revelou:** na segunda parada a coleção já continha **duas** avaliações (`Count=2`,
+`notas acumuladas=[5, 1]`), e ainda assim `media=1` — exatamente a nota recém-registrada. Ou seja, o valor
+derivado não é função da coleção naquele momento: o acúmulo funciona e o que falha é a **atribuição**
+dentro de `RegistrarAvaliacaoRecebida`. O log também mostra que o valor esperado seria `3` para as mesmas
+duas notas, o que isola a divergência no cálculo, não nos dados.
+
+### Técnica 2 — Breakpoint (roteiro para o usuário; não executada)
+
+`docs/av2/img/` foi criada para receber o print. Roteiro no IDE:
+
+1. Abrir `backend/Projeto.Api/Dominio/Usuario.cs`.
+2. Localizar `RegistrarAvaliacaoRecebida` (linha 162) e marcar **breakpoint na linha 165** — a que atribui
+   `MediaAvaliacao` (com o defeito aplicado: `MediaAvaliacao = avaliacao.Nota;`).
+3. Abrir `backend/Projeto.Tests/MediaAvaliacaoTests.cs` e **depurar** o teste
+   `MediaConsideraAvaliacoesDePasseiosDiferentesDoMesmoPasseador` (Debug Test / F5), não apenas executá-lo.
+4. **Parada 1** (avaliação de nota 5): inspecionar `avaliacao.Nota`, `_avaliacoesRecebidas.Count` e
+   `MediaAvaliacao` (Watch ou DataTip). Pela leitura do código, espera-se `5`, `1` e `5` — **não observado**.
+5. Continuar a execução (F5) até a **parada 2** (avaliação de nota 1) e inspecionar os mesmos três valores.
+   Pela leitura do código, espera-se `1`, `2` e `1` — **não observado**.
+6. Comparar as duas paradas: verificar se `MediaAvaliacao` acompanha `avaliacao.Nota` ou
+   `_avaliacoesRecebidas.Count`/a coleção.
+7. Salvar o print do depurador (janela de Locals/Watch nas duas paradas) em
+   `docs/av2/img/breakpoint-media.png`.
+
+[EVIDÊNCIA DO DEPURADOR PENDENTE — a ser colada pelo usuário]
+
+> Ao salvar o print em `docs/av2/img/breakpoint-media.png`, substituir o marcador acima por
+> `![Breakpoint em Usuario.RegistrarAvaliacaoRecebida](img/breakpoint-media.png)` seguido da descrição do
+> que foi observado nas duas paradas. Enquanto o print não existir, esta técnica permanece **não
+> executada** e nada é afirmado sobre o que ela revelou.
+
+### O que cada técnica revelou sobre a causa
+
+| Técnica | Situação | O que revelou |
+| :-- | :-- | :-- |
+| Log temporário (T1) | **Executada** | Com a coleção já em `[5, 1]` (`Count=2`), `MediaAvaliacao` valeu `1`: o valor deriva da avaliação recém-registrada, não da coleção. O acúmulo está correto; a atribuição é que está errada. |
+| Breakpoint | **Não executada** | Nada — aguardando o print em `docs/av2/img/breakpoint-media.png`. |
 
 ## E05 — Causa raiz e correção
 

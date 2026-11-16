@@ -77,4 +77,26 @@ public class DepuracaoTemporariaTests
         _saida.WriteLine($"H3 notas=[5, 5, 4] | media exata (14/3)={Valor(exata)} | observado={Valor(passeador.MediaAvaliacao)}");
         _saida.WriteLine($"H3 diferenca para a media exata={Valor(passeador.MediaAvaliacao - exata)}");
     }
+
+    // Técnica 1 (log temporário): reproduz o cenário de E02 (notas 5 e 1) e imprime, a cada
+    // Avaliar, a nota registrada, a contagem recebida e a MediaAvaliacao resultante.
+    [Fact]
+    public void T1_LogTemporario_RegistrarAvaliacaoRecebida()
+    {
+        var passeador = Fabrica.CriarUsuario(TipoPerfil.PASSEADOR);
+
+        var (tutor1, passeio1) = PasseioFinalizado(passeador);
+        var primeira = passeio1.Avaliar(tutor1, 5, "Ótimo passeio", Fabrica.Agora);
+
+        _saida.WriteLine(
+            $"LOG passo=1 | avaliacao.Nota={primeira.Nota} | AvaliacoesRecebidas.Count={passeador.AvaliacoesRecebidas.Count} | media={Valor(passeador.MediaAvaliacao)}");
+
+        var (tutor2, passeio2) = PasseioFinalizado(passeador);
+        var segunda = passeio2.Avaliar(tutor2, 1, "Passeio ruim", Fabrica.Agora);
+
+        _saida.WriteLine(
+            $"LOG passo=2 | avaliacao.Nota={segunda.Nota} | AvaliacoesRecebidas.Count={passeador.AvaliacoesRecebidas.Count} | media={Valor(passeador.MediaAvaliacao)}");
+        _saida.WriteLine(
+            $"LOG notas acumuladas=[{string.Join(", ", passeador.AvaliacoesRecebidas.Select(a => a.Nota))}] | media esperada=(5+1)/2=3");
+    }
 }
