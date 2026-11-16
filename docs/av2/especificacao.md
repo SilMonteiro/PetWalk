@@ -422,15 +422,106 @@ E o status permanece SOLICITADO, sem notificação e sem gravação.
 
 ### REG-004 — Cancelamento
 
-<!-- a preencher na Fatia N -->
+**Enunciado:** um `Passeio` só pode ser cancelado se estiver com status SOLICITADO ou ACEITO.
+
+**Objetos envolvidos:** Passeio; o cancelamento é executado pelo tutor ou pelo passeador do passeio.
+
+**Ordem das validações:** `Cancelar` verifica primeiro a participação (`Participou(quem)`) e só depois o estado. Por isso um usuário que não é tutor nem passeador recebe `"Usuário não participou deste passeio."` mesmo que o passeio esteja em EM_ANDAMENTO.
+
+**Critérios de aceitação**
+
+**C1 — sucesso.**
+Dado um passeio SOLICITADO ou ACEITO e o tutor ou o passeador do passeio
+Quando um dos dois cancela
+Então a API responde **200**, o status passa a CANCELADO, a notificação `PASSEIO_CANCELADO` é enviada ao outro participante e a gravação acontece uma única vez
+E o registro permanece no histórico com o status CANCELADO.
+
+**C2 — violação: estado inválido.**
+Dado um passeio EM_ANDAMENTO
+Quando o tutor ou o passeador tenta cancelar
+Então a operação é rejeitada com **422** `"Passeio não pode ser cancelado no estado atual."`
+E o status permanece EM_ANDAMENTO, nenhuma notificação `PASSEIO_CANCELADO` é enviada e nada é gravado. O mesmo vale para FINALIZADO, RECUSADO e CANCELADO, cobertos pelo teste de domínio.
+
+**C3 — violação: usuário que não participou.**
+Dado um passeio SOLICITADO e um usuário que não é tutor nem passeador
+Quando ele tenta cancelar
+Então a operação é rejeitada com **422** `"Usuário não participou deste passeio."`
+E o status permanece SOLICITADO, sem notificação e sem gravação.
+
+**Critério → teste**
+
+| Critério | Teste |
+| :-- | :-- |
+| C1 (sucesso) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:TutorEPasseador_CancelamPasseioSolicitadoOuAceito`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Cancelar_PeloTutor_NotificaOPasseador` |
+| C2 (estado inválido) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:PasseioForaDeSolicitadoOuAceito_NaoPodeSerCancelado`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Cancelar_EmAndamento_Devolve422SemNotificar` |
+| C3 (não participou) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:UsuarioQueNaoParticipou_NaoPodeCancelar` (sem teste de endpoint dedicado) |
 
 ### REG-005 — Pet pertence ao tutor
 
-<!-- a preencher na Fatia N -->
+**Enunciado:** o `Pet` vinculado ao `Passeio` deve pertencer ao `Usuario` tutor que está realizando a solicitação.
+
+**Objetos envolvidos:** Passeio, Pet, Usuario.
+
+**Onde é aplicada:** `Usuario.SolicitarPasseio` verifica `pet is null || !_pets.Contains(pet)`; o endpoint procura o pet apenas na lista do tutor (`tutor.Pets.FirstOrDefault(p => p.Id == req.PetId)`), então pet de outro tutor ou inexistente chega ao domínio como nulo. A mesma mensagem é usada por `Usuario.AdicionarPet` quando o pet não pertence ao tutor.
+
+**Critérios de aceitação**
+
+**C1 — sucesso.**
+Dado um tutor com o pet na própria lista `_pets`
+Quando solicita um passeio informando esse pet
+Então a API responde **201** e cria o passeio com `Pet` igual ao pet da lista
+E o passeio é gravado com a notificação `PASSEIO_SOLICITADO` ao passeador, e o vínculo do pet com o tutor não muda.
+
+**C2 — violação: pet de outro tutor.**
+Dado um tutor e um pet que não está na lista dele (de outro tutor, ou `PetId` inexistente)
+Quando o tutor tenta solicitar o passeio com esse pet
+Então a operação é rejeitada com **422** `"O pet informado não pertence ao tutor solicitante"`
+E nenhum passeio é criado, nenhuma notificação é enviada e nada é gravado; a lista de pets do tutor permanece igual.
+
+**Critério → teste**
+
+| Critério | Teste |
+| :-- | :-- |
+| C1 (sucesso) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:TutorComPetVinculado_SolicitaPasseio_CriaPasseioSolicitado`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Solicitar_GravaOPasseioENotificaOPasseador` |
+| C2 (pet de outro tutor) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:PetDeOutroTutor_NaoPodeSerSolicitado`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Solicitar_PetDeOutroTutor_Devolve422ComAMensagemDaREG005` (o `PetId` inexistente segue o mesmo caminho, sem teste dedicado) |
 
 ### REG-008 — Data futura
 
-<!-- a preencher na Fatia N -->
+**Enunciado:** a data e hora do `Passeio` devem ser futuras no momento da solicitação.
+
+**Objetos envolvidos:** Passeio, Usuario, com a comparação feita contra o relógio injetado.
+
+**Relógio injetado:** a API recebe `TimeProvider time` e passa `time.GetUtcNow().UtcDateTime` como `agora` para `Usuario.SolicitarPasseio`; `Program.cs` registra `TimeProvider.System` e a fábrica de testes substitui por `RelogioDeTeste`. A comparação é feita em UTC dos dois lados: `dataHora.ToUniversalTime() <= agora.ToUniversalTime()`.
+
+**Critérios de aceitação**
+
+**C1 — sucesso.**
+Dado o instante `agora` do relógio e uma data e hora posteriores
+Quando o tutor solicita o passeio
+Então a API responde **201** e cria o passeio SOLICITADO com a `DataHora` informada
+E a notificação `PASSEIO_SOLICITADO` é gravada para o passeador.
+
+**C2 — violação: data no passado.**
+Dado o instante `agora` do relógio e uma data e hora anteriores
+Quando o tutor tenta solicitar o passeio
+Então a operação é rejeitada com **422** `"A data e hora do passeio devem ser futuras"`
+E nenhum passeio é criado, nenhuma notificação é enviada e nada é gravado.
+
+**C3 — violação: fronteira igual a "agora".**
+Dado uma data e hora exatamente iguais a `agora`
+Quando o tutor tenta solicitar o passeio
+Então a operação é rejeitada com **422** `"A data e hora do passeio devem ser futuras"` (a comparação usa `<=`, não `<`)
+E nenhum passeio é criado e nada é gravado.
+
+**Critério → teste**
+
+| Critério | Teste |
+| :-- | :-- |
+| C1 (sucesso) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:TutorComPetVinculado_SolicitaPasseio_CriaPasseioSolicitado`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Solicitar_GravaOPasseioENotificaOPasseador` |
+| C2 (data no passado) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:DataNoPassado_NaoPodeSerSolicitada` |
+| C3 (fronteira) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:DataIgualAAgora_NaoPodeSerSolicitada` |
+
+Os três critérios são cobertos no domínio; não há teste de endpoint dedicado para a REG-008.
 
 ## Falhas
 
