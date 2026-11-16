@@ -335,11 +335,90 @@ Lacuna de cobertura: não há teste de endpoint para passeio ou avaliador inexis
 
 ### REG-001 — Avaliação
 
-<!-- a preencher na Fatia N -->
+**Enunciado:** uma `Avaliacao` só pode ser criada se o `Passeio` referenciado estiver com status FINALIZADO, o mesmo avaliador ainda não tiver avaliado esse passeio e a nota estiver entre 1 e 5.
+
+**Objetos envolvidos:** Avaliação, Passeio, Usuario (avaliador e avaliado).
+
+**Ordem das validações:** `Passeio.Avaliar` verifica a duplicidade antes de criar a `Avaliacao`; o construtor valida, nesta ordem, status FINALIZADO, nota de 1 a 5 e participação (REG-006). Por isso um passeio não finalizado responde `"Passeio não finalizado"` mesmo com nota inválida, e a nota inválida responde antes da checagem de participação; para quem já avaliou, a segunda tentativa devolve a mensagem de duplicidade mesmo com nota inválida.
+
+**Critérios de aceitação**
+
+**C1 — sucesso.**
+Dado um passeio FINALIZADO e o tutor participante que ainda não avaliou este passeio
+Quando o tutor envia nota 5 e comentário
+Então a resposta é **201** com a avaliação criada (nota, comentário, `data = agora`, `avaliado` = passeador)
+E a média do passeador é recalculada com todas as avaliações recebidas e persistida, o status do passeio continua FINALIZADO e a média do tutor não muda.
+
+**C2 — violação: passeio não finalizado.**
+Dado um passeio que não está FINALIZADO (por exemplo, ACEITO) e o tutor participante
+Quando o tutor tenta avaliar
+Então a operação é rejeitada com **422** `"Passeio não finalizado"`
+E nenhuma avaliação é criada, a média não muda, `unidade.Salvar()` não é chamado e o status do passeio permanece o anterior.
+
+**C3 — violação: já avaliado pelo mesmo usuário.**
+Dado um passeio FINALIZADO já avaliado pelo tutor
+Quando o mesmo tutor tenta avaliar de novo
+Então a operação é rejeitada com **422** `"Passeio já avaliado por este usuário"`
+E a primeira avaliação permanece (a coleção continua com uma), a média não muda e nada é gravado.
+
+**C4 — violação: nota fora de 1 a 5.**
+Dado um passeio FINALIZADO e o tutor que ainda não avaliou
+Quando o tutor envia nota 0 ou 6
+Então a operação é rejeitada com **400** `"Nota deve estar entre 1 e 5"` (o construtor lança `ArgumentException`, que `ErroHttp.Erro` mapeia para 400)
+E nenhuma avaliação é criada, a média não muda e o status permanece FINALIZADO.
+
+**Critério → teste**
+
+| Critério | Teste |
+| :-- | :-- |
+| C1 (sucesso) | `backend/Projeto.Tests/AvaliacaoTests.cs:TutorAvaliaPasseador_RegistraAvaliacaoERecalculaMedia`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Avaliar_PasseioFinalizado_Devolve201ComAMediaAtualizada`; `backend/Projeto.Tests/FluxoCompletoTests.cs:FluxoCompleto_DoCadastroAteAvaliacaoENotificacao`; `backend/Projeto.Tests/MediaAvaliacaoTests.cs:MediaConsideraAvaliacoesDePasseiosDiferentesDoMesmoPasseador` |
+| C2 (não finalizado) | `backend/Projeto.Tests/AvaliacaoTests.cs:PasseioNaoFinalizado_NaoPodeSerAvaliado`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Avaliar_PasseioNaoFinalizado_Devolve422` |
+| C3 (duplicada) | `backend/Projeto.Tests/AvaliacaoTests.cs:MesmoAvaliadorNaoPodeAvaliarDuasVezes`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Avaliar_DuasVezes_Devolve422`; `backend/Projeto.Tests/FluxoCompletoTests.cs:AvaliarDuasVezes_Devolve422` |
+| C4 (nota) | `backend/Projeto.Tests/AvaliacaoTests.cs:NotaForaDoIntervalo_NaoPodeSerAvaliada`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Avaliar_NotaForaDoIntervalo_Devolve400` |
 
 ### REG-003 — Ação no passeio pelo passeador escolhido
 
-<!-- a preencher na Fatia N -->
+**Enunciado:** somente o passeador escolhido no `Passeio`, com `TipoPerfil` PASSEADOR ou AMBOS e status ATIVO, pode aceitar, recusar, iniciar ou finalizar esse `Passeio`.
+
+**Objetos envolvidos:** Passeio, Usuario (passeador escolhido).
+
+**Ordem das validações:** `ExigirPasseadorAtivo` verifica, nesta ordem, se `quem` é o passeador do passeio, se tem perfil de passeador e se está ATIVO; só depois `ExigirStatus` verifica o estado. Por isso um usuário que não é o escolhido recebe `"Passeio não pertence a este passeador"` mesmo que também esteja bloqueado ou sem perfil.
+
+**Critérios de aceitação**
+
+**C1 — sucesso.**
+Dado um passeio SOLICITADO e o passeador escolhido, com perfil de passeador e ATIVO
+Quando o passeador aceita
+Então o status passa a ACEITO
+E o mesmo critério vale para `Recusar` (SOLICITADO → RECUSADO), `Iniciar` (ACEITO → EM_ANDAMENTO) e `Finalizar` (EM_ANDAMENTO → FINALIZADO), cada ação exigindo o estado de origem correspondente.
+
+**C2 — violação: sem perfil de passeador.**
+Dado um passeio cujo passeador escolhido não tem perfil PASSEADOR nem AMBOS
+Quando ele tenta aceitar, recusar, iniciar ou finalizar
+Então a operação é rejeitada com **422** `"Usuário não possui perfil de passeador"`
+E o status permanece o anterior, sem notificação e sem gravação.
+Observação: a solicitação já exige passeador com perfil (REG-009), então este caso é defensivo no domínio e não é alcançável pela API.
+
+**C3 — violação: passeador bloqueado.**
+Dado um passeio cujo passeador escolhido tem perfil de passeador, mas está BLOQUEADO
+Quando ele tenta aceitar, recusar, iniciar ou finalizar
+Então a operação é rejeitada com **422** `"Usuário está bloqueado"`
+E o status permanece o anterior (SOLICITADO, ACEITO ou EM_ANDAMENTO, conforme a ação), sem notificação e sem gravação.
+
+**C4 — violação: passeio não pertence a este passeador.**
+Dado um passeio SOLICITADO e um usuário com perfil de passeador que não é o escolhido
+Quando ele tenta aceitar
+Então a operação é rejeitada com **422** `"Passeio não pertence a este passeador"`
+E o status permanece SOLICITADO, sem notificação e sem gravação.
+
+**Critério → teste**
+
+| Critério | Teste |
+| :-- | :-- |
+| C1 (sucesso) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:PasseadorEscolhido_AceitaPasseio`, `PasseadorEscolhido_RecusaPasseio`, `CicloCompleto_SolicitadoAceitoEmAndamentoFinalizado`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Aceitar_PasseadorCerto_NotificaOTutor`, `Recusar_PasseadorCerto_NotificaOTutor`, `Iniciar_AposAceite_NotificaOTutor`, `Finalizar_EmAndamento_NotificaOTutor` |
+| C2 (sem perfil) | sem teste dedicado |
+| C3 (bloqueado) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:PasseadorBloqueado_NaoPodeRecusar`, `PasseadorBloqueado_NaoPodeAceitarIniciarNemFinalizar` |
+| C4 (não pertence) | `backend/Projeto.Tests/SolicitacaoDePasseioTests.cs:UsuarioQueNaoEhOPasseador_NaoPodeAceitar`, `UsuarioQueNaoEhOPasseador_NaoPodeRecusar`, `UsuarioQueNaoEhOPasseador_NaoPodeIniciarNemFinalizar`; `backend/Projeto.Tests/PasseioEndpointsTests.cs:Aceitar_PasseadorErrado_Devolve422SemNotificar` |
 
 ### REG-004 — Cancelamento
 
