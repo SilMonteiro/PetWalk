@@ -162,7 +162,7 @@ public class Usuario
     internal void RegistrarAvaliacaoRecebida(Avaliacao avaliacao)
     {
         _avaliacoesRecebidas.Add(avaliacao);
-        MediaAvaliacao = _avaliacoesRecebidas.Count == 0 ? 0d : _avaliacoesRecebidas.Average(a => a.Nota);
+        MediaAvaliacao = avaliacao.Nota; // DEFEITO DELIBERADO (debug/media-avaliacao) — remover na correção
     }
 
     // Sincroniza a média derivada com o valor recalculado no banco. Não valida nem cria
