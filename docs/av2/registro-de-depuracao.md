@@ -76,7 +76,7 @@ a **última nota recebida** a `MediaAvaliacao`. A avaliação continua sendo adi
 (`_avaliacoesRecebidas.Add(avaliacao)`), mas o valor derivado passa a refletir apenas a avaliação mais
 recente, contrariando a REG-001 ("a média considera todas as avaliações recebidas").
 
-**Diff do defeito** (`git diff`, 15/11/2026 ~21:42, SDK `10.0.400`):
+**Diff do defeito** (`git diff`, 15/11/2026 ~21:39, SDK `10.0.400`):
 
 ```diff
 diff --git a/backend/Projeto.Api/Dominio/Usuario.cs b/backend/Projeto.Api/Dominio/Usuario.cs
@@ -172,7 +172,7 @@ foi alterado (não existe `Directory.Build.*` no repositório e o `NuGet.Config`
 ## E03 — Hipóteses e experimentos
 
 Os três experimentos rodaram com o defeito de E01 aplicado, no mesmo ambiente de E02 (SDK `10.0.400`,
-15/11/2026 ~21:59, mesmo prefixo de variáveis de ambiente), em um arquivo **temporário**
+15/11/2026 ~21:49, mesmo prefixo de variáveis de ambiente), em um arquivo **temporário**
 `backend/Projeto.Tests/DepuracaoTemporariaTests.cs` (removido na Fatia 5):
 
 ```bash
@@ -394,7 +394,7 @@ Aprovado!  – Com falha:     0, Aprovado:     2, Ignorado:     0, Total:     2,
 ```
 
 O mesmo teste que falhava com `Expected: 3 / Actual: 1` (E01) agora passa. A execução foi repetida **depois**
-de apagar `DepuracaoTemporariaTests.cs` (55 ms, 2 aprovados), garantindo que o verde não dependia do arquivo
+de apagar `DepuracaoTemporariaTests.cs` (56 ms, 2 aprovados), garantindo que o verde não dependia do arquivo
 temporário.
 
 **Limpeza:** `backend/Projeto.Tests/DepuracaoTemporariaTests.cs` foi apagado; nenhum arquivo `.cs` com esse

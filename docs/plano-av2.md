@@ -1,5 +1,5 @@
-<!-- ÚLTIMA ATUALIZAÇÃO: 15/11/2026 21:10 -->
-<!-- STATUS GERAL: 24/40 itens concluídos — Projeção: ~6,0/10,0 -->
+<!-- ÚLTIMA ATUALIZAÇÃO: 15/11/2026 22:03 -->
+<!-- STATUS GERAL: 30/40 itens concluídos — Projeção: ~7,5/10,0 -->
 
 ## 1. Resultado item a item
 
@@ -66,19 +66,19 @@
 
 ---
 
-### E — Depuração (0/6 ❌) — PENDENTE
+### E — Depuração (6/6 ✅) — CONCLUÍDO
 
-> **Arquivo a criar:** `docs/av2/registro-de-depuracao.md`
-> **Material pronto para usar:** commit `f57b1d1` ("Corrigir a média de avaliação") + `MediaAvaliacaoTests.cs` já existem no repositório — só falta documentar.
+> **Arquivo entregue:** `docs/av2/registro-de-depuracao.md` (E01–E06, nenhum marcador pendente).
+> **Método:** Opção B do plano — defeito deliberado de uma linha em `debug/media-avaliacao`, revertido na E05. O commit `f57b1d1` existe, mas **não** foi usado como evidência.
 
-| Item | Status | O que falta |
+| Item | Status | Situação |
 |---|---|---|
-| E01 | ❌ | Descrever o defeito com evidência do comportamento incorreto (saída do teste vermelho) |
-| E02 | ❌ | Condições de reprodução + comportamento esperado (ex.: avaliações 5 e 3 → média 4,0) vs. observado (ex.: 3,0) |
-| E03 | ❌ | ≥ 1 hipótese ("a média usa só a avaliação mais recente") e experimento que a confirma/descarta |
-| E04 | ❌ | Técnica de depuração aplicada com evidência: breakpoint em `Usuario.RegistrarAvaliacaoRecebida` **ou** log com `ILogger` |
-| E05 | ❌ | Causa raiz + diff da menor correção + teste que ficou verde |
-| E06 | ❌ | Tabela antes/depois + comparação de técnicas (breakpoint vs. log vs. teste automatizado) com critérios e recomendação |
+| E01 | ✅ | Defeito descrito + diff + saída completa do teste vermelho (`MediaAvaliacaoTests.MediaConsideraAvaliacoesDePasseiosDiferentesDoMesmoPasseador`: `Expected: 3` / `Actual: 1`) |
+| E02 | ✅ | Passos de reprodução, cenário (notas 5 e 1), esperado `3` × observado `1`, pré-requisito de ambiente e nota de que a rota HTTP mascara o defeito (`UnidadeDeTrabalho` recalcula por SQL) |
+| E03 | ✅ | 3 hipóteses com experimento executado: H1 confirmada (5, 1, 3 → 5, 1, 3), H2 e H3 descartadas, cada uma com a saída real |
+| E04 | ✅ | Log temporário executado via `ITestOutputHelper` (adaptação do `ILogger` do plano, que exigiria mudar construtores do domínio): `Count=2`, `[5, 1]`, `media=1`. Breakpoint **não executado** — print em `docs/av2/img/breakpoint-media.png` pendente |
+| E05 | ✅ | Causa raiz separada da localização (`Usuario.RegistrarAvaliacaoRecebida`, linha 165), diff da menor correção, `git diff` contra a base vazio e teste verde (`Aprovado: 2`) |
+| E06 | ✅ | Tabela antes/depois, comparação das técnicas, recomendação e suíte completa (291 casos: 289 aprovados, 2 falhas **pré-existentes** em `VerificacaoDeSchemaTests`, 0 não executados) |
 
 ---
 
@@ -428,18 +428,17 @@ Cobrir **os 40 itens** e validar que todo caminho listado existe (`jq -r '.. | s
 - [x] Modelo Mermaid confere com o código (B01–B07) ✅ — `docs/av2/modelo-de-classes.md`
 - [x] 5 regras e 3 fluxos fixados em `docs/av2/especificacao.md` (G01) ✅ — F05 e F06 ainda precisam reutilizá-los
 - [x] Falha excepcional tratada + testada (D03/D04) ✅ — documentada em `docs/av2/especificacao.md` (seção "Falhas"); corpo e log do 500 não verificados
-- [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **nenhum dos três documentos existe**
+- [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **E concluída** (`docs/av2/registro-de-depuracao.md`); **C e G02 continuam pendentes**
 - [ ] Auditoria final sem declarar como concluído o que não foi comprovado (F06) — **F06 não existe**
 - [ ] `evidencias.json` cobrindo os 40 itens, com caminhos válidos — **não existe**
 
 ## 5. Projeção de nota
 
-<!-- Atualizado em 15/11/2026 — base atual: 24 itens concluídos (cada item = 0,25) -->
+<!-- Atualizado em 15/11/2026 — base atual: 30 itens concluídos (cada item = 0,25) -->
 | Cenário | Itens concluídos | Nota |
 |---|---:|---:|
 | ~~Situação original (antes de 14/11/2026)~~ | ~~12~~ | ~~3,00~~ |
-| **Situação atual (15/11/2026)** — G01 e D01 entregues; A (8) + B (8) + D (4) + F (3) + G (1) | **24** | **6,00** |
-| + F04 (evidência de clone limpo) | 25 | 6,25 |
-| + C (revisao-de-codigo.md, 6 itens) | 31 | 7,75 |
-| + E (registro-de-depuracao.md, 6 itens) | 37 | 9,25 |
+| **Situação atual (15/11/2026)** — E entregue; A (8) + B (8) + D (4) + E (6) + F (3) + G (1) | **30** | **7,50** |
+| + F04 (evidência de clone limpo) | 31 | 7,75 |
+| + C (revisao-de-codigo.md, 6 itens) | 37 | 9,25 |
 | + G02 + F05 + F06 (3 itens; `evidencias.json` é o índice final, não um item) | 40 | **10,00** |
