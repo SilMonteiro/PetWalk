@@ -599,7 +599,7 @@ com `Value cannot be null. (Parameter 'path1')`; as execuções prefixaram `APPD
 - Não há teste dedicado do handler novo sob concorrência nem sob carga.
 - O bloqueio de SQLite por App Control não ocorreu nesta máquina (0 não executados), mas não há CI
   configurado: a repetição em outra máquina **não foi verificada**.
-- A revisão humana do checklist permanece pendente; o checklist não foi preenchido nesta fatia.
+- A revisão humana do checklist foi preenchida depois desta medição (ver "Checklist de revisão" e "Inspeção do diff").
 
 ## Inspeção do diff
 
