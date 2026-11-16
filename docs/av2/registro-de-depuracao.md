@@ -330,7 +330,75 @@ duas notas, o que isola a divergência no cálculo, não nos dados.
 
 ## E05 — Causa raiz e correção
 
-<!-- a preencher na Fatia N -->
+> **Declaração de honestidade:** o defeito deste registro foi **deliberado**, introduzido por uma única
+> linha em `debug/media-avaliacao` para demonstrar o processo de depuração (Opção B). Ele nunca existiu no
+> histórico do projeto e não foi um bug encontrado em produção.
+
+**Trecho defeituoso (antes da correção):**
+
+```csharp
+    // REG-001: a média considera todas as avaliações recebidas pelo usuário, não apenas as de um passeio.
+    internal void RegistrarAvaliacaoRecebida(Avaliacao avaliacao)
+    {
+        _avaliacoesRecebidas.Add(avaliacao);
+        MediaAvaliacao = avaliacao.Nota; // DEFEITO DELIBERADO (debug/media-avaliacao) — remover na correção
+    }
+```
+
+**Causa raiz.** A média agregada é um valor **derivado de um conjunto**: precisa da média de *todas* as
+avaliações recebidas. O código passou a derivá-la de um elemento só — a avaliação que acabou de chegar —
+substituindo o agregado por um valor pontual a cada chamada. Por isso o resultado final é sempre a última
+nota, independentemente do histórico: o conjunto é atualizado corretamente (`_avaliacoesRecebidas.Add`),
+mas nunca é consultado. Não é arredondamento, não é tipo de dado e não é perda de dados (H2 e H3
+descartadas em E03): é a regra de cálculo aplicada ao objeto errado.
+
+**Localização.** `backend/Projeto.Api/Dominio/Usuario.cs`, método `Usuario.RegistrarAvaliacaoRecebida`
+(linha 162), na atribuição de `MediaAvaliacao` — **linha 165**. O método é chamado por
+`Passeio.Avaliar` (`Dominio/Passeio.cs:116`), que é o único caminho que registra avaliações no domínio.
+A causa descreve *o que* está errado (agregado trocado por valor pontual); a localização aponta *onde* o
+erro se materializa (uma linha, em um método). Corrigir o método não alteraria nada se a causa fosse outra,
+e a linha sozinha não explica o sintoma sem a noção de agregado — as duas informações são necessárias.
+
+**Menor correção coerente aplicada:** restaurar o cálculo sobre todas as avaliações recebidas e remover o
+comentário do defeito. Nenhuma outra linha do projeto foi alterada.
+
+```diff
+diff --git a/backend/Projeto.Api/Dominio/Usuario.cs b/backend/Projeto.Api/Dominio/Usuario.cs
+index 8603a19..c1a0d47 100644
+--- a/backend/Projeto.Api/Dominio/Usuario.cs
++++ b/backend/Projeto.Api/Dominio/Usuario.cs
+@@ -162,7 +162,7 @@ public class Usuario
+     internal void RegistrarAvaliacaoRecebida(Avaliacao avaliacao)
+     {
+         _avaliacoesRecebidas.Add(avaliacao);
+-        MediaAvaliacao = avaliacao.Nota; // DEFEITO DELIBERADO (debug/media-avaliacao) — remover na correção
++        MediaAvaliacao = _avaliacoesRecebidas.Count == 0 ? 0d : _avaliacoesRecebidas.Average(a => a.Nota);
+     }
+ 
+     // Sincroniza a média derivada com o valor recalculado no banco. Não valida nem cria
+```
+
+**Confirmação de retorno ao estado íntegro** — `git diff 32e5997a0bb16546f92501bfd74f88545b628a44 -- backend/Projeto.Api`
+(base da Fatia 1), executado em 15/11/2026 ~21:55: **saída vazia** (nenhuma diferença em `backend/Projeto.Api`).
+
+**Teste verde real** — `dotnet test backend/Projeto.Tests/Projeto.Tests.csproj --filter "FullyQualifiedName~MediaAvaliacaoTests"`,
+15/11/2026 ~21:55, SDK `10.0.400`:
+
+```text
+  Projeto.Api -> C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk\backend\Projeto.Api\bin\Debug\net10.0\Projeto.Api.dll
+  Projeto.Tests -> C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk\backend\Projeto.Tests\bin\Debug\net10.0\Projeto.Tests.dll
+Execução de teste para C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk\backend\Projeto.Tests\bin\Debug\net10.0\Projeto.Tests.dll (.NETCoreApp,Version=v10.0)
+1 arquivos de teste no total corresponderam ao padrão especificado.
+
+Aprovado!  – Com falha:     0, Aprovado:     2, Ignorado:     0, Total:     2, Duração: 49 ms - Projeto.Tests.dll (net10.0)
+```
+
+O mesmo teste que falhava com `Expected: 3 / Actual: 1` (E01) agora passa. A execução foi repetida **depois**
+de apagar `DepuracaoTemporariaTests.cs` (55 ms, 2 aprovados), garantindo que o verde não dependia do arquivo
+temporário.
+
+**Limpeza:** `backend/Projeto.Tests/DepuracaoTemporariaTests.cs` foi apagado; nenhum arquivo `.cs` com esse
+nome restou em `backend/`.
 
 ## E06 — Antes/depois e comparação de técnicas
 
