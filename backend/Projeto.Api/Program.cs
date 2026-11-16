@@ -52,9 +52,12 @@ builder.Services.AddScoped<AutenticacaoServico>();
 builder.Services.AddScoped<NotificacaoServico>();
 
 // Tradução única de falhas de constraint do EF/SQLite (409/422) — ver ErroDePersistencia.
-// AddProblemDetails cobre o caso não tratado: é o fallback exigido pelo UseExceptionHandler()
-// sem path; as exceções reconhecidas continuam respondendo pelo handler abaixo.
+// A ordem de registro define a ordem de execução: primeiro a falha de persistência
+// conhecida vira 409/422; o que ela não reconhecer cai no FalhaInesperadaHandler, que
+// registra a exceção no log e devolve 500 com a mensagem genérica. AddProblemDetails
+// continua como fallback do UseExceptionHandler() sem path, caso nenhum handler reconheça.
 builder.Services.AddExceptionHandler<ErroDePersistenciaHandler>();
+builder.Services.AddExceptionHandler<FalhaInesperadaHandler>();
 builder.Services.AddProblemDetails();
 
 // Relógio injetável: os endpoints leem "agora" de time.GetUtcNow().UtcDateTime em vez de DateTime.UtcNow.
