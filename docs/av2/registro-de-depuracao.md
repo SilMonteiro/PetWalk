@@ -171,7 +171,85 @@ foi alterado (não existe `Directory.Build.*` no repositório e o `NuGet.Config`
 
 ## E03 — Hipóteses e experimentos
 
-<!-- a preencher na Fatia N -->
+Os três experimentos rodaram com o defeito de E01 aplicado, no mesmo ambiente de E02 (SDK `10.0.400`,
+15/11/2026 ~21:59, mesmo prefixo de variáveis de ambiente), em um arquivo **temporário**
+`backend/Projeto.Tests/DepuracaoTemporariaTests.cs` (removido na Fatia 5):
+
+```bash
+dotnet test backend/Projeto.Tests/Projeto.Tests.csproj \
+  --filter "FullyQualifiedName~DepuracaoTemporariaTests" --logger "console;verbosity=detailed"
+```
+
+O projeto de testes enxerga os membros `internal` do domínio (`InternalsVisibleTo("Projeto.Tests")` em
+`Projeto.Api.csproj`), então `passeador.AvaliacoesRecebidas` e `MediaAvaliacao` foram lidos diretamente.
+Todos os passeios foram criados por `Fabrica.CriarPasseioSolicitadoPara` + `Aceitar`/`Iniciar`/`Finalizar`
+e avaliados pelo tutor, com `Fabrica.Agora` como relógio.
+
+### H1 — "`RegistrarAvaliacaoRecebida` usa só a última nota"
+
+- **Esperado se verdadeira:** registrando 5, 1 e 3 em sequência, a média após cada passo seria 5, 1 e 3
+  (a nota recém-registrada), com a contagem crescendo 1, 2, 3.
+- **Esperado se falsa:** a média acompanharia o acumulado — 5, depois `(5+1)/2 = 3`, depois
+  `(5+1+3)/3 = 3`.
+- **Experimento:** um passeador, três passeios finalizados, um `Avaliar` por passeio; imprime contagem e
+  média (`G17`, cultura invariante) após cada avaliação.
+
+Saída real:
+
+```text
+ H1 nota=5 | avaliacoes=1 | media=5
+ H1 nota=1 | avaliacoes=2 | media=1
+ H1 nota=3 | avaliacoes=3 | media=3
+```
+
+**Veredito: confirmada.** A sequência observada (5, 1, 3) é exatamente a ordem das notas registradas, e
+não o acumulado (5, 3, 3). A coleção cresce corretamente (1, 2, 3), mas o valor exposto ignora as
+avaliações anteriores.
+
+### H2 — "A coleção `_avaliacoesRecebidas` não acumula entre passeios do mesmo passeador"
+
+- **Esperado se verdadeira:** `AvaliacoesRecebidas.Count` ficaria estagnado (0 ou 1) e a lista mostraria
+  só a avaliação mais recente.
+- **Esperado se falsa:** a contagem cresceria a cada avaliação e as notas anteriores continuariam na lista.
+- **Experimento:** três passeios finalizados do mesmo passeador, todos avaliados com nota 5; imprime
+  contagem, notas acumuladas e média.
+
+Saída real:
+
+```text
+ H2 passo=1 | AvaliacoesRecebidas.Count=1 | notas=[5] | media=5
+ H2 passo=2 | AvaliacoesRecebidas.Count=2 | notas=[5, 5] | media=5
+ H2 passo=3 | AvaliacoesRecebidas.Count=3 | notas=[5, 5, 5] | media=5
+```
+
+**Veredito: descartada.** A coleção acumula (1 → 2 → 3) e retém as notas. O estado armazenado está
+correto; o defeito está no valor derivado (`MediaAvaliacao`), não no armazenamento.
+
+### H3 — "O problema é arredondamento ou tipo de dado"
+
+- **Esperado se verdadeira:** com notas 5, 5 e 4 (média exata `14/3 = 4,666…`), o observado seria uma
+  aproximação do cálculo — `4,67` (duas casas) ou `4,666…` — e a diferença para a média exata seria
+  explicável por arredondamento/truncamento de `double`.
+- **Esperado se falsa:** o observado seria exatamente a última nota (4), com diferença de `−2/3 ≈ −0,6667`
+  para a média correta — grande demais para ser arredondamento.
+- **Experimento:** notas 5, 5 e 4; imprime média exata, observada e diferença (`G17`).
+
+Saída real:
+
+```text
+ H3 notas=[5, 5, 4] | media exata (14/3)=4.666666666666667 | observado=4
+ H3 diferenca para a media exata=-0.66666666666666696
+```
+
+**Veredito: descartada.** O observado é `4` — a última nota —, não uma aproximação de `4,666…`. O resíduo
+na 16ª casa (`…66696` em vez de `…667`) é aritmética de `double`, não arredondamento do domínio: `5`, `1`,
+`3` e `4` são representados exatamente, e um truncamento do cálculo correto teria dado `4` só neste
+cenário. O experimento de H1 elimina essa leitura: com notas 5 e 1 a média truncada seria `3`, e o
+observado foi `1`.
+
+**Conclusão de E03:** de três hipóteses, só H1 sobreviveu; H2 e H3 foram descartadas pelas saídas acima.
+O comportamento é determinístico: `MediaAvaliacao` passa a valer a nota da avaliação recém-registrada, e o
+histórico permanece intacto.
 
 ## E04 — Técnica de depuração
 
