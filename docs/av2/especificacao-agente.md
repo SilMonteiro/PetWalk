@@ -128,3 +128,52 @@ e `EndpointsFalhaDePersistenciaTests.Cadastro_EmailDuplicado_Continua409`), que 
 - Autenticação, autorização, CORS, rate limiting.
 - CI, migrations, schema, banco de dados.
 - Qualquer refatoração de `ErroHttp`/`ErroDePersistencia` ou mudança de mensagens existentes.
+
+## Plano esperado
+
+1. Ler os sete arquivos listados em "Arquivos que o agente deve ler antes de agir" e confirmar que a lacuna
+   existe: `grep -rn "ILogger\|LogError\|Erro interno" backend --include=*.cs` não retorna nenhuma linha.
+2. Escrever **primeiro** `backend/Projeto.Tests/FalhaInesperadaTests.cs` e ver os testes **falharem pelo
+   motivo certo** — corpo e log ausentes —, e não por erro de compilação.
+   Detalhe do teste esperado: partir de `PetWalkApiFactory` (`backend/Projeto.Tests/PetWalkApiFactory.cs`,
+   SQLite em memória); substituir `IUnidadeDeTrabalho` por um fake que lança `new Exception("segredo-interno")`
+   (classe privada aninhada no próprio arquivo de teste — **não** editar `UnidadeDeTrabalhoQueFalha.cs`);
+   capturar log com um `ILoggerProvider` simples escrito no teste, sem pacote novo; disparar `POST /passeios`
+   com dados semeados (tutor, pet e passeador, no padrão de `EndpointsFalhaDePersistenciaTests.SemearTutorComPet`);
+   depois, em novo escopo de serviço, conferir que não há `Passeio` nem `Notificacao` gravados.
+3. Criar `backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs`.
+4. Registrá-lo em `backend/Projeto.Api/Program.cs` **depois** de `AddExceptionHandler<ErroDePersistenciaHandler>()`.
+5. Rodar os testes novos até ficarem verdes.
+6. Rodar a suíte completa e comparar com o baseline da Fatia 2: **291 casos, 289 aprovados, 2 falhas
+   pré-existentes em `VerificacaoDeSchemaTests`, 0 ignorados, 14 s** (branch `feature/d03-falha-inesperada`,
+   base `bae1c75`). O esperado é o mesmo par de falhas, nunca "suíte verde".
+7. Verificar que `git diff --name-only` e `git status --short` juntos mostram exatamente os três arquivos
+   permitidos — os dois arquivos novos aparecem como `??` (não rastreados) e não entram em `git diff`.
+
+## Comandos de verificação
+
+| Comando | Resultado esperado |
+| :-- | :-- |
+| `dotnet test backend/Projeto.Tests/Projeto.Tests.csproj --filter "FullyQualifiedName~FalhaInesperadaTests"` | todos os testes novos aprovados, 0 falhas, 0 ignorados |
+| `dotnet test backend/Projeto.Tests/Projeto.Tests.csproj` | total = 291 + testes novos; aprovados = 289 + testes novos; falhas continuam exatamente 2 (`VerificacaoDeSchemaTests.BancoEmMemoria_NaoEhValidado` e `BancoComMigrationsAplicadas_NaoInterrompe`); 0 ignorados |
+| `git diff --name-only` | mostra apenas `backend/Projeto.Api/Program.cs` (os dois arquivos novos são `??` e não aparecem aqui) |
+| `git status --short` | exatamente os três arquivos permitidos: `M backend/Projeto.Api/Program.cs`, `?? backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs`, `?? backend/Projeto.Tests/FalhaInesperadaTests.cs` |
+| `grep -rn "ex.Message\|StackTrace" backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs` | nenhuma linha (`exit=1`): o corpo da resposta não usa esses dados |
+
+> Nota de ambiente: neste shell o restore do NuGet falha com `Value cannot be null. (Parameter 'path1')`
+> porque `APPDATA`, `ProgramData` e `ProgramFiles(x86)` não são propagados; a execução desta sessão
+> prefixou essas variáveis com `env`, sem alterar o repositório.
+
+## Checklist de revisão
+
+- [ ] **Escopo:** o diff toca apenas `FalhaInesperadaHandler.cs` (novo), `Program.cs` (só o registro e o comentário) e `FalhaInesperadaTests.cs` (novo).
+- [ ] **Sem vazamento:** o corpo do 500 é exatamente `{ "erro": "Erro interno. Tente novamente mais tarde." }`, sem `ex.Message`, nome do tipo ou stack trace.
+- [ ] **Log:** a exceção é registrada em nível `Error`, com o método HTTP e o caminho da requisição, preservando a mensagem interna.
+- [ ] **Ordem:** `FalhaInesperadaHandler` é registrado depois de `ErroDePersistenciaHandler`, e o handler novo retorna `true`.
+- [ ] **Regressões:** `Cancelar_EmAndamento_Devolve422SemNotificar` continua 422 e `Cadastro_EmailDuplicado_Continua409` continua 409.
+- [ ] **Sem dependência nova:** nenhum pacote NuGet adicionado; o `ILoggerProvider` do teste é escrito no próprio arquivo.
+- [ ] **Comentários:** os trechos novos explicam o porquê (ordem dos handlers, corpo genérico, log obrigatório quando o handler trata).
+- [ ] **Evidência vermelho → verde:** saída dos testes novos falhando antes e passando depois foi colada no relatório.
+- [ ] **Baseline respeitado:** a suíte completa mantém exatamente as 2 falhas pré-existentes de `VerificacaoDeSchemaTests`.
+
+Revisão humana por: [ ] pendente — nome e data a preencher pelo grupo
