@@ -402,4 +402,84 @@ nome restou em `backend/`.
 
 ## E06 — Antes/depois e comparação de técnicas
 
-<!-- a preencher na Fatia N -->
+### Antes/depois
+
+Todos os valores abaixo vêm das saídas reais registradas em E01 (teste vermelho), E04 (log temporário) e
+E05 (teste verde). Nada foi estimado.
+
+| Cenário | Esperado | Observado ANTES (defeito) | Observado DEPOIS (correção) | Teste | Antes → depois |
+| :-- | --: | --: | --: | :-- | :-- |
+| Dois passeios finalizados do mesmo passeador, notas **5** e **1** | `3` | `1` | `3` | `MediaAvaliacaoTests.MediaConsideraAvaliacoesDePasseiosDiferentesDoMesmoPasseador` | vermelho (`Expected: 3` / `Actual: 1`) → verde |
+| Passeador **sem avaliações** | `0` | `0` | `0` | `MediaAvaliacaoTests.PasseadorSemAvaliacoes_TemMediaZero` | verde → verde |
+
+O log de E04 mostra o mesmo antes pelo lado do estado interno: no passo 2, com `notas acumuladas=[5, 1]` e
+`Count=2`, `media=1`. Depois da correção o resumo foi `Com falha: 0, Aprovado: 2` (E05).
+
+### Não regressão — suíte completa
+
+Executada a partir de `backend/` (`cd backend && dotnet test`), SDK `10.0.400`, 15/11/2026 ~21:58:
+
+```text
+  Projeto.Api -> C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk\backend\Projeto.Api\bin\Debug\net10.0\Projeto.Api.dll
+  Projeto.Tests -> C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk\backend\Projeto.Tests\bin\Debug\net10.0\Projeto.Tests.dll
+Execução de teste para C:\Users\SARAH\Documents\coding\POO\PETWALK\PetWalk\backend\Projeto.Tests\bin\Debug\net10.0\Projeto.Tests.dll (.NETCoreApp,Version=v10.0)
+1 arquivos de teste no total corresponderam ao padrão especificado.
+[xUnit.net 00:00:22.83]     VerificacaoDeSchemaTests.BancoEmMemoria_NaoEhValidado [FAIL]
+[xUnit.net 00:00:30.45]     VerificacaoDeSchemaTests.BancoComMigrationsAplicadas_NaoInterrompe [FAIL]
+
+Com falha! – Com falha:     2, Aprovado:   289, Ignorado:     0, Total:   291, Duração: 28 s - Projeto.Tests.dll (net10.0)
+```
+
+**Comparação com o README.** O README (linhas 142, 165 e 167) registra **291 casos**, dos quais **120 não
+foram executados** por bloqueio do App Control (`0x800711C7`) e **171 aprovados** na última execução
+registrada. Nesta execução a divergência é:
+
+| | README (registro anterior) | Esta execução |
+| :-- | --: | --: |
+| Total | 291 | 291 |
+| Aprovados | 171 | **289** |
+| Com falha | 0 | **2** |
+| Não executados | **120** | **0** |
+
+O bloqueio `0x800711C7` **não se repetiu**: `Ignorado: 0`, nenhum caso ficou sem executar. **Não é possível
+afirmar que os 120 antes bloqueados passaram todos**, porque a lista nominal desses 120 não está no
+repositório; o que se pode afirmar é que 289 de 291 passaram nesta máquina e que 2 falharam.
+
+**As 2 falhas são pré-existentes e alheias a esta correção.** `backend/Projeto.Api` e
+`backend/Projeto.Tests` estão **idênticos** ao commit base `32e5997` (`git diff` vazio para as duas pastas
+depois da correção), e nenhuma das duas falhas toca média de avaliação:
+
+1. `VerificacaoDeSchemaTests.BancoEmMemoria_NaoEhValidado` (linha 333) —
+   `Assert.Null(GetConnectionString())` recebeu `"Data Source=:memory:"` (`Expected: null` / `Actual: "Data Source=:memory:"`).
+2. `VerificacaoDeSchemaTests.BancoComMigrationsAplicadas_NaoInterrompe` (linha 197) —
+   `Assert.Contains("_Inicial", coleção)` compara **elemento exato**, e a coleção contém
+   `"20261111012746_Inicial"` (`Item not found in collection`).
+
+**Registro honesto: a suíte não está 100% verde.** 2 casos falham e **não estão aprovados**; eles ficam fora
+do escopo deste registro de depuração e devem ser tratados em item próprio.
+
+### Comparação de técnicas
+
+| Critério | Breakpoint | Log temporário (T1) | Teste automatizado |
+| :-- | :-- | :-- | :-- |
+| **Intrusividade** | **Técnica não executada** (print não fornecido). | Nenhuma mudança em produção: o log saiu do teste, via `ITestOutputHelper`. Exigiu um arquivo de teste extra, criado na Fatia 3 e apagado na Fatia 5. | Nenhuma em produção. O teste de domínio `MediaAvaliacaoTests` já existia e foi ele que ficou vermelho na Fatia 2, sem precisar escrever nada novo. |
+| **Repetibilidade** | **Técnica não executada.** | Alta: comando único e determinístico (`--filter~T1_LogTemporario`), saída em texto colado em E04. | Total: o mesmo filtro rodou 3 vezes (vermelho em E01, verde em E05 e verde de novo após apagar o temporário). |
+| **Custo/tempo** | **Técnica não executada.** | Baixo: um teste de 29 ms e ~5 s de build; o custo real foi escrever e depois apagar o arquivo. | Baixo e decrescente: o teste já existia; cada execução levou 49–56 ms depois do build. |
+| **Adequação a código em produção** | **Técnica não executada.** | Baixa: é descartável por definição — o arquivo foi removido na Fatia 5 e não pode permanecer no repositório. | Alta: é o artefato que fica como proteção contra regressão (o mesmo teste que pegou o defeito continua no repositório). |
+
+**Breakpoint: técnica não executada.** `docs/av2/img/` está vazia e o print
+`docs/av2/img/breakpoint-media.png` não foi fornecido. Por isso nenhuma célula da coluna acima é comparada
+por suposição e o marcador de E04 permanece pendente.
+
+### Recomendação
+
+Para este tipo de defeito — valor derivado errado, sem exceção nem erro de tipo — começar pelo **teste
+automatizado**: foi ele que produziu a evidência mais barata e definitiva (`Expected: 3` / `Actual: 1`), que
+já existia no repositório e que se converte naturalmente em proteção contra regressão, sem tocar em
+produção. Quando o teste mostra o sintoma mas não o estado interno, migrar para o **log temporário**: foi o
+que revelou que a coleção tinha `Count=2` e `[5, 1]` enquanto `MediaAvaliacao` valia `1`, apontando a falha
+para a atribuição e não para o armazenamento — e o log deve ser descartado depois. O **breakpoint** fica
+reservado para quando for necessário inspecionar estado privado em tempo de execução sem alterar o teste
+(é o caso de `_avaliacoesRecebidas` e das duas paradas descritas em E04), mas nesta automação ele **não foi
+executado**, então não há evidência para recomendá-lo com base em experiência própria: a recomendação acima
+se apoia apenas nas duas técnicas efetivamente executadas.
