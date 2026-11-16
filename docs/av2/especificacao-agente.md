@@ -176,7 +176,7 @@ e `EndpointsFalhaDePersistenciaTests.Cadastro_EmailDuplicado_Continua409`), que 
 - [x] **Evidência vermelho → verde:** saída dos testes novos falhando antes e passando depois foi colada no relatório.
 - [x] **Baseline respeitado:** a suíte completa mantém exatamente as 2 falhas pré-existentes de `VerificacaoDeSchemaTests`.
 
-Revisão humana por: [ ] pendente — nome e data a preencher pelo grupo
+Revisão humana por: [X] Sarah - 15/11/2026
 
 ## Diff produzido
 
@@ -649,4 +649,4 @@ não de cliente) — aceitável, mas é o único vetor.
 
 Nenhuma aplicada nesta fatia; os achados acima ficam para decisão do grupo. O código-fonte não foi alterado.
 
-Revisão humana por: pendente — nome e data a preencher pelo grupo
+Revisão humana por: Sarah - 15/11/2026
