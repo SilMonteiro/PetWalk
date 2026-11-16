@@ -377,7 +377,128 @@ repositório principal.
 
 ## C05 — Propriedades de POO
 
-_A preencher na fatia correspondente._
+**Escopo da avaliação.** Avaliei o **diff** de `b22819d` — 6 linhas de produção em `Usuario.AdicionarPet` e os
+dois testes que as acompanham — no estado do commit, com
+`git show b22819d:backend/Projeto.Api/Dominio/Usuario.cs`. Escolhi três propriedades que o diff sustenta:
+**encapsulamento**, **lugar da regra/responsabilidade** e **acoplamento/testabilidade**. Aberto/fechado não é
+avaliável aqui e está justificado nas ressalvas.
+
+### Encapsulamento
+
+**Definição e critério.** Encapsulamento é o objeto proteger o próprio estado: nenhum caminho público consegue
+colocá-lo em estado inválido. Bom, neste diff: validação dentro da entidade e nenhuma exposição nova. Ruim:
+regra só no chamador, setter público novo, coleção mutável exposta.
+
+**Evidência a favor — trecho literal (linhas 52–56 do commit):**
+
+```csharp
+        // REG-002: só quem tem perfil de tutor pode ter pets no próprio perfil.
+        if (!EhTutor)
+        {
+            throw new InvalidOperationException("Usuário não possui perfil de tutor");
+        }
+```
+
+O estado continua fechado, e essas linhas **não** aparecem no diff: `private readonly List<Pet> _pets = new();`
+(linha 3), `public IReadOnlyList<Pet> Pets => _pets;` (linha 18), `public TipoPerfil TipoPerfil { get; private set; }`
+(linha 11) e `public bool EhTutor => TipoPerfil is TipoPerfil.TUTOR or TipoPerfil.AMBOS;` (linha 20).
+
+**Contraprova procurada.** Busquei exposição nova ou caminho alternativo para `_pets`:
+
+```bash
+git show b22819d:backend/Projeto.Api/Dominio/Usuario.cs | grep -n "_pets\|public IReadOnlyList<Pet>"
+```
+
+Resultado: `_pets` aparece apenas nas linhas 3, 18, 69/71 (`AdicionarPet`), 82 (`RemoverPet`) e 96
+(`SolicitarPasseio`). Não há setter público nem lista mutável exposta. A única assimetria é `RemoverPet`
+(linhas 74–85) não checar perfil — mas remover não cria o estado inválido "não-tutor com pet", então não é
+brecha.
+
+**Veredito: atende.** A visibilidade não mudou (já estava correta); o que o commit faz é fechar o único caminho
+público que permitia violar o invariante. É proteção de invariante, não de visibilidade — a distinção importa:
+sem a guarda, `_pets` privado não impedia um PASSEADOR de ter pets.
+
+**Antes × depois.** No pai (`8871eef`), `AdicionarPet` (linha 50) começava direto em `if (pet is null)`
+(linhas 52–55) e qualquer `TipoPerfil` chegava a `_pets.Add`. No commit, a guarda é a primeira instrução.
+
+### Lugar da regra e responsabilidade única
+
+**Definição e critério.** A regra deve viver no objeto que possui o dado, em um único lugar. Bom: regra no
+domínio, ausente dos endpoints. Ruim: regra no endpoint ou repetida em mais de um método.
+
+**Evidência a favor.** A regra está em `Usuario.AdicionarPet` (linhas 53–56) e **não** aparece fora do domínio:
+
+```bash
+git grep -n "EhTutor\|TipoPerfil\|perfil de tutor" b22819d -- backend/Projeto.Api/Endpoints
+```
+
+Retorna só `UsuarioEndpoints.cs:10` (`req.Nome, req.Email, ..., req.TipoPerfil, req.Senha` — passagem do perfil
+ao cadastro), nenhuma checagem. No commit existem apenas `/cadastro` e `/login`, então não havia endpoint de pet
+onde duplicar a regra.
+
+**Contraprova procurada — e ela encontra algo.** A mesma guarda, com a mesma mensagem, já existia em
+`SolicitarPasseio` (linhas 91–94). Comparei os dois blocos:
+
+```bash
+diff <(git show b22819d:backend/Projeto.Api/Dominio/Usuario.cs | sed -n '53,56p') \
+     <(git show b22819d:backend/Projeto.Api/Dominio/Usuario.cs | sed -n '91,94p')
+```
+
+Saída **vazia**: são idênticos. O commit eleva as checagens de `EhTutor` de **1** (pai, linha 85) para **2**
+(linhas 53 e 91), duplicando regra e mensagem dentro da mesma classe.
+
+**Veredito: atende parcialmente.** O lugar está certo — domínio, não endpoint —, mas a regra agora tem duas
+cópias; um método privado `ExigirPerfilTutor()` eliminaria a duplicação, e mudar a mensagem passaria a exigir
+duas edições. Para o tamanho do projeto o desvio é pequeno, mas é medido, não hipotético.
+
+**Antes × depois.** Guardas de perfil no arquivo: 1 (linha 85 no pai) → 2 (linhas 53 e 91 no commit).
+
+### Acoplamento e testabilidade por injeção
+
+**Definição e critério.** A alteração não deve introduzir dependência nova nem estado ambiente. Bom: só estado
+próprio. Ruim: relógio estático, `new` de colaborador, chamada estática, `using` novo.
+
+**Evidência a favor.** O diff não adiciona `using` (o arquivo não tem nenhum — começa direto em
+`public class Usuario`), não cria campo nem construtor e não altera assinatura; lê apenas `EhTutor`, que é
+propriedade calculada sobre o próprio `TipoPerfil`.
+
+**Contraprova procurada.**
+
+```bash
+git show b22819d:backend/Projeto.Api/Dominio/Usuario.cs | grep -n "static\|DateTime\|new "
+```
+
+Nenhum `static`; `DateTime` só na assinatura preexistente de `SolicitarPasseio` (linha 89); `new` apenas das
+exceções (`ArgumentException`, `InvalidOperationException`, `ArgumentNullException`). Nada de relógio ambiente.
+
+**Veredito: atende.** O acoplamento novo é interno (o método consulta o próprio perfil) e a testabilidade não
+muda: os dois testes novos exercitam a guarda sem infraestrutura, e a execução registrada em C04 mostra 19
+testes verdes na suíte focada sem setup adicional.
+
+**Antes × depois.** Antes, `AdicionarPet` dependia do argumento `pet` e de `_pets`; depois, também de
+`TipoPerfil` — mesmo objeto, sem dependência externa nova.
+
+### Quadro-resumo
+
+| Propriedade | Veredito | Evidência principal |
+| :-- | :-- | :-- |
+| Encapsulamento | **atende** | guarda dentro de `AdicionarPet` (53–56); `_pets` privado (3), `Pets` como `IReadOnlyList` (18), `TipoPerfil` com setter privado (11) |
+| Lugar da regra / responsabilidade única | **atende parcialmente** | regra no domínio e ausente dos endpoints, mas duplicada em `SolicitarPasseio` (91–94) — blocos idênticos |
+| Acoplamento / testabilidade | **atende** | nenhum `using`, campo, construtor ou relógio novo; só `EhTutor` |
+
+### Ressalvas e limites da avaliação
+
+- O diff tem **6 linhas de produção**. Propriedades que dependem da estrutura do sistema — aberto/fechado,
+  coesão entre módulos, acoplamento entre camadas — não têm material suficiente; **não avaliei OCP** porque a
+  mudança não cria ponto de extensão, apenas uma guarda pontual.
+- "Atende parcialmente" é a parte julgamental: a duplicação é fato medido (diff vazio entre as guardas), mas
+  considerar aceitável por KISS é opinião — registrei a evidência para o revisor discordar.
+- Não avaliei design do arquivo de teste (testes não são o objeto de POO aqui) nem comportamento em runtime
+  além do que a suíte mostrou.
+- A guarda depende de `TipoPerfil` não mudar depois do construtor: no commit há atribuição só na linha 34, e
+  conferi que **no `HEAD`** também (atribuição na linha 36, setter privado, nenhum método de troca de perfil).
+- A avaliação é sobre o diff, não sobre o sistema: ela não diz se a arquitetura geral do projeto está bem
+  encapsulada, só que este diff não piora esses aspectos.
 
 ## C06 — Parecer
 
