@@ -155,7 +155,41 @@ commit não produz status HTTP. O **422** aparece no `HEAD`, onde
 
 ## C03 — Inventário dos arquivos alterados
 
-_A preencher na fatia correspondente._
+Inventário conferido contra `git show --stat --name-status b22819d` e `git show --numstat b22819d` — a
+saída lista **exatamente 2 arquivos**, e a tabela abaixo tem as mesmas 2 linhas:
+
+```text
+M	backend/Projeto.Api/Dominio/Usuario.cs
+M	backend/Projeto.Tests/UsuarioTests.cs
+
+6	0	backend/Projeto.Api/Dominio/Usuario.cs
+23	0	backend/Projeto.Tests/UsuarioTests.cs
+```
+
+| Arquivo | Tipo | +linhas/−linhas | Finalidade da mudança | Escopo | Justificativa |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| `backend/Projeto.Api/Dominio/Usuario.cs` | M | +6/−0 | Inserir a guarda de perfil no início de `Usuario.AdicionarPet` (`if (!EhTutor)` → `InvalidOperationException("Usuário não possui perfil de tutor")`) | **Dentro** | É a própria regra do título ("AdicionarPet exige perfil de tutor") e a única mudança de produção do commit; nenhuma linha removida, nenhuma alteração de assinatura ou de estado |
+| `backend/Projeto.Tests/UsuarioTests.cs` | M | +23/−0 | Acrescentar dois testes no início da classe: `AdicionarPet_ComPerfilDePasseador_LancaErro` (assere a mensagem e `Assert.Empty(passeador.Pets)`) e `AdicionarPet_ComPerfilAmbos_AdicionaOPet` (assere `Assert.Same`/`Assert.Single`) | **Dentro** | Cada teste cobre um lado da mesma guarda (violação e sucesso); o diff é composto apenas pelos dois blocos `[Fact]`, sem alterar os testes que já existiam |
+
+Nenhum arquivo mistura mudança de escopo com refatoração, renomeação ou formatação: li o diff completo dos
+dois arquivos (`git show b22819d -- backend/Projeto.Api/Dominio/Usuario.cs` e
+`git show b22819d -- backend/Projeto.Tests/UsuarioTests.cs`), e as 29 linhas adicionadas são exclusivamente a
+guarda (6) e os dois testes (23), sem nenhuma linha removida.
+
+### Mudanças fora do escopo
+
+**Nenhuma mudança fora do escopo identificada.** A leitura dos dois diffs sustenta a afirmação: o arquivo de
+produção tem uma única hunk (a guarda, dentro de `AdicionarPet`) e o arquivo de teste tem uma única hunk
+(dois testes novos), sem tocar `RemoverPet`, `SolicitarPasseio` ou qualquer outro método da classe.
+
+A única alteração de comportamento que vai além do caso previsto é **efeito da posição da guarda**, dentro
+das mesmas 6 linhas: ela foi inserida antes de `if (pet is null)`, então um usuário sem perfil de tutor que
+passe `null` passa a receber `InvalidOperationException` em vez de `ArgumentNullException`. Isso já está
+registrado como lacuna em **C02** (não há critério nem teste para esse caso); não é uma mudança de outro
+arquivo nem de outro propósito.
+
+**Resumo:** 2 arquivos no total — **1 de produção** (`Usuario.cs`), **1 de teste** (`UsuarioTests.cs`),
+**0 de documentação/configuração**. Somatório: `+29/−0`.
 
 ## C04 — Análise de impacto
 
