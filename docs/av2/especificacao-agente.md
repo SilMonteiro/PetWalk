@@ -166,15 +166,15 @@ e `EndpointsFalhaDePersistenciaTests.Cadastro_EmailDuplicado_Continua409`), que 
 
 ## Checklist de revisão
 
-- [ ] **Escopo:** o diff toca apenas `FalhaInesperadaHandler.cs` (novo), `Program.cs` (só o registro e o comentário) e `FalhaInesperadaTests.cs` (novo).
-- [ ] **Sem vazamento:** o corpo do 500 é exatamente `{ "erro": "Erro interno. Tente novamente mais tarde." }`, sem `ex.Message`, nome do tipo ou stack trace.
-- [ ] **Log:** a exceção é registrada em nível `Error`, com o método HTTP e o caminho da requisição, preservando a mensagem interna.
-- [ ] **Ordem:** `FalhaInesperadaHandler` é registrado depois de `ErroDePersistenciaHandler`, e o handler novo retorna `true`.
-- [ ] **Regressões:** `Cancelar_EmAndamento_Devolve422SemNotificar` continua 422 e `Cadastro_EmailDuplicado_Continua409` continua 409.
-- [ ] **Sem dependência nova:** nenhum pacote NuGet adicionado; o `ILoggerProvider` do teste é escrito no próprio arquivo.
-- [ ] **Comentários:** os trechos novos explicam o porquê (ordem dos handlers, corpo genérico, log obrigatório quando o handler trata).
-- [ ] **Evidência vermelho → verde:** saída dos testes novos falhando antes e passando depois foi colada no relatório.
-- [ ] **Baseline respeitado:** a suíte completa mantém exatamente as 2 falhas pré-existentes de `VerificacaoDeSchemaTests`.
+- [x] **Escopo:** o diff toca apenas `FalhaInesperadaHandler.cs` (novo), `Program.cs` (só o registro e o comentário) e `FalhaInesperadaTests.cs` (novo).
+- [x] **Sem vazamento:** o corpo do 500 é exatamente `{ "erro": "Erro interno. Tente novamente mais tarde." }`, sem `ex.Message`, nome do tipo ou stack trace.
+- [x] **Log:** a exceção é registrada em nível `Error`, com o método HTTP e o caminho da requisição, preservando a mensagem interna.
+- [x] **Ordem:** `FalhaInesperadaHandler` é registrado depois de `ErroDePersistenciaHandler`, e o handler novo retorna `true`.
+- [x] **Regressões:** `Cancelar_EmAndamento_Devolve422SemNotificar` continua 422 e `Cadastro_EmailDuplicado_Continua409` continua 409.
+- [x] **Sem dependência nova:** nenhum pacote NuGet adicionado; o `ILoggerProvider` do teste é escrito no próprio arquivo.
+- [x] **Comentários:** os trechos novos explicam o porquê (ordem dos handlers, corpo genérico, log obrigatório quando o handler trata).
+- [x] **Evidência vermelho → verde:** saída dos testes novos falhando antes e passando depois foi colada no relatório.
+- [x] **Baseline respeitado:** a suíte completa mantém exatamente as 2 falhas pré-existentes de `VerificacaoDeSchemaTests`.
 
 Revisão humana por: [ ] pendente — nome e data a preencher pelo grupo
 
@@ -600,3 +600,53 @@ com `Value cannot be null. (Parameter 'path1')`; as execuções prefixaram `APPD
 - O bloqueio de SQLite por App Control não ocorreu nesta máquina (0 não executados), mas não há CI
   configurado: a repetição em outra máquina **não foi verificada**.
 - A revisão humana do checklist permanece pendente; o checklist não foi preenchido nesta fatia.
+
+## Inspeção do diff
+
+Inspeção feita em 15/11/2026 sobre os commits `7dc4922` e `5a4b117`, com a árvore limpa. Nenhum
+arquivo de código foi tocado nesta fatia: só este documento. A frase da seção anterior ("o checklist não foi
+preenchido nesta fatia") descreve o estado da fatia de registro; o preenchimento acontece aqui.
+
+### Checklist verificado por comando
+
+| Item | Evidência executada | Resultado |
+| :-- | :-- | :-- |
+| Escopo | `git show --name-only --format="%h %s" 7dc4922 5a4b117` → `FalhaInesperadaTests.cs`, `FalhaInesperadaHandler.cs`, `Program.cs`; `git status --short` e `git diff --stat` vazios | atende |
+| Sem vazamento | `FalhaInesperadaHandler.cs:27-29` grava só `new { erro = MensagemPadrao }`; `grep -rn "ex.Message\|StackTrace"` no handler → 0 linhas (`exit=1`); teste `FalhaInesperada_NaoExpoeMensagemInternaNemStackTrace` aprovado | atende |
+| Log em `Error` com método e caminho | `FalhaInesperadaHandler.cs:24-25` (`LogError(excecao, "Falha inesperada em {Metodo} {Caminho}", …)`); teste `FalhaInesperada_RegistraErroNoLogComMetodoECaminho` aprovado | atende |
+| Ordem de registro | `grep -n "AddExceptionHandler\|AddProblemDetails\|UseExceptionHandler" Program.cs` → `59` `ErroDePersistenciaHandler`, `60` `FalhaInesperadaHandler`, `61` `AddProblemDetails`, `78` `UseExceptionHandler()` | atende |
+| Sem pacote novo | `git diff --name-only bae1c75..HEAD -- "*.csproj" "*.props" "*.targets"` → **vazio** | atende |
+| Comentários explicam o porquê | `FalhaInesperadaHandler.cs:3-6` (por que mensagem genérica) e `:21-23` (por que o log é obrigatório); `Program.cs:54-58` (cadeia dos handlers) | atende |
+| Vermelho → verde | Fatia 5: `Com falha: 4, Aprovado: 0`; Fatia 6: `Aprovado: 4, Com falha: 0` (resumos na seção anterior) | atende |
+| Regressões 409/422 | `dotnet test --filter "…Cancelar_EmAndamento_Devolve422SemNotificar\|…Cadastro_EmailDuplicado_Continua409"` → `Aprovado PasseioEndpointsTests.Cancelar_EmAndamento_Devolve422SemNotificar` e `Aprovado EndpointsFalhaDePersistenciaTests.Cadastro_EmailDuplicado_Continua409`; resumo `Aprovado! – Com falha: 0, Aprovado: 6, Ignorado: 0, Total: 6` | atende |
+| Baseline | suíte completa: `Com falha: 2, Aprovado: 293, Ignorado: 0, Total: 295` — as mesmas 2 de `VerificacaoDeSchemaTests` | atende |
+
+**Pergunta de controle: o teste passaria sem o handler?** Não. Na Fatia 5, antes do handler, os 4 testes
+falharam e o corpo real era `{"type":"https://tools.ietf.org/html/rfc9110#section-15.6.1","title":"An error
+occurred while processing your request.","status":500,"traceId":"…"}` — sem campo `erro`. Nuance já
+documentada: em (b) as três asserções de não-vazamento passavam mesmo antes; o vermelho veio da ausência do
+contrato, não de vazamento.
+
+**A mensagem genérica está idêntica ao pedido?** Sim: `grep -n "Erro interno. Tente novamente mais tarde."`
+→ `FalhaInesperadaHandler.cs:9` e `FalhaInesperadaTests.cs:19`, texto igual ao da especificação.
+
+**O log inclui dado sensível?** Não inclui corpo da requisição nem query string: registra `Request.Method` e
+`Request.Path` (`:25`) e a exceção. A mensagem da exceção pode carregar dados do provedor (é log de servidor,
+não de cliente) — aceitável, mas é o único vetor.
+
+### Achados
+
+| # | Gravidade | Achado | Sugestão |
+| :-- | :-- | :-- | :-- |
+| A1 | Média | `FalhaInesperadaHandler.TryHandleAsync` não verifica `Response.HasStarted`. `grep -n "HasStarted"` no handler → 0 linhas. Se a resposta já tiver começado, atribuir `StatusCode` (`:27`) lança `InvalidOperationException` e o corpo genérico não é escrito. Nenhum teste cobre esse caminho | `if (contexto.Response.HasStarted) return false;` antes de tocar na resposta |
+| A2 | Baixa (não verificado no repositório) | O handler é catch-all: qualquer exceção vira 500, inclusive `BadHttpRequestException` com status 4xx (ex.: 413 de corpo grande), **se** ela chegar ao middleware. Não há teste que force esse caminho | Devolver `false` para `BadHttpRequestException` (ou respeitar `ex.StatusCode`) |
+| A3 | Baixa | `:29` passa `cancelamento` para `WriteAsJsonAsync`. Se o cliente desconectar, a escrita pode lançar `OperationCanceledException` depois do `LogError`, e a exceção original deixa de ser a que propaga | Usar `CancellationToken.None` ou capturar `OperationCanceledException` após o log |
+| A4 | Baixa | Os testes comparam só a propriedade `erro` (`TentarLerErro` + `Assert.Equal`). Um corpo com campo extra (`{\"erro\":\"…\",\"detalhe\":\"x\"}`) passaria em (a), (b) e (d), desde que o extra não contenha os textos proibidos | Comparar o corpo serializado completo, ou exigir exatamente uma propriedade |
+| A5 | Baixa (pré-existente, fora do diff) | `ErroHttp.cs:20` faz `_ => throw ex;`, o que reinicia o stack trace. Não foi introduzido por esta alteração e o handler novo não depende dele | Trocar por `throw;` numa alteração própria |
+| A6 | Baixa (não verificado) | Ordem do pipeline: `UseExceptionHandler()` na linha 78 vem antes de `UseCors("Frontend")` na 88. A resposta 500 pode sair sem cabeçalhos CORS e o navegador exibir erro de rede em vez do corpo `{ \"erro\" }`. Não há teste de CORS no projeto | Teste de integração com cabeçalho `Origin` conferindo `Access-Control-Allow-Origin` no 500 |
+
+### Correções feitas à saída do agente
+
+Nenhuma aplicada nesta fatia; os achados acima ficam para decisão do grupo. O código-fonte não foi alterado.
+
+Revisão humana por: pendente — nome e data a preencher pelo grupo
