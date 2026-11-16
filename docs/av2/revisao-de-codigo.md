@@ -84,7 +84,74 @@ a mudança; o commit completo, com os dois diffs, está em `git show b22819d`
 
 ## C02 — Ligação com o requisito
 
-_A preencher na fatia correspondente._
+**Regra ligada — REG-002.** A `docs/av2/especificacao.md` **não tem seção dedicada à REG-002**: as cinco
+regras fixadas pela AV2 são REG-001, REG-003, REG-004, REG-005 e REG-008. O enunciado da regra está na
+proposta (`docs/proposta.md:48`), literal:
+
+> "Somente um Usuário com tipoPerfil TUTOR ou AMBOS pode solicitar um Passeio."
+
+E a especificação a menciona em três pontos, também literalmente:
+
+- `especificacao.md:106` (pré-condição do FLX-002): "Tutor existente, com perfil TUTOR ou AMBOS (REG-002)."
+- `especificacao.md:118` (ordem de validação): "A API chama `Usuario.SolicitarPasseio`, que valida nesta
+  ordem: perfil de tutor (REG-002), posse do pet (REG-005), perfil e status do passeador (REG-009) e data
+  futura (REG-008). Toda falha de regra é `InvalidOperationException` e a API responde **422** com a
+  mensagem da regra."
+- `especificacao.md:163` (tabela critério → teste): `UsuarioSemPerfilDeTutor_NaoPodeSolicitar` —
+  `REG-002: "Usuário não possui perfil de tutor"`.
+
+**Fluxo relacionado.** Na especificação, apenas o **FLX-002** (solicitar passeio). Na proposta, a REG-002
+também aparece no **FLX-007** (`proposta.md:79`, "Tutor cadastra, consulta, edita e exclui seus pets"), fluxo
+que a especificação da AV2 **não** fixa — o escopo dela é FLX-002, FLX-004 e FLX-005.
+
+**Divergência registrada.** O commit altera `Usuario.AdicionarPet`, mas a especificação só trata a REG-002
+no caminho de *solicitação* (`Usuario.SolicitarPasseio`). Nenhum critério numerado da especificação é
+satisfeito por este diff: o commit **estende** a mesma regra para outra operação do agregado, que a
+especificação não documenta.
+
+**Critério de aceitação → onde o código implementa.** Linhas conferidas em
+`git show b22819d:backend/Projeto.Api/Dominio/Usuario.cs`:
+
+| Critério | Condição (Dado / Quando / Então) | Implementação no commit | Mensagem literal | Status HTTP |
+| :-- | :-- | :-- | :-- | :-- |
+| C1 — sucesso (reconstruído do enunciado) | Dado um usuário TUTOR ou AMBOS / Quando adiciona um pet que lhe pertence / Então o pet passa a estar em `_pets` | `backend/Projeto.Api/Dominio/Usuario.cs:Usuario.AdicionarPet` — `_pets.Add(pet)` na linha 71 | — | — |
+| C2 — violação (reconstruído do enunciado) | Dado um usuário só PASSEADOR / Quando chama `AdicionarPet` / Então recebe `InvalidOperationException` e `Pets` continua vazio | `backend/Projeto.Api/Dominio/Usuario.cs:Usuario.AdicionarPet` — guarda nas linhas 53–56 | `"Usuário não possui perfil de tutor"` | — |
+| C3 — pré-condição do FLX-002 (`especificacao.md:106`) | Dado um usuário sem perfil TUTOR ou AMBOS / Quando solicita passeio / Então a operação falha com a mensagem da REG-002 | `backend/Projeto.Api/Dominio/Usuario.cs:Usuario.SolicitarPasseio` — guarda nas linhas 91–94 | `"Usuário não possui perfil de tutor"` | 422 (só no `HEAD`; o commit não tem rota) |
+
+**C1 — já era verdadeiro antes; o commit preservou.** Em `b22819d^` não existia guarda de perfil: um
+usuário TUTOR ou AMBOS já chegava a `_pets.Add(pet)`. O commit não alterou esse caminho; acrescentou o teste
+`AdicionarPet_ComPerfilAmbos_AdicionaOPet`, que passa a provar o comportamento.
+
+**C2 — é o commit que torna verdadeiro.** Em `b22819d^`, o método começava direto em `if (pet is null)`; um
+PASSEADOR cujo `pet.Tutor` fosse ele mesmo conseguia adicionar o pet (e o construtor de `Pet` não valida o
+perfil do tutor — `git show b22819d:backend/Projeto.Api/Dominio/Pet.cs` só tem a guarda de `tutor` nulo).
+Depois do commit, a guarda `if (!EhTutor)` interrompe antes, e `AdicionarPet_ComPerfilDePasseador_LancaErro`
+assere a mensagem e `Assert.Empty(passeador.Pets)`.
+
+**C3 — já era verdadeiro antes; o commit preservou.** Em `b22819d^`, `SolicitarPasseio` (linha 83) já trazia
+a guarda nas linhas 85–87, com a mesma mensagem; o commit apenas deslocou o bloco em +6 linhas (agora 89 e
+91–94), por causa da guarda inserida acima.
+
+**Status HTTP.** O commit não tem rota que alcance `AdicionarPet`: em `b22819d` o `Program.cs` mapeia apenas
+`/teste`, `/cadastro` e `/login`, e o `UsuarioEndpoints` do commit só declara `/cadastro` e `/login`. Logo, o
+commit não produz status HTTP. O **422** aparece no `HEAD`, onde
+`backend/Projeto.Api/Endpoints/ErroHttp.cs:19` mapeia `InvalidOperationException` para
+`422 UnprocessableEntity`.
+
+### Lacunas
+
+- **A especificação não tem seção REG-002**, então C1 e C2 foram reconstruídos do enunciado da proposta e
+  não copiados de critérios numerados da especificação.
+- **A especificação não documenta `AdicionarPet` nem o FLX-007**; a ligação mais direta do commit com um
+  fluxo está na proposta (FLX-007), fora do escopo fixado da AV2.
+- **Parte do commit sem critério correspondente:** a ordem das validações mudou — a guarda de perfil passou
+  a vir antes de `pet is null`. Em `b22819d^`, um PASSEADOR que passasse `null` recebia
+  `ArgumentNullException`; depois do commit recebe `InvalidOperationException` da REG-002. A especificação
+  não trata desse caso, e nenhum teste do commit o cobre.
+- **Nenhum critério da especificação é tornado verdadeiro por este diff**: a implementação que ela descreve
+  (`SolicitarPasseio`) é anterior ao commit; o diff estende a regra para `AdicionarPet`.
+- **O perfil AMBOS não aparece em nenhum critério da especificação** — só no enunciado da proposta
+  ("TUTOR ou AMBOS"); o teste `AdicionarPet_ComPerfilAmbos_AdicionaOPet` cobre esse caso no commit.
 
 ## C03 — Inventário dos arquivos alterados
 
