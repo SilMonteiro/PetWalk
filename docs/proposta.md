@@ -65,6 +65,8 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 - Transições permitidas: criarPasseio() (tutor) → SOLICITADO; aceitarPasseio() (passeador escolhido, a partir de SOLICITADO) → ACEITO; recusarPasseio() (passeador escolhido, a partir de SOLICITADO) → RECUSADO; iniciarPasseio() (passeador escolhido, a partir de ACEITO) → EM_ANDAMENTO; finalizarPasseio() (passeador escolhido, a partir de EM_ANDAMENTO) → FINALIZADO; cancelarPasseio() (tutor ou passeador do passeio, a partir de SOLICITADO ou ACEITO) → CANCELADO
 - Transições proibidas: FINALIZADO ➔ qualquer estado (passeio encerrado não pode ser reaberto); RECUSADO ➔ qualquer estado (recusa é terminal); CANCELADO ➔ qualquer estado (cancelamento é terminal); SOLICITADO ➔ FINALIZADO (deve passar pelos estados intermediários ACEITO e EM_ANDAMENTO); EM_ANDAMENTO ➔ CANCELADO (REG-004, cancelamento só permitido nos estados SOLICITADO ou ACEITO). Qualquer tentativa de transição proibida lança o erro "Transição não permitida a partir do estado atual" (o cancelamento usa a mensagem da REG-004)
 
+Observação: os nomes de método desta proposta (criarPasseio(), aceitarPasseio(), enviarNotificacao() etc.) foram simplificados na implementação, que usa Usuario.SolicitarPasseio(), Passeio.Aceitar() e NotificacaoServico.Enviar().
+
 
 
 ## Fluxos da versão final
