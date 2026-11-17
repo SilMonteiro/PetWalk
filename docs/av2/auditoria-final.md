@@ -125,6 +125,6 @@ Com base na evidência compilada neste documento e nos artefatos que ele referen
 - **Suíte executável:** 295 casos — 295 aprovados, 0 falhas, 0 ignorados, duração 6,8 s (construção em 7,7 s), .NET SDK 11.0.100 com runtime .NET 10 instalado lado a lado.
 - **Declaração honesta de limitações do sistema:** persistência local em SQLite, autenticação por identificação no payload, ausência de gateway financeiro e notificações por polling — registradas acima, conforme esperado nesta auditoria.
 
-Observação final: `docs/av2/evidencias.json` (índice opcional de caminhos, fora dos 40 itens, conforme o escopo desta auditoria) não foi criado nesta auditoria; sua ausência não afeta a contagem dos 40 itens nem esta projeção.
+Observação final: `docs/av2/evidencias.json` é um índice opcional de caminhos, fora dos 40 itens, conforme o escopo desta auditoria; sua existência não afeta a contagem dos 40 itens nem esta projeção.
 
 Nenhum arquivo de código (`.cs`) foi alterado para a produção desta auditoria.
