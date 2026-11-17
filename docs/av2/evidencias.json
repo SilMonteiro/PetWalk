@@ -1,0 +1,315 @@
+{
+  "A01": {
+    "descricao": "Classes de domínio com estado e comportamento",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/Usuario.cs",
+      "backend/Projeto.Api/Dominio/Pet.cs",
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Api/Dominio/Avaliacao.cs",
+      "backend/Projeto.Api/Dominio/Notificacao.cs"
+    ]
+  },
+  "A02": {
+    "descricao": "Métodos que alteram estado do objeto",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Api/Dominio/Usuario.cs",
+      "backend/Projeto.Tests/SolicitacaoDePasseioTests.cs"
+    ]
+  },
+  "A03": {
+    "descricao": "Regras de negócio implementadas no domínio e usadas pelos endpoints",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Api/Dominio/Usuario.cs",
+      "backend/Projeto.Api/Servicos/AutenticacaoServico.cs",
+      "backend/Projeto.Api/Endpoints/PasseioEndpoints.cs"
+    ]
+  },
+  "A04": {
+    "descricao": "Objetos compostos por outros objetos",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/Usuario.cs",
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Api/Dominio/Avaliacao.cs"
+    ]
+  },
+  "A05": {
+    "descricao": "Máquina de estados do passeio com transições por método",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Api/Dominio/Enums.cs",
+      "backend/Projeto.Tests/SolicitacaoDePasseioTests.cs"
+    ]
+  },
+  "A06": {
+    "descricao": "Estado preservado em transição inválida",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Tests/SolicitacaoDePasseioTests.cs"
+    ]
+  },
+  "A07": {
+    "descricao": "Encapsulamento: setters privados, estado interno protegido e coleções somente leitura",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/Usuario.cs",
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Api/Dominio/Avaliacao.cs",
+      "backend/Projeto.Tests/ProtecaoDeEstadoTests.cs"
+    ]
+  },
+  "A08": {
+    "descricao": "Polimorfismo via IPoliticaDePreco com fábrica",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Dominio/IPoliticaDePreco.cs",
+      "backend/Projeto.Api/Dominio/PrecoPorHora.cs",
+      "backend/Projeto.Api/Dominio/PrecoComAdicionalPorPorte.cs",
+      "backend/Projeto.Api/Dominio/PoliticaDePrecoFabrica.cs",
+      "backend/Projeto.Tests/PoliticaDePrecoTests.cs",
+      "backend/Projeto.Tests/PasseioValorTests.cs"
+    ]
+  },
+  "B01": {
+    "descricao": "Diagrama Mermaid classDiagram fiel ao código",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/modelo-de-classes.md"
+    ]
+  },
+  "B02": {
+    "descricao": "Mapeamento classe → arquivo e tabela de enums",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/modelo-de-classes.md"
+    ]
+  },
+  "B03": {
+    "descricao": "Atributos e métodos relevantes por classe",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/modelo-de-classes.md"
+    ]
+  },
+  "B04": {
+    "descricao": "Multiplicidade Usuario 1 — 0..* Pet provada por cenários de teste",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/modelo-de-classes.md"
+    ]
+  },
+  "B05": {
+    "descricao": "Composição Passeio ◆— Avaliacao documentada com código e testes",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/modelo-de-classes.md"
+    ]
+  },
+  "B06": {
+    "descricao": "Polimorfismo IPoliticaDePreco com contrato, implementações e fábrica",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/modelo-de-classes.md"
+    ]
+  },
+  "B07": {
+    "descricao": "Invariantes do modelo com guardiões e testes",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/modelo-de-classes.md"
+    ]
+  },
+  "B08": {
+    "descricao": "Duas decisões de modelagem comparadas com alternativas e justificativa",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/analise-do-modelo.md"
+    ]
+  },
+  "C01": {
+    "descricao": "Identificação da alteração revisada (commit, autor, data e diff)",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/revisao-de-codigo.md"
+    ]
+  },
+  "C02": {
+    "descricao": "Ligação da alteração com o requisito (REG-002)",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/revisao-de-codigo.md"
+    ]
+  },
+  "C03": {
+    "descricao": "Inventário dos arquivos alterados com escopo",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/revisao-de-codigo.md"
+    ]
+  },
+  "C04": {
+    "descricao": "Análise de impacto com verificação antes/depois",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/revisao-de-codigo.md"
+    ]
+  },
+  "C05": {
+    "descricao": "Propriedades de POO avaliadas sobre o diff",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/revisao-de-codigo.md"
+    ]
+  },
+  "C06": {
+    "descricao": "Parecer fundamentado da revisão",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/revisao-de-codigo.md"
+    ]
+  },
+  "D01": {
+    "descricao": "Três situações de falha documentadas (400 / 422 / 500)",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/especificacao.md"
+    ]
+  },
+  "D02": {
+    "descricao": "Exceção de domínio convertida em resposta HTTP",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Endpoints/ErroHttp.cs",
+      "backend/Projeto.Api/Endpoints/PasseioEndpoints.cs",
+      "backend/Projeto.Tests/PasseioEndpointsTests.cs"
+    ]
+  },
+  "D03": {
+    "descricao": "Tratamento central de falhas excepcionais no pipeline",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Api/Program.cs",
+      "backend/Projeto.Api/Endpoints/ErroDePersistenciaHandler.cs",
+      "backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs"
+    ]
+  },
+  "D04": {
+    "descricao": "Testes das três situações de falha, incluindo o 500 genérico",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Tests/FalhaInesperadaTests.cs",
+      "backend/Projeto.Tests/EndpointsFalhaDePersistenciaTests.cs",
+      "backend/Projeto.Tests/PasseioEndpointsTests.cs"
+    ]
+  },
+  "E01": {
+    "descricao": "Defeito descrito com evidência do teste vermelho",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/registro-de-depuracao.md"
+    ]
+  },
+  "E02": {
+    "descricao": "Reprodução com comportamento esperado × observado",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/registro-de-depuracao.md"
+    ]
+  },
+  "E03": {
+    "descricao": "Hipóteses com experimentos executados",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/registro-de-depuracao.md"
+    ]
+  },
+  "E04": {
+    "descricao": "Técnica de depuração aplicada e comprovada",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/registro-de-depuracao.md"
+    ]
+  },
+  "E05": {
+    "descricao": "Causa raiz e menor correção coerente",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/registro-de-depuracao.md"
+    ]
+  },
+  "E06": {
+    "descricao": "Antes/depois, comparação de técnicas e não-regressão",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/registro-de-depuracao.md"
+    ]
+  },
+  "F01": {
+    "descricao": "Testes de sucesso e violação para as regras de negócio",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Tests/SolicitacaoDePasseioTests.cs",
+      "backend/Projeto.Tests/AvaliacaoTests.cs",
+      "backend/Projeto.Tests/UsuarioTests.cs",
+      "backend/Projeto.Tests/PasseioEndpointsTests.cs"
+    ]
+  },
+  "F02": {
+    "descricao": "Transições proibidas testadas com estado preservado",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Tests/SolicitacaoDePasseioTests.cs"
+    ]
+  },
+  "F03": {
+    "descricao": "Fluxo ponta a ponta pela API real",
+    "status": "concluido",
+    "evidencias": [
+      "backend/Projeto.Tests/FluxoCompletoTests.cs",
+      "backend/Projeto.Tests/PetWalkApiFactory.cs"
+    ]
+  },
+  "F04": {
+    "descricao": "Build e testes em clone limpo com evidência executável",
+    "status": "concluido",
+    "evidencias": [
+      "README.md",
+      "docs/av2/auditoria-final.md"
+    ]
+  },
+  "F05": {
+    "descricao": "Matriz de rastreabilidade bidirecional fluxo → regra → implementação → teste",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/matriz-rastreabilidade.md"
+    ]
+  },
+  "F06": {
+    "descricao": "Auditoria final dos 40 itens com limitações declaradas",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/auditoria-final.md"
+    ]
+  },
+  "G01": {
+    "descricao": "Especificação verificável dos 3 fluxos e das 5 regras (Dado/Quando/Então)",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/especificacao.md"
+    ]
+  },
+  "G02": {
+    "descricao": "Especificação para agente de código com evidência de inspeção",
+    "status": "concluido",
+    "evidencias": [
+      "docs/av2/especificacao-agente.md"
+    ]
+  }
+}
