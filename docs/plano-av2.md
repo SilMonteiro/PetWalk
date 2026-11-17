@@ -1,5 +1,5 @@
-<!-- ÚLTIMA ATUALIZAÇÃO: 15/11/2026 22:57 -->
-<!-- STATUS GERAL: 36/40 itens concluídos — Projeção: ~9,0/10,0 -->
+<!-- ÚLTIMA ATUALIZAÇÃO: 16/11/2026 00:20 -->
+<!-- STATUS GERAL: 37/40 itens concluídos — Projeção: ~9,25/10,0 -->
 
 ## 1. Resultado item a item
 
@@ -61,8 +61,8 @@
 |---|---|---|
 | D01 | ✅ | Seção "Falhas" em `docs/av2/especificacao.md`: 3 situações (validação 400 / violação de regra 422 / excepcional 500), critério de distinção e nota sobre corpo e log do 500 (não verificados) |
 | D02 | ✅ | `Passeio.Aceitar` lança → `ExecutarAcao` captura → `ErroHttp.Erro` → 422 (coberto em `PasseioEndpointsTests`) |
-| D03 | ✅ | `Program.cs` registra `ErroDePersistenciaHandler`, `UseExceptionHandler()` e `AddProblemDetails()` — implementado |
-| D04 | ✅ | `EndpointsFalhaDePersistenciaTests` cobre 500 em 3 rotas: `Cadastro_FalhaAoSalvar_Devolve500`, `CriarPet_FalhaAoSalvar_Devolve500`, `AtualizarPet_FalhaAoSalvar_Devolve500` |
+| D03 | ✅ | `Program.cs` registra `ErroDePersistenciaHandler` e `FalhaInesperadaHandler` (nesta ordem), `UseExceptionHandler()` e `AddProblemDetails()`; o `FalhaInesperadaHandler` (`backend/Projeto.Api/Endpoints/FalhaInesperadaHandler.cs`, commit `5a4b117`) registra a exceção em `Error` e responde 500 com `{ "erro": "Erro interno. Tente novamente mais tarde." }` |
+| D04 | ✅ | `FalhaInesperadaTests` (commit `7dc4922`) cobre corpo genérico, ausência de vazamento, log e não-persistência; `EndpointsFalhaDePersistenciaTests` cobre 500 em 3 rotas: `Cadastro_FalhaAoSalvar_Devolve500`, `CriarPet_FalhaAoSalvar_Devolve500`, `AtualizarPet_FalhaAoSalvar_Devolve500` |
 
 ---
 
@@ -97,15 +97,15 @@
 
 ---
 
-### G — Especificação e agentes (1/2 ⚠️) — PARCIAL
+### G — Especificação e agentes (2/2 ✅) — CONCLUÍDO
 
-> **Arquivo a criar:** `docs/av2/especificacao-agente.md`
+> **Arquivo entregue:** `docs/av2/especificacao-agente.md`
 > **Atenção:** o vocabulário de G01 (`docs/av2/especificacao.md`) é usado em C02, F05 e F06.
 
-| Item | Status | O que falta |
+| Item | Status | Evidência |
 |---|---|---|
 | G01 | ✅ | `docs/av2/especificacao.md` com critérios **Dado/Quando/Então** dos 3 fluxos (FLX-002, FLX-004, FLX-005) e das 5 regras (REG-001, REG-003, REG-004, REG-005, REG-008), estados/transições e seção "Falhas" |
-| G02 | ❌ | Criar `docs/av2/especificacao-agente.md`: contexto do projeto para o agente, pedido delimitado, plano esperado, diff produzido e evidência de inspeção |
+| G02 | ✅ | `docs/av2/especificacao-agente.md` completo: agente **DsCode** (modelo `deepseek-flash`), commits `7dc4922` (testes vermelhos primeiro) e `5a4b117` (handler e registro), 3 arquivos alterados, suíte 295 casos (293 aprovados, 2 falhas pré-existentes), inspeção com 6 achados (A1–A6) e revisão humana preenchida em 15/11/2026 |
 
 ---
 
@@ -427,17 +427,17 @@ Cobrir **os 40 itens** e validar que todo caminho listado existe (`jq -r '.. | s
 - [ ] `dotnet test` verde em clone limpo — evidência capturada (F04)
 - [x] Modelo Mermaid confere com o código (B01–B07) ✅ — `docs/av2/modelo-de-classes.md`
 - [x] 5 regras e 3 fluxos fixados em `docs/av2/especificacao.md` (G01) ✅ — F05 e F06 ainda precisam reutilizá-los
-- [x] Falha excepcional tratada + testada (D03/D04) ✅ — documentada em `docs/av2/especificacao.md` (seção "Falhas"); corpo e log do 500 não verificados
-- [ ] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **E e C concluídas** (`docs/av2/registro-de-depuracao.md`, `docs/av2/revisao-de-codigo.md`); **G02 pendente**
+- [x] Falha excepcional tratada + testada (D03/D04) ✅ — documentada em `docs/av2/especificacao.md` (seção "Falhas"); corpo e log do 500 verificados por `FalhaInesperadaTests` (commit `7dc4922`)
+- [x] Depuração, revisão e especificação para agente documentadas com evidências (E, C, G02) — **E, C e G02 concluídas** (`docs/av2/registro-de-depuracao.md`, `docs/av2/revisao-de-codigo.md`, `docs/av2/especificacao-agente.md`)
 - [ ] Auditoria final sem declarar como concluído o que não foi comprovado (F06) — **F06 não existe**
 - [ ] `evidencias.json` cobrindo os 40 itens, com caminhos válidos — **não existe**
 
 ## 5. Projeção de nota
 
-<!-- Atualizado em 15/11/2026 — base atual: 36 itens concluídos (cada item = 0,25) -->
+<!-- Atualizado em 16/11/2026 — base atual: 37 itens concluídos (cada item = 0,25) -->
 | Cenário | Itens concluídos | Nota |
 |---|---:|---:|
 | ~~Situação original (antes de 14/11/2026)~~ | ~~12~~ | ~~3,00~~ |
-| **Situação atual (15/11/2026)** — E e C entregues; A (8) + B (8) + C (6) + D (4) + E (6) + F (3) + G (1) | **36** | **9,00** |
-| + F04 (evidência de clone limpo) | 37 | 9,25 |
-| + G02 + F05 + F06 (3 itens; `evidencias.json` é o índice final, não um item) | 40 | **10,00** |
+| **Situação atual (16/11/2026)** — G02 entregue; A (8) + B (8) + C (6) + D (4) + E (6) + F (3) + G (2) | **37** | **9,25** |
+| + F04 (evidência de clone limpo) | 38 | 9,50 |
+| + F05 + F06 (2 itens; `evidencias.json` é o índice final, não um item) | 40 | **10,00** |
