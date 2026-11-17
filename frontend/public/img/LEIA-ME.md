@@ -1,37 +1,36 @@
 # Fotos do PetWalk
 
-A landing page e as telas de login usam fotografias reais, que precisam ser
-colocadas **nesta pasta** (`frontend/public/img/`). Enquanto o arquivo não existir,
-a tela mostra um bloco colorido com uma patinha no lugar, sem quebrar o layout.
+A landing page e as telas de login utilizam fotografias reais
+armazenadas na pasta `frontend/public/img/`.
 
-| Arquivo | Onde aparece | O que procurar |
+As 7 fotografias utilizadas no projeto estão disponíveis nesta
+pasta, e seus respectivos créditos e licenças estão documentados
+na seção "Créditos e licenças" deste arquivo.
+
+Caso alguma imagem não esteja disponível, a interface apresenta
+um bloco colorido com uma patinha como alternativa visual,
+sem comprometer o layout.
+
+| Arquivo | Onde aparece | Descrição da fotografia |
 | :-- | :-- | :-- |
-| `hero-cachorro.jpg` | Hero da página inicial (destaque principal) | Cachorro grande, bem iluminado, olhando para a câmera, fundo desfocado. Formato quase quadrado (ex.: 1200×1300). |
-| `passeador-parque.jpg` | Seção "Encontre seu passeador" | Passeador(a) caminhando com um ou mais cães em parque ou rua arborizada. |
-| `caes-brincando.jpg` | Galeria "Para quem ama seus pets" (foto grande, vertical) | Cães brincando em parque ou gramado. |
-| `tutor-e-pet.jpg` | Galeria "Para quem ama seus pets" | Tutor(a) abraçando ou brincando com o pet. |
-| `gato.jpg` | Galeria "Para quem ama seus pets" | Gato em boa luz natural. |
-| `passeador.jpg` | Seção "Para passeadores" | Passeador(a) sorrindo com um cachorro na coleira. |
-| `login-cachorro.jpg` | Painel lateral do login e do cadastro | Cachorro em enquadramento vertical ou quadrado. |
-
-## Dicas
-
-- Use fotos com licença gratuita para uso comercial (Unsplash, Pexels ou Pixabay) e confira a licença de cada uma.
-- Prefira JPG entre 100 KB e 400 KB. Redimensione para, no máximo, 1600 px no lado maior.
-- Mantenha os nomes exatamente como na tabela. Se usar outro nome ou formato (por exemplo `.webp`), ajuste o caminho em `src/pages/LandingPage.jsx` e `src/components/AuthLayout.jsx`.
-- Fotos de pessoas: use apenas imagens com autorização de uso de imagem (os bancos acima já informam isso).
+| `hero-cachorro.jpg` | Hero da página inicial (destaque principal) | Cachorro grande, bem iluminado, olhando para a câmera, fundo desfocado. |
+| `passeador-parque.jpg` | Seção "Encontre seu passeador" | Pessoa caminhando com quatro cachorros de diferentes portes em ambiente externo. |
+| `caes-brincando.jpg` | Galeria "Para quem ama seus pets" (foto grande, vertical) | Cães brincando em gramado. |
+| `tutor-e-pet.jpg` | Galeria "Para quem ama seus pets" | Tutora e criança abraçando o pet. |
+| `gato.jpg` | Galeria "Para quem ama seus pets" | Cachorro e gato deitados na grama. |
+| `passeador.jpg` | Seção "Para passeadores" | Mulher de cabelos cacheados passeando com um cachorro pequeno na coleira, em um parque arborizado. |
+| `login-cachorro.jpg` | Painel lateral do login e do cadastro | Filhote de golden retriever caminhando ao ar livre com coleira.  |
 
 ## Créditos e licenças
 
-Atribuição das 7 fotos usadas no site. As células marcadas como **A CONFIRMAR** ainda não têm
-fonte, licença e link verificados; preencha com os dados oficiais de cada imagem antes da publicação.
+As 7 fotografias utilizadas no PetWalk foram obtidas nas plataformas Unsplash e Pexels. A tabela abaixo apresenta os autores, as licenças e os links das páginas originais de cada fotografia.
 
 | Arquivo | Fonte / autor | Licença | Link |
 | :-- | :-- | :-- | :-- |
-| `hero-cachorro.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
-| `passeador-parque.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
-| `caes-brincando.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
-| `tutor-e-pet.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
-| `gato.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
-| `passeador.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
-| `login-cachorro.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| `hero-cachorro.jpg` | Blue Bird (Pexels) | Pexels License | https://www.pexels.com/pt-br/foto/animal-bicho-cachorro-cao-7210704/ |
+| `passeador-parque.jpg` | Blue Bird (Pexels) | Pexels License | https://www.pexels.com/photo/unrecognizable-woman-walking-dogs-on-leashes-in-countryside-7210754/ |
+| `caes-brincando.jpg` | Mia Anderson (Unsplash) | Unsplash License | https://unsplash.com/pt-br/fotografias/cao-pequeno-marrom-longo-revestido-no-campo-de-grama-verde-durante-o-dia-2k6v10Y2dIg |
+| `tutor-e-pet.jpg` | RDNE Stock project (Pexels) | Pexels License | https://www.pexels.com/photo/photo-of-a-woman-and-girl-hugging-a-dog-7516812/ |
+| `gato.jpg` | Andrew S (@sita2) (Unsplash) | Unsplash License | https://unsplash.com/pt-br/fotografias/um-cao-e-um-gato-deitados-na-grama-ouo1hbizWwo |
+| `passeador.jpg` | Steshka Croes (Pexels) | Pexels License | https://www.pexels.com/photo/a-woman-running-at-a-park-with-her-dog-8969395/ |
+| `login-cachorro.jpg` | Florian Schindler (Unsplash) | Unsplash License | https://unsplash.com/pt-br/fotografias/um-filhote-de-cachorro-golden-retriever-anda-na-coleira-do-lado-de-fora-v-WVryDsM0I |
