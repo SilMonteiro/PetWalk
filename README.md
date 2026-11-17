@@ -214,6 +214,9 @@ PetWalk
 │   │   ├── Dados
 │   │   │   ├── Configuracoes    # Mapeamento EF Core das entidades
 │   │   │   ├── Migracoes        # Migrations do EF Core
+│   │   │   │   ├── 20261111012746_Inicial.cs
+│   │   │   │   ├── 20261111012746_Inicial.Designer.cs
+│   │   │   │   └── PetWalkDbContextModelSnapshot.cs
 │   │   │   ├── PetWalkDbContext.cs
 │   │   │   └── VerificacaoDeSchema.cs
 │   │   ├── Dominio              # Entidades e regras de negócio
@@ -226,8 +229,19 @@ PetWalk
 │   │   ├── Projeto.Api.http     # Roteiro de requisições manuais
 │   │   ├── Program.cs
 │   │   └── Properties
+│   │       └── launchSettings.json
 │   └── Projeto.Tests            # Testes de domínio, endpoints, persistência, HTTP e concorrência
 ├── docs
+│   ├── av2
+│   │   ├── analise-do-modelo.md
+│   │   ├── auditoria-final.md
+│   │   ├── especificacao.md
+│   │   ├── especificacao-agente.md
+│   │   ├── evidencias.json
+│   │   ├── matriz-rastreabilidade.md
+│   │   ├── modelo-de-classes.md
+│   │   ├── registro-de-depuracao.md
+│   │   └── revisao-de-codigo.md
 │   └── proposta.md
 ├── frontend
 │   ├── .env.example             # Modelo de VITE_API_URL
@@ -235,24 +249,50 @@ PetWalk
 │   ├── package.json             # Dependências do projeto frontend
 │   ├── package-lock.json        # Lockfile do npm
 │   ├── vite.config.js           # Configuração do Vite
+│   ├── public                   # Arquivos estáticos do frontend
+│   │   ├── brand                # Ícones da marca
+│   │   │   ├── favicon.png
+│   │   │   ├── petwalk-icon.png
+│   │   │   └── petwalk-logo.png
+│   │   └── img                  # Fotos das telas
+│   │       ├── caes-brincando.jpg
+│   │       ├── gato.jpg
+│   │       ├── hero-cachorro.jpg
+│   │       ├── LEIA-ME.md       # Origem das imagens
+│   │       ├── login-cachorro.jpg
+│   │       ├── passeador.jpg
+│   │       ├── passeador-parque.jpg
+│   │       └── tutor-e-pet.jpg
 │   └── src
 │       ├── App.jsx              # Configuração de rotas e providers
 │       ├── main.jsx             # Renderização principal do React
 │       ├── components
 │       │   ├── AuthLayout.jsx
 │       │   ├── AvaliacaoForm.jsx
+│       │   ├── AvatarIniciais.jsx
+│       │   ├── Foto.jsx
 │       │   ├── Header.jsx
+│       │   ├── Icon.jsx
+│       │   ├── Logo.jsx
+│       │   ├── PageShell.jsx
 │       │   ├── PasseioCard.jsx
+│       │   ├── PasseioTimeline.jsx
+│       │   ├── PatinhasFlutuantes.jsx
 │       │   ├── PetCard.jsx
-│       │   └── RotaProtegida.jsx
+│       │   ├── RotaProtegida.jsx
+│       │   └── StatusBadge.jsx
 │       ├── constants
-│       │   └── enums.js
+│       │   ├── enums.js
+│       │   └── statusPasseio.js
 │       ├── context
 │       │   ├── AuthContext.jsx
 │       │   └── NotificacoesContext.jsx
+│       ├── hooks
+│       │   └── useReveal.js
 │       ├── pages
 │       │   ├── CadastroPage.jsx
 │       │   ├── HomePage.jsx
+│       │   ├── LandingPage.jsx
 │       │   ├── LoginPage.jsx
 │       │   ├── NotificacoesPage.jsx
 │       │   ├── PasseadoresPage.jsx
@@ -270,15 +310,18 @@ PetWalk
 │       ├── utils
 │       │   └── passeioAcoes.js
 │       └── styles
-│           ├── cadastro.css
+│           ├── auth.css
+│           ├── design-system.css
 │           ├── header.css
 │           ├── home.css
-│           ├── login.css
+│           ├── landing.css
 │           ├── notificacoes.css
 │           ├── passeadores.css
 │           ├── passeios.css
+│           ├── patinhas.css
 │           ├── pet-form.css
 │           ├── pets.css
+│           ├── shell.css
 │           └── solicitar-passeio.css
 ├── .gitignore
 └── README.md
