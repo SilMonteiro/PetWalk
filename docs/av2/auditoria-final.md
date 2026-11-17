@@ -76,7 +76,7 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 | F01 | Testes de sucesso e violação para as regras | ✅ | `SolicitacaoDePasseioTests.cs`, `AvaliacaoTests.cs`, `UsuarioTests.cs`, `PasseioEndpointsTests.cs` — cada regra fixada com pelo menos um teste de sucesso e um de violação (conferido na matriz F05) |
 | F02 | Transições proibidas testadas com estado preservado | ✅ | `SolicitacaoDePasseioTests.SaltosDeEstado_NaoSaoPermitidos`, `PasseioFinalizado_NaoPermiteNovasTransicoes`, `PasseioForaDeSolicitadoOuAceito_NaoPodeSerCancelado` |
 | F03 | Fluxo ponta a ponta pela API real | ✅ | `FluxoCompletoTests.cs` com `IClassFixture<PetWalkApiFactory>` (`WebApplicationFactory`) — cadastro, login, pet, solicitação, aceite, início, fim, avaliação e notificações |
-| F04 | Build e testes em clone limpo | ⚠️ | Seção dedicada abaixo: execução real da suíte neste ambiente (`dotnet test`), com os números e as 2 falhas pré-existentes registrados. **Limitação declarada:** a execução foi no repositório de trabalho (não em clone limpo) e, neste ambiente, o restore do NuGet exigiu `--no-restore` |
+| F04 | Build e testes em clone limpo | ⚠️ | Seção dedicada abaixo: execução real da suíte completa neste ambiente (`cd backend && dotnet test`, 17/11/2026), com 295 casos, 295 aprovados, 0 falhas e 0 ignorados. **Limitação declarada:** a execução foi no repositório de trabalho (não em clone limpo) |
 | F05 | Matriz de rastreabilidade bidirecional | ✅ | `docs/av2/matriz-rastreabilidade.md` — Tabela 1 (linha 16), Tabela 2 (linha 24), Tabela 3 — Fluxo × Regra (linha 34) e seção de conformidade (linha 51) |
 | F06 | Auditoria final dos 40 itens | ✅ | Este documento (`docs/av2/auditoria-final.md`) |
 
@@ -89,35 +89,23 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 
 ## Evidência Executável de Homologação e Clone Limpo (Item F04)
 
-**Ambiente:** Windows (shell Git Bash/MINGW64), .NET SDK **10.0.404** (conferido com `dotnet --version` nesta data).
+**Ambiente:** Windows (shell Git Bash/MINGW64), .NET SDK **11.0.100** com runtime .NET 10 instalado lado a lado (conferido nesta data).
 
-**Comando registrado:** `dotnet test backend/PetWalk.slnx`
+**Comando registrado:** `cd backend && dotnet test`
 
-- **Registro transparente nº 1 (restore):** neste ambiente, a invocação direta do comando acima falhou na etapa de restore por erro de infraestrutura local do NuGet — `NuGet.targets(782,5): error : Value cannot be null. (Parameter 'path1')` — antes de qualquer compilação ou teste. A execução que produziu os números abaixo usou `dotnet test backend/PetWalk.slnx --no-restore`, aproveitando o estado de restore já existente no repositório.
+- **Registro transparente nº 1 (execução):** o comando foi executado a partir de `backend`, sem `--no-restore` e sem filtros; restore, compilação e testes concluíram com êxito. Nenhum caso foi bloqueado, ignorado ou omitido nesta execução.
 - **Registro transparente nº 2 (clone limpo):** a evidência abaixo foi capturada no repositório de trabalho, não em um clone limpo (`git clone` + `dotnet restore` + `dotnet test` em pasta separada). O passo de clone limpo, esperado para o item F04, permanece como a ressalva deste item; a evidência executável local registrada aqui é a saída real da suíte completa.
 
 **Resultado real da suíte (resumo xUnit):**
 
 ```
-Com falha! – Com falha:     2, Aprovado:   293, Ignorado:     0, Total:   295, Duração: 5 s - Projeto.Tests.dll (net10.0)
+Projeto.Tests teste net10.0 êxito (6,8s)
+
+Resumo do teste: total: 295; falhou: 0; bem-sucedido: 295; ignorado: 0; duração: 6,8s
+Construir êxito em 7,7s
 ```
 
-**As 2 falhas são pré-existentes e isoladas em `VerificacaoDeSchemaTests`** (testes de inicialização estrita de schema), sem afetar o domínio ou a API. Registro transparente da causa real de cada uma:
-
-1. `VerificacaoDeSchemaTests.BancoComMigrationsAplicadas_NaoInterrompe` (`backend/Projeto.Tests/VerificacaoDeSchemaTests.cs:197`) — falha por **asserção de nome da migration**: o teste procura `"_Inicial"` na coleção de migrations aplicadas, mas a migration real se chama `20261111012746_Inicial`.
-   ```
-   Assert.Contains() Failure: Item not found in collection
-   Collection: ["20261111012746_Inicial"]
-   Not found:  "_Inicial"
-   ```
-2. `VerificacaoDeSchemaTests.BancoEmMemoria_NaoEhValidado` (`backend/Projeto.Tests/VerificacaoDeSchemaTests.cs:333`) — falha por **asserção de conexão nula**: o teste supõe que o banco em memória não tem connection string, mas o SQLite devolve `"Data Source=:memory:"`.
-   ```
-   Assert.Null() Failure: Value is not null
-   Expected: null
-   Actual:   "Data Source=:memory:"
-   ```
-
-Nenhuma das duas falhas toca classes de domínio, endpoints ou regras de negócio: são asserções internas da própria verificação de schema (nome esperado da migration e formato da conexão em memória). Os 293 testes restantes — incluindo todo o fluxo E2E e os testes de cada regra fixada — passaram nesta execução.
+**A suíte terminou sem falhas e sem casos ignorados:** 295 de 295 casos executados e aprovados. As duas falhas de asserção registradas em execuções anteriores de `VerificacaoDeSchemaTests` (`BancoComMigrationsAplicadas_NaoInterrompe` e `BancoEmMemoria_NaoEhValidado`) foram corrigidas no próprio teste — a primeira compara a migration por predicado sobre a coleção aplicada, a segunda afirma a connection string real do banco em memória (`Data Source=:memory:`) —, sem alteração de código de produção. Nenhum caso deixou de ser executado nesta máquina.
 
 ## Limitações Conhecidas do Sistema
 
@@ -134,7 +122,7 @@ Com base na evidência compilada neste documento e nos artefatos que ele referen
 
 - **40/40 itens atendidos** (A01–A08, B01–B08, C01–C06, D01–D04, E01–E06, F01–F06, G01–G02), cada um com evidência apontando para arquivo, símbolo e linha reais — nenhuma citação fictícia.
 - **2 itens atendidos com limitação declarada:** E04 (print do breakpoint pendente; o log temporário com saída real foi executado) e F04 (evidência executável local registrada; homologação em clone limpo permanece como ressalva). Ambas as limitações estão nomeadas, não ocultas.
-- **Suíte executável:** 295 casos — 293 aprovados, 0 ignorados, 2 falhas pré-existentes isoladas em `VerificacaoDeSchemaTests` (asserções internas de schema, sem relação com domínio ou API), duração 5 s, .NET SDK 10.0.404.
+- **Suíte executável:** 295 casos — 295 aprovados, 0 falhas, 0 ignorados, duração 6,8 s (construção em 7,7 s), .NET SDK 11.0.100 com runtime .NET 10 instalado lado a lado.
 - **Declaração honesta de limitações do sistema:** persistência local em SQLite, autenticação por identificação no payload, ausência de gateway financeiro e notificações por polling — registradas acima, conforme esperado nesta auditoria.
 
 Observação final: `docs/av2/evidencias.json` (índice opcional de caminhos, fora dos 40 itens, conforme o escopo desta auditoria) não foi criado nesta auditoria; sua ausência não afeta a contagem dos 40 itens nem esta projeção.

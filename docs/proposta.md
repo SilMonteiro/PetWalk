@@ -114,7 +114,7 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 - Falhas tratadas: mensagens das REG-001 a REG-011 devolvidas pela API e exibidas no frontend, com este contrato de status: 400 para entrada inválida (ex.: "Nota deve estar entre 1 e 5"), 422 para regra de negócio violada (ex.: "Passeio não finalizado", REG-003, REG-004 e REG-008), 404 para recurso inexistente ("Usuário não encontrado", "Passeador não encontrado", "Pet não encontrado", "Passeio não encontrado", "Notificação não encontrada"), 409 para e-mail já cadastrado (REG-010), 403 para usuário bloqueado no login (REG-011) e 401 para credenciais inválidas; transições proibidas do ciclo de vida cobertas pelos mesmos erros.
 - Testes implementados (160 no backend): testes xUnit para REG-001 a REG-011, para o ciclo de vida do Passeio (caminho feliz e transições proibidas) e para as duas políticas de preço.
 
-> **Nota de atualização (subetapa 9.2):** a contagem de 160 testes refere-se à entrega da AV2; a suíte atual tem 291 casos (253 `[Fact]` + 38 casos de `[Theory]`) em 33 classes. Na última execução registrada, 171 casos passaram e 120 permanecem bloqueados pelo Windows App Control (`0x800711C7`), sem execução.
+> **Nota de atualização (subetapa 9.2):** a contagem de 160 testes refere-se à entrega da AV2; a suíte atual tem 295 casos (257 `[Fact]` + 38 casos de `[InlineData]` em 14 métodos `[Theory]`) em 34 classes. Na execução de 17/11/2026 (`cd backend && dotnet test`, .NET SDK 11.0.100 com runtime .NET 10 lado a lado), o resultado real foi **295 aprovados, 0 falhas e 0 ignorados**, em 6,8 s.
 
 
 ## Fora do escopo

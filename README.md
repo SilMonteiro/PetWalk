@@ -139,7 +139,7 @@ Em cada terminal, pressione `Ctrl+C`.
 
 ## Testes
 
-Os testes do backend usam xUnit. A suíte tem **291 casos** (253 `[Fact]` e 38 casos de `[Theory]`) em **33 classes**, cobrindo domínio, endpoints, persistência EF/SQLite, integração HTTP, schema de inicialização e concorrência.
+Os testes do backend usam xUnit. A suíte tem **295 casos** (257 `[Fact]` e 38 casos de `[InlineData]` em 14 métodos `[Theory]`) em **34 classes**, cobrindo domínio, endpoints, persistência EF/SQLite, integração HTTP, schema de inicialização e concorrência.
 
 Para executar toda a suíte, a partir da raiz do repositório:
 
@@ -160,11 +160,16 @@ Para compilar o backend, a partir da raiz do repositório:
 dotnet build backend/PetWalk.slnx
 ```
 
-### Limitação do ambiente Windows
+### Execução dos testes no Windows
 
-**120 dos 291 casos não foram executados neste ambiente.** Eles dependem do SQLite nativo e falham no carregamento de `SQLitePCLRaw.batteries_v2.dll` com `System.IO.FileLoadException` (`0x800711C7`), por bloqueio do Windows App Control. A falha ocorre na inicialização do teste, antes de qualquer asserção.
+A suíte completa foi executada neste ambiente (Windows, shell Git Bash/MINGW64) em 17/11/2026, com .NET SDK **11.0.100** e runtime .NET 10 instalado lado a lado:
 
-Esses 120 casos **não estão aprovados**. Na última execução local registrada: 171 casos aprovados e 120 não executados. A homologação dos casos de persistência, schema e concorrência depende de CI ou de uma máquina sem essa política de App Control.
+```bash
+cd backend
+dotnet test
+```
+
+Resultado real: **295 casos, 295 aprovados, 0 falhas, 0 ignorados**, em 6,8 s. A construção terminou com êxito em 7,7 s. Nenhum caso deixou de ser executado nesta máquina.
 
 ## Limitações conhecidas
 
