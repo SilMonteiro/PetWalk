@@ -32,10 +32,10 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 
 | Conceito | Identidade | Estado relevante | Comportamento próprio |
 | :-- | :-- | :-- | :-- |
-| Usuário | idUsuario | nome, tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail (único), senha (guardada apenas como hash), endereço (privado), pets (do tutor), valorHora e tipoCobranca (passeador; definidos por definirCobranca()), mediaAvaliacao | definirCobranca(), solicitarPasseio(), adicionarPet(), removerPet(), obterEnderecoPara(), bloquear(), desbloquear(), recalcularMedia() |
+| Usuário | idUsuario | nome, tipoPerfil (TUTOR, PASSEADOR, AMBOS), status (ATIVO, BLOQUEADO), telefone, e-mail (único), senha (guardada apenas como hash), endereço (privado), pets (do tutor), valorHora e tipoCobranca (passeador; definidos por definirCobranca()), mediaAvaliacao | definirCobranca(), solicitarPasseio(), adicionarPet(), removerPet(), obterEnderecoPara(), bloquear(), desbloquear(), registrarAvaliacaoRecebida() |
 | Pet | idPet | nome, espécie, raça, porte (PEQUENO, MEDIO, GRANDE), idade, observações, vacinas, tutor (Usuário) | atualizar(), registrarVacina() |
 | Passeio | idPasseio | data, horário, duração, local, valor (calculado na solicitação), tutor (Usuário), passeador (Usuário), pet (Pet), status (SOLICITADO, ACEITO, EM_ANDAMENTO, FINALIZADO, RECUSADO, CANCELADO) | criarPasseio() (via Usuário.solicitarPasseio()), aceitarPasseio(), recusarPasseio(), iniciarPasseio(), finalizarPasseio(), cancelarPasseio(), avaliarPasseio(), participou() |
-| Avaliação | idAvaliacao | nota (1 a 5), comentário, data, avaliador (Usuário), avaliado (Usuário), passeio (Passeio) | criada por Passeio.avaliarPasseio() com validação no construtor (REG-001, REG-006); calcularMediaAvaliacao() (recalculada no Usuário avaliado) |
+| Avaliação | idAvaliacao | nota (1 a 5), comentário, data, avaliador (Usuário), avaliado (Usuário), passeio (Passeio) | criada por Passeio.avaliarPasseio() com validação no construtor (REG-001, REG-006), que dispara registrarAvaliacaoRecebida() no Usuário avaliado (média recalculada) |
 | Notificação | idNotificacao | destinatario (Usuário), tipo (PASSEIO_SOLICITADO, PASSEIO_ACEITO, PASSEIO_RECUSADO, PASSEIO_INICIADO, PASSEIO_FINALIZADO, PASSEIO_CANCELADO), mensagem, lida, dataEnvio, passeio (Passeio) | enviarNotificacao() (executado pelo serviço de notificações após cada transição do passeio), marcarComoLida(), listarNaoLidas() (consulta por destinatário) |
 
 
