@@ -2,11 +2,6 @@
 
 **Data:** 17/11/2026
 **Status consolidado da auditoria:** 40/40 itens atendidos — 38 ✅ Concluído + 2 ⚠️ Atendido com limitação (E04 e F04, limitações declaradas abaixo)
-**Nota projetada:** 40/40 — 10,0/10,0 (0,25 por item atendido)
-
-> **Pendência de decisão:** manter ou remover a linha "Nota projetada" deste relatório? A base de cálculo
-> (0,25 por item atendido, 40/40) foi mantida; a decisão é editorial e não altera o status consolidado da
-> auditoria.
 
 Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (evidência executável da suíte) e **F06** (auditoria dos 40 itens). Regra aplicada durante toda a auditoria: nenhum item é marcado como concluído sem evidência comprovada — cada célula de evidência aponta para arquivo, símbolo e, onde verificável, linha real. Os únicos dois itens com limitação são declarados e descritos; nenhuma limitação foi ocultada.
 
