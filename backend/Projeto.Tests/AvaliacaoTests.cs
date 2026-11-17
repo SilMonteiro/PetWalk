@@ -1,3 +1,5 @@
+using System.Reflection;
+
 // Cobre a REG-001 e a REG-006: avaliação só após FINALIZADO, uma vez por avaliador,
 // nota entre 1 e 5, com recálculo da média do avaliado.
 public class AvaliacaoTests
@@ -124,5 +126,39 @@ public class AvaliacaoTests
         Assert.Null(propriedade!.GetSetMethod());
         Assert.Equal(typeof(IReadOnlyList<Avaliacao>), propriedade.PropertyType);
         Assert.Empty(passeio.Avaliacoes);
+    }
+
+    // ---------- Criação ----------
+
+    [Fact]
+    public void Avaliacao_NaoTemConstrutorPublico()
+    {
+        var construtores = typeof(Avaliacao).GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+
+        Assert.Empty(construtores);
+    }
+
+    [Fact]
+    public void Avaliacao_SoEhCriadaPorPasseioAvaliar()
+    {
+        var (passeio, tutor, passeador) = CriarPasseioFinalizado();
+
+        var avaliacao = passeio.Avaliar(tutor, 5, "Ótimo passeio", Fabrica.Agora);
+
+        Assert.Contains(avaliacao, passeio.Avaliacoes);
+        Assert.Same(passeio, avaliacao.Passeio);
+        Assert.Same(passeador, avaliacao.Avaliado);
+    }
+
+    [Fact]
+    public void PasseioNaoFinalizado_NaoGeraAvaliacaoNemAlteraMedia()
+    {
+        var (passeio, tutor, passeador) = CriarPasseioSolicitado();
+        passeio.Aceitar(passeador);
+
+        Assert.Throws<InvalidOperationException>(() => passeio.Avaliar(tutor, 5, "", Fabrica.Agora));
+
+        Assert.Empty(passeio.Avaliacoes);
+        Assert.Equal(0d, passeador.MediaAvaliacao);
     }
 }
