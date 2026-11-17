@@ -328,10 +328,13 @@ public class VerificacaoDeSchemaTests
 
         contexto.Database.EnsureCreated();
 
-        // É exatamente o caminho da PetWalkApiFactory: DbConnection já aberta e nenhuma
-        // connection string nas opções. Por isso a verificação lê a conexão, não as opções.
-        Assert.Null(contexto.Database.GetConnectionString());
+        // É exatamente o caminho da PetWalkApiFactory: o contexto recebe uma DbConnection já
+        // aberta, dona do banco em memória. Nesse caminho a connection string devolvida é a da
+        // própria conexão ("Data Source=:memory:"), não a de um arquivo configurado.
+        Assert.Equal("Data Source=:memory:", contexto.Database.GetConnectionString());
 
+        // A verificação reconhece o banco em memória e retorna sem exigir arquivo, histórico ou
+        // schema: validá-lo quebraria a fábrica de testes sem proteger nada.
         VerificacaoDeSchema.GarantirSchemaAplicado(contexto);
     }
 
