@@ -20,3 +20,18 @@ a tela mostra um bloco colorido com uma patinha no lugar, sem quebrar o layout.
 - Prefira JPG entre 100 KB e 400 KB. Redimensione para, no máximo, 1600 px no lado maior.
 - Mantenha os nomes exatamente como na tabela. Se usar outro nome ou formato (por exemplo `.webp`), ajuste o caminho em `src/pages/LandingPage.jsx` e `src/components/AuthLayout.jsx`.
 - Fotos de pessoas: use apenas imagens com autorização de uso de imagem (os bancos acima já informam isso).
+
+## Créditos e licenças
+
+Atribuição das 7 fotos usadas no site. As células marcadas como **A CONFIRMAR** ainda não têm
+fonte, licença e link verificados; preencha com os dados oficiais de cada imagem antes da publicação.
+
+| Arquivo | Fonte / autor | Licença | Link |
+| :-- | :-- | :-- | :-- |
+| `hero-cachorro.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| `passeador-parque.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| `caes-brincando.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| `tutor-e-pet.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| `gato.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| `passeador.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| `login-cachorro.jpg` | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
