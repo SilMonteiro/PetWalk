@@ -1,7 +1,7 @@
 {
   "name": "frontend-project",
   "version": "1.0.0",
-  "description": "Projeto de registro de pets com tela de login",
+  "description": "Frontend do PetWalk, plataforma de intermediação de passeios com pets",
   "main": "src/main.jsx",
   "scripts": {
     "dev": "vite",
@@ -20,8 +20,8 @@
   "keywords": [
     "react",
     "vite",
-    "login",
-    "registro de pets"
+    "pets",
+    "passeios"
   ],
   "author": "",
   "license": "ISC"

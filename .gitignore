@@ -35,11 +35,11 @@ backend/Projeto.Api/App_Data/
 *.sqlite
 *.sqlite3
 
-AGENTS.md 
-dscode
-dscode-v4.2.0-linux-x64.tar.gz
-LICENSE
-NOTICE
-.dscode/
-dscode.exe
-templates/
+/AGENTS.md
+/dscode
+/dscode-v4.2.0-linux-x64.tar.gz
+/LICENSE
+/NOTICE
+/.dscode/
+/dscode.exe
+/templates/
