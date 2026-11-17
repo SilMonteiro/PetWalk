@@ -89,7 +89,7 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 
 ## Evidência Executável de Homologação e Clone Limpo (Item F04)
 
-**Ambiente:** Windows (shell Git Bash/MINGW64), .NET SDK **11.0.100** com runtime .NET 10 instalado lado a lado (conferido nesta data).
+**Ambiente:** Windows (PowerShell), .NET SDK **11.0.100** com runtime .NET 10 instalado lado a lado (conferido nesta data).
 
 **Comando registrado:** `cd backend && dotnet test`
 
