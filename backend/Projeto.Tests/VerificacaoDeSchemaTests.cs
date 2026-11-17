@@ -194,7 +194,7 @@ public class VerificacaoDeSchemaTests
             {
                 criacao.Database.Migrate();
 
-                Assert.Contains("_Inicial", criacao.Database.GetAppliedMigrations());
+                Assert.Contains(criacao.Database.GetAppliedMigrations(), m => m.EndsWith("_Inicial"));
             }
 
             // Cobre também a comparação de tabelas e colunas contra o modelo.
