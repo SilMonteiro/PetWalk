@@ -162,9 +162,9 @@ dotnet build backend/PetWalk.slnx
 
 ### Execução dos testes no Windows
 
-A suíte completa foi executada neste ambiente (Windows, shell Git Bash/MINGW64) em 17/11/2026, com .NET SDK **11.0.100** e runtime .NET 10 instalado lado a lado:
+A suíte completa foi executada neste ambiente (Windows, PowerShell) em 17/11/2026, com .NET SDK **11.0.100** e runtime .NET 10 instalado lado a lado:
 
-```bash
+```powershell
 cd backend
 dotnet test
 ```
