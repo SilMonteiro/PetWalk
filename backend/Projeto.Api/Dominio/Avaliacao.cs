@@ -8,7 +8,9 @@ public class Avaliacao
     public Passeio Passeio { get; }
     public Usuario Avaliado { get; }
 
-    public Avaliacao(Usuario avaliador, Passeio passeio, int nota, string comentario, DateTime agora)
+    // Internal: uma Avaliacao só nasce dentro de Passeio.Avaliar, que garante
+    // a unicidade por avaliador (REG-001).
+    internal Avaliacao(Usuario avaliador, Passeio passeio, int nota, string comentario, DateTime agora)
     {
         Avaliador = avaliador ?? throw new ArgumentNullException(nameof(avaliador));
         Passeio = passeio ?? throw new ArgumentNullException(nameof(passeio));
@@ -35,7 +37,7 @@ public class Avaliacao
     }
 
     // Construtor exclusivo para materialização pelo EF Core: não executa as validações
-    // do construtor público nem deriva Avaliado a partir do Passeio.
+    // do construtor com parâmetros nem deriva Avaliado a partir do Passeio.
     private Avaliacao()
     {
         Avaliador = null!;
