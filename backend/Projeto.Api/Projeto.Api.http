@@ -115,10 +115,30 @@ Content-Type: application/json
 
 ###
 
-# O DELETE remove o pet do perfil. Fica comentado para não quebrar os fluxos seguintes:
-# recrie o pet (POST acima) antes de rodar o FLX-002 se descomentar.
-# Esperado: 204 No Content; repetir devolve 404 {"erro":"Pet não encontrado"}
-#DELETE {{Projeto.Api_HostAddress}}/usuarios/1/pets/1
+# Pet descartável para o DELETE (id 2). Esperado: 201 {"id":2,...}
+POST {{Projeto.Api_HostAddress}}/usuarios/1/pets
+Content-Type: application/json
+
+{
+  "nome": "Bolinha",
+  "especie": "Cachorro",
+  "raca": "Poodle",
+  "porte": 0,
+  "idade": 1,
+  "observacoes": "Criado apenas para o DELETE; não participa dos passeios"
+}
+
+###
+
+# DELETE com sucesso: remove o pet 2, que não tem passeios. Esperado: 204 No Content
+# (o pet 1, Rex, tem passeios e devolveria 409 {"erro":"Pet possui passeios e não pode ser excluído"})
+DELETE {{Projeto.Api_HostAddress}}/usuarios/1/pets/2
+
+###
+
+# DELETE de pet inexistente. Esperado: 404 {"erro":"Pet não encontrado"}
+# (tutor inexistente devolveria 404 {"erro":"Usuário não encontrado"})
+DELETE {{Projeto.Api_HostAddress}}/usuarios/1/pets/999
 
 
 # ============================================================================
