@@ -1,9 +1,9 @@
 # Auditoria Final — PetWalk (AV2)
 
 **Data:** 17/11/2026
-**Status consolidado da auditoria:** 40/40 itens atendidos — 38 ✅ Concluído + 2 ⚠️ Atendido com limitação (E04 e F04, limitações declaradas abaixo)
+**Status consolidado da auditoria:** 40/40 itens atendidos — 39 ✅ Concluído + 1 ⚠️ Atendido com limitação (E04)
 
-Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (evidência executável da suíte) e **F06** (auditoria dos 40 itens). Regra aplicada durante toda a auditoria: nenhum item é marcado como concluído sem evidência comprovada — cada célula de evidência aponta para arquivo, símbolo e, onde verificável, linha real. Os únicos dois itens com limitação são declarados e descritos; nenhuma limitação foi ocultada.
+Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (evidência executável da suíte) e **F06** (auditoria dos 40 itens). Regra aplicada durante toda a auditoria: nenhum item é marcado como concluído sem evidência comprovada — cada célula de evidência aponta para arquivo, símbolo e, onde verificável, linha real. O único item com limitação é declarado e descrito; nenhuma limitação foi ocultada.
 
 ## Tabela de Auditoria dos 40 Itens
 
@@ -64,14 +64,14 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 | E05 | Causa raiz e menor correção | ✅ | `registro-de-depuracao.md` — linha 331: causa raiz em `Usuario.RegistrarAvaliacaoRecebida`, diff mínimo e teste verde após a correção |
 | E06 | Antes/depois, comparação de técnicas e não-regressão | ✅ | `registro-de-depuracao.md` — linha 403: tabela antes/depois, comparação de técnicas e suíte completa sem regressão |
 
-### F — Testes, rastreabilidade e auditoria (6/6 — 1 atendido com limitação)
+### F — Testes, rastreabilidade e auditoria (6/6)
 
 | Item | Descrição / Requisito | Status | Evidência Comprovada |
 | :-- | :-- | :--: | :-- |
 | F01 | Testes de sucesso e violação para as regras | ✅ | `SolicitacaoDePasseioTests.cs`, `AvaliacaoTests.cs`, `UsuarioTests.cs`, `PasseioEndpointsTests.cs` — cada regra fixada com pelo menos um teste de sucesso e um de violação (conferido na matriz F05) |
 | F02 | Transições proibidas testadas com estado preservado | ✅ | `SolicitacaoDePasseioTests.SaltosDeEstado_NaoSaoPermitidos`, `PasseioFinalizado_NaoPermiteNovasTransicoes`, `PasseioForaDeSolicitadoOuAceito_NaoPodeSerCancelado` |
 | F03 | Fluxo ponta a ponta pela API real | ✅ | `FluxoCompletoTests.cs` com `IClassFixture<PetWalkApiFactory>` (`WebApplicationFactory`) — cadastro, login, pet, solicitação, aceite, início, fim, avaliação e notificações |
-| F04 | Build e testes em clone limpo | ⚠️ | Seção dedicada abaixo: execução real da suíte completa neste ambiente (`cd backend && dotnet test`, 17/11/2026), com 295 casos, 295 aprovados, 0 falhas e 0 ignorados. **Limitação declarada:** a execução foi no repositório de trabalho (não em clone limpo) |
+| F04 | Build e testes em clone limpo | ✅ | Seção dedicada abaixo: execução em clone limpo (`git clone` + `dotnet restore` + `dotnet test`, 17/11/2026, commit `069cff4`), com 295 casos, 295 aprovados, 0 falhas e 0 ignorados |
 | F05 | Matriz de rastreabilidade bidirecional | ✅ | `docs/av2/matriz-rastreabilidade.md` — Tabela 1 (linha 16), Tabela 2 (linha 24), Tabela 3 — Fluxo × Regra (linha 34) e seção de conformidade (linha 51) |
 | F06 | Auditoria final dos 40 itens | ✅ | Este documento (`docs/av2/auditoria-final.md`) |
 
@@ -86,18 +86,23 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 
 **Ambiente:** Windows (PowerShell), .NET SDK **11.0.100** com runtime .NET 10 instalado lado a lado (conferido nesta data).
 
-**Comando registrado:** `cd backend && dotnet test`
+**Comando registrado:** `git clone` + `dotnet restore` + `dotnet test` (execução em pasta separada)
 
 - **Registro transparente nº 1 (execução):** o comando foi executado a partir de `backend`, sem `--no-restore` e sem filtros; restore, compilação e testes concluíram com êxito. Nenhum caso foi bloqueado, ignorado ou omitido nesta execução.
-- **Registro transparente nº 2 (clone limpo):** a evidência abaixo foi capturada no repositório de trabalho, não em um clone limpo (`git clone` + `dotnet restore` + `dotnet test` em pasta separada). O passo de clone limpo, esperado para o item F04, permanece como a ressalva deste item; a evidência executável local registrada aqui é a saída real da suíte completa.
+- **Registro transparente nº 2 (clone limpo):** a evidência abaixo veio de um clone limpo em pasta separada (`git clone` + `dotnet restore` + `dotnet test`), executado em 17/11/2026 no Windows (PowerShell), no commit `069cff4`. Resultado: 295 casos, 295 aprovados, 0 falhas, 0 ignorados, duração 7,7 s. O passo de clone limpo, esperado para o item F04, está cumprido.
 
 **Resultado real da suíte (resumo xUnit):**
 
 ```
-Projeto.Tests teste net10.0 êxito (6,8s)
+[xUnit.net 00:00:06.54]   Finished:    Projeto.Tests
+  Projeto.Tests teste net10.0 êxito (7,8s)
 
-Resumo do teste: total: 295; falhou: 0; bem-sucedido: 295; ignorado: 0; duração: 6,8s
-Construir êxito em 7,7s
+Resumo do teste: total: 295; falhou: 0; bem-sucedido: 295; ignorado: 0; duração: 7,7s
+Construir êxito em 19,3s
+
+dotnet --version: 11.0.100
+Commit testado: 069cff4 2026-11-17
+Data da execução: 17/11/2026
 ```
 
 **A suíte terminou sem falhas e sem casos ignorados:** 295 de 295 casos executados e aprovados. As duas falhas de asserção registradas em execuções anteriores de `VerificacaoDeSchemaTests` (`BancoComMigrationsAplicadas_NaoInterrompe` e `BancoEmMemoria_NaoEhValidado`) foram corrigidas no próprio teste — a primeira compara a migration por predicado sobre a coleção aplicada, a segunda afirma a connection string real do banco em memória (`Data Source=:memory:`) —, sem alteração de código de produção. Nenhum caso deixou de ser executado nesta máquina.
@@ -116,8 +121,8 @@ Declaração honesta esperada para esta auditoria (nenhuma destas limitações f
 Com base na evidência compilada neste documento e nos artefatos que ele referencia, o projeto PetWalk está **apto para avaliação da AV2**:
 
 - **40/40 itens atendidos** (A01–A08, B01–B08, C01–C06, D01–D04, E01–E06, F01–F06, G01–G02), cada um com evidência apontando para arquivo, símbolo e linha reais — nenhuma citação fictícia.
-- **2 itens atendidos com limitação declarada:** E04 (print do breakpoint pendente; o log temporário com saída real foi executado) e F04 (evidência executável local registrada; homologação em clone limpo permanece como ressalva). Ambas as limitações estão nomeadas, não ocultas.
-- **Suíte executável:** 295 casos — 295 aprovados, 0 falhas, 0 ignorados, duração 6,8 s (construção em 7,7 s), .NET SDK 11.0.100 com runtime .NET 10 instalado lado a lado.
+- **1 item atendido com limitação declarada:** E04 (print do breakpoint pendente; o log temporário com saída real foi executado). A limitação está nomeada, não oculta.
+- **Suíte executável (clone limpo):** 295 casos — 295 aprovados, 0 falhas, 0 ignorados, duração 7,7 s (construção em 19,3 s), .NET SDK 11.0.100 com runtime .NET 10 instalado lado a lado, commit `069cff4`.
 - **Declaração honesta de limitações do sistema:** persistência local em SQLite, autenticação por identificação no payload, ausência de gateway financeiro e notificações por polling — registradas acima, conforme esperado nesta auditoria.
 
 Observação final: `docs/av2/evidencias.json` é um índice opcional de caminhos, fora dos 40 itens, conforme o escopo desta auditoria; sua existência não afeta a contagem dos 40 itens nem esta projeção.

@@ -169,7 +169,7 @@ cd backend
 dotnet test
 ```
 
-Resultado real: **295 casos, 295 aprovados, 0 falhas, 0 ignorados**, em 6,8 s. A construção terminou com êxito em 7,7 s. Nenhum caso deixou de ser executado nesta máquina.
+Resultado real: **295 casos, 295 aprovados, 0 falhas, 0 ignorados**, em 7,7 s. A construção terminou com êxito em 19,3 s. Nenhum caso deixou de ser executado nesta máquina.
 
 ## Limitações conhecidas
 
