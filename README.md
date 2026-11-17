@@ -223,7 +223,6 @@ PetWalk
 │   │   └── Properties
 │   └── Projeto.Tests            # Testes de domínio, endpoints, persistência, HTTP e concorrência
 ├── docs
-│   ├── plano-av2.md
 │   └── proposta.md
 ├── frontend
 │   ├── .env.example             # Modelo de VITE_API_URL

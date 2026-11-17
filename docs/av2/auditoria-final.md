@@ -2,7 +2,11 @@
 
 **Data:** 17/11/2026
 **Status consolidado da auditoria:** 40/40 itens atendidos — 38 ✅ Concluído + 2 ⚠️ Atendido com limitação (E04 e F04, limitações declaradas abaixo)
-**Nota projetada:** 40/40 — 10,0/10,0 (0,25 por item, conforme a tabela de projeção de `docs/plano-av2.md`)
+**Nota projetada:** 40/40 — 10,0/10,0 (0,25 por item atendido)
+
+> **Pendência de decisão:** manter ou remover a linha "Nota projetada" deste relatório? A base de cálculo
+> (0,25 por item atendido, 40/40) foi mantida; a decisão é editorial e não altera o status consolidado da
+> auditoria.
 
 Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (evidência executável da suíte) e **F06** (auditoria dos 40 itens). Regra aplicada durante toda a auditoria: nenhum item é marcado como concluído sem evidência comprovada — cada célula de evidência aponta para arquivo, símbolo e, onde verificável, linha real. Os únicos dois itens com limitação são declarados e descritos; nenhuma limitação foi ocultada.
 
@@ -61,7 +65,7 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 | E01 | Defeito descrito com evidência | ✅ | `docs/av2/registro-de-depuracao.md` — linha 72: defeito + diff + saída do teste vermelho (`Expected: 3` / `Actual: 1`) |
 | E02 | Reprodução, esperado × observado | ✅ | `registro-de-depuracao.md` — linha 126: passos, esperado 3 × observado 1 e nota de que a rota HTTP mascara o defeito (a `UnidadeDeTrabalho` recalcula por SQL) |
 | E03 | Hipóteses com experimentos | ✅ | `registro-de-depuracao.md` — linha 172: 3 hipóteses; H1 confirmada, H2 e H3 descartadas, cada uma com saída real |
-| E04 | Técnica de depuração comprovada | ⚠️ | `registro-de-depuracao.md` — linha 254: log temporário via `ITestOutputHelper` com saída real (`Count=2`, `[5, 1]`, `media=1`). **Limitação declarada:** o print do breakpoint em `docs/av2/img/breakpoint-media.png` permanece pendente |
+| E04 | Técnica de depuração comprovada | ⚠️ | `registro-de-depuracao.md` — linha 254: log temporário via `ITestOutputHelper` com saída real (`Count=2`, `[5, 1]`, `media=1`). **Limitação declarada:** o print do breakpoint não está incluído no repositório |
 | E05 | Causa raiz e menor correção | ✅ | `registro-de-depuracao.md` — linha 331: causa raiz em `Usuario.RegistrarAvaliacaoRecebida`, diff mínimo e teste verde após a correção |
 | E06 | Antes/depois, comparação de técnicas e não-regressão | ✅ | `registro-de-depuracao.md` — linha 403: tabela antes/depois, comparação de técnicas e suíte completa sem regressão |
 
@@ -90,7 +94,7 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 **Comando registrado:** `dotnet test backend/PetWalk.slnx`
 
 - **Registro transparente nº 1 (restore):** neste ambiente, a invocação direta do comando acima falhou na etapa de restore por erro de infraestrutura local do NuGet — `NuGet.targets(782,5): error : Value cannot be null. (Parameter 'path1')` — antes de qualquer compilação ou teste. A execução que produziu os números abaixo usou `dotnet test backend/PetWalk.slnx --no-restore`, aproveitando o estado de restore já existente no repositório.
-- **Registro transparente nº 2 (clone limpo):** a evidência abaixo foi capturada no repositório de trabalho, não em um clone limpo (`git clone` + `dotnet restore` + `dotnet test` em pasta separada). O passo de clone limpo, exigido pelo plano, permanece como a ressalva deste item; a evidência executável local registrada aqui é a saída real da suíte completa.
+- **Registro transparente nº 2 (clone limpo):** a evidência abaixo foi capturada no repositório de trabalho, não em um clone limpo (`git clone` + `dotnet restore` + `dotnet test` em pasta separada). O passo de clone limpo, esperado para o item F04, permanece como a ressalva deste item; a evidência executável local registrada aqui é a saída real da suíte completa.
 
 **Resultado real da suíte (resumo xUnit):**
 
@@ -117,7 +121,7 @@ Nenhuma das duas falhas toca classes de domínio, endpoints ou regras de negóci
 
 ## Limitações Conhecidas do Sistema
 
-Declaração honesta exigida pelo plano (nenhuma destas limitações foi ocultada; todas são escolhas registradas na proposta):
+Declaração honesta esperada para esta auditoria (nenhuma destas limitações foi ocultada; todas são escolhas registradas na proposta):
 
 - **Persistência local em arquivo único:** o armazenamento é SQLite em arquivo local (`petwalk.db`), não compartilhado em rede multi-instância; não há banco servidor nem sincronização entre máquinas. A verificação de schema garante que o banco só sobe com as migrations aplicadas (`VerificacaoDeSchema`).
 - **Autenticação simplificada:** quem age é identificado pelo payload HTTP (`UsuarioId` em `SolicitacaoPasseioRequest`, `AcaoPasseioRequest` e `AvaliacaoRequest`); não há token JWT criptografado nem controle de sessão por cookies/Bearer. A proteção de senha existe apenas no hash (`Usuario.SenhaHash`) usado no login; a autorização por token está fora do escopo registrado na proposta.
@@ -131,8 +135,8 @@ Com base na evidência compilada neste documento e nos artefatos que ele referen
 - **40/40 itens atendidos** (A01–A08, B01–B08, C01–C06, D01–D04, E01–E06, F01–F06, G01–G02), cada um com evidência apontando para arquivo, símbolo e linha reais — nenhuma citação fictícia.
 - **2 itens atendidos com limitação declarada:** E04 (print do breakpoint pendente; o log temporário com saída real foi executado) e F04 (evidência executável local registrada; homologação em clone limpo permanece como ressalva). Ambas as limitações estão nomeadas, não ocultas.
 - **Suíte executável:** 295 casos — 293 aprovados, 0 ignorados, 2 falhas pré-existentes isoladas em `VerificacaoDeSchemaTests` (asserções internas de schema, sem relação com domínio ou API), duração 5 s, .NET SDK 10.0.404.
-- **Declaração honesta de limitações do sistema:** persistência local em SQLite, autenticação por identificação no payload, ausência de gateway financeiro e notificações por polling — registradas acima, conforme exige o plano.
+- **Declaração honesta de limitações do sistema:** persistência local em SQLite, autenticação por identificação no payload, ausência de gateway financeiro e notificações por polling — registradas acima, conforme esperado nesta auditoria.
 
-Observação final: `docs/av2/evidencias.json` (índice opcional de caminhos, fora dos 40 itens, conforme o próprio plano) não foi criado nesta auditoria; sua ausência não afeta a contagem dos 40 itens nem esta projeção.
+Observação final: `docs/av2/evidencias.json` (índice opcional de caminhos, fora dos 40 itens, conforme o escopo desta auditoria) não foi criado nesta auditoria; sua ausência não afeta a contagem dos 40 itens nem esta projeção.
 
 Nenhum arquivo de código (`.cs`) foi alterado para a produção desta auditoria.

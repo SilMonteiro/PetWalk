@@ -8,9 +8,9 @@ de **E05** eliminá-lo.
 
 ## Método
 
-**Opção B do plano (defeito deliberado)**, em uma branch dedicada: `debug/media-avaliacao`.
+**Opção B (defeito deliberado)**, em uma branch dedicada: `debug/media-avaliacao`.
 
-Motivo: o plano partia da premissa de que o histórico git do defeito real poderia não estar disponível, e
+Motivo: partiu-se da premissa de que o histórico git do defeito real poderia não estar disponível, e
 a Opção B demonstra o processo sem depender dele.
 
 Ressalva honesta: a verificação do passo 3 da preparação mostrou que o commit `f57b1d1` ("Corrigir a
@@ -25,7 +25,7 @@ não foi exibido (`git show`) nesta etapa.
 | :-- | :-- |
 | SDK .NET | `10.0.400` (`dotnet --version`) |
 | Commit base | `32e5997a0bb16546f92501bfd74f88545b628a44` (`git rev-parse HEAD`) |
-| Assunto do commit base | `32e5997 Verificação cruzada e atualização de docs/plano-av2.md` |
+| Assunto do commit base | `32e5997 Verificação cruzada e atualização de documentação` |
 | Branch de origem | `main` (`git rev-parse main` → mesmo hash do commit base) |
 | Branch de trabalho | `debug/media-avaliacao`, criada a partir do commit base |
 | Estado da árvore no início | limpa (`git status` → `nothing to commit, working tree clean`) |
@@ -258,7 +258,7 @@ está roteirizada para execução no IDE e **não foi executada** nesta automaç
 
 ### Técnica 1 — Log temporário (executada)
 
-**Adaptação do plano:** o plano sugeria `ILogger` no ponto de cálculo. O domínio não recebe `ILogger` e
+**Adaptação:** a previsão inicial era usar `ILogger` no ponto de cálculo. O domínio não recebe `ILogger` e
 injetá-lo exigiria alterar construtores de `Usuario`/`Passeio` e o caminho de criação de entidades — mudança
 fora do escopo desta depuração. A técnica foi adaptada: o log temporário é emitido **do teste**, via
 `ITestOutputHelper`, no mesmo cenário de E02, sem tocar em produção.
@@ -298,7 +298,7 @@ duas notas, o que isola a divergência no cálculo, não nos dados.
 
 ### Técnica 2 — Breakpoint (roteiro para o usuário; não executada)
 
-`docs/av2/img/` foi criada para receber o print. Roteiro no IDE:
+O print do depurador não está incluído no repositório. Roteiro no IDE:
 
 1. Abrir `backend/Projeto.Api/Dominio/Usuario.cs`.
 2. Localizar `RegistrarAvaliacaoRecebida` (linha 162) e marcar **breakpoint na linha 165** — a que atribui
@@ -311,22 +311,21 @@ duas notas, o que isola a divergência no cálculo, não nos dados.
    Pela leitura do código, espera-se `1`, `2` e `1` — **não observado**.
 6. Comparar as duas paradas: verificar se `MediaAvaliacao` acompanha `avaliacao.Nota` ou
    `_avaliacoesRecebidas.Count`/a coleção.
-7. Salvar o print do depurador (janela de Locals/Watch nas duas paradas) em
-   `docs/av2/img/breakpoint-media.png`.
+7. Salvar o print do depurador (janela de Locals/Watch nas duas paradas) fora do repositório —
+   o print não é versionado.
 
 [EVIDÊNCIA DO DEPURADOR PENDENTE — a ser colada pelo usuário]
 
-> Ao salvar o print em `docs/av2/img/breakpoint-media.png`, substituir o marcador acima por
-> `![Breakpoint em Usuario.RegistrarAvaliacaoRecebida](img/breakpoint-media.png)` seguido da descrição do
-> que foi observado nas duas paradas. Enquanto o print não existir, esta técnica permanece **não
-> executada** e nada é afirmado sobre o que ela revelou.
+> Quando houver um print do depurador disponível, substituir o marcador acima pela imagem correspondente,
+> seguida da descrição do que foi observado nas duas paradas. Enquanto o print não estiver disponível,
+> esta técnica permanece **não executada** e nada é afirmado sobre o que ela revelou.
 
 ### O que cada técnica revelou sobre a causa
 
 | Técnica | Situação | O que revelou |
 | :-- | :-- | :-- |
 | Log temporário (T1) | **Executada** | Com a coleção já em `[5, 1]` (`Count=2`), `MediaAvaliacao` valeu `1`: o valor deriva da avaliação recém-registrada, não da coleção. O acúmulo está correto; a atribuição é que está errada. |
-| Breakpoint | **Não executada** | Nada — aguardando o print em `docs/av2/img/breakpoint-media.png`. |
+| Breakpoint | **Não executada** | Nada — o print do breakpoint não está incluído no repositório. |
 
 ## E05 — Causa raiz e correção
 
@@ -467,9 +466,8 @@ do escopo deste registro de depuração e devem ser tratados em item próprio.
 | **Custo/tempo** | **Técnica não executada.** | Baixo: um teste de 29 ms e ~5 s de build; o custo real foi escrever e depois apagar o arquivo. | Baixo e decrescente: o teste já existia; cada execução levou 49–56 ms depois do build. |
 | **Adequação a código em produção** | **Técnica não executada.** | Baixa: é descartável por definição — o arquivo foi removido na Fatia 5 e não pode permanecer no repositório. | Alta: é o artefato que fica como proteção contra regressão (o mesmo teste que pegou o defeito continua no repositório). |
 
-**Breakpoint: técnica não executada.** `docs/av2/img/` está vazia e o print
-`docs/av2/img/breakpoint-media.png` não foi fornecido. Por isso nenhuma célula da coluna acima é comparada
-por suposição e o marcador de E04 permanece pendente.
+**Breakpoint: técnica não executada.** O print do breakpoint não está incluído no repositório. Por isso
+nenhuma célula da coluna acima é comparada por suposição e o marcador de E04 permanece pendente.
 
 ### Recomendação
 

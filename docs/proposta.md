@@ -139,6 +139,6 @@ Encerramento:  Após a realização, o passeio é registrado como Finalizado, ma
 
 ## Participação
 
-- **Rodízio**: a cada etapa do plano de implementação (docs/plano-implementacao.md), os integrantes alternam entre domínio, API, testes e frontend.
+- **Rodízio**: a cada etapa, os integrantes alternam entre domínio, API, testes e frontend.
 - **Revisões cruzadas**: todo PR é revisado por quem não o escreveu; quem escreve os testes revisa o PR do Passeio, e quem escreve o Passeio revisa os testes.
-- **Conhecimento compartilhado**: regras e decisões ficam registradas nesta proposta e no plano de implementação; ao concluir cada etapa, quem a fez explica o que mudou ao grupo.
+- **Conhecimento compartilhado**: regras e decisões ficam registradas nesta proposta; ao concluir cada etapa, quem a fez explica o que mudou ao grupo.

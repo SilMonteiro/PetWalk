@@ -1,7 +1,7 @@
 # Revisão de código — PetWalk (AV2)
 
-Este documento revisa uma alteração funcional real do histórico do PetWalk, escolhida para a Etapa 6 do
-`docs/plano-av2.md` (itens C01–C06). O objetivo é que um revisor consiga decidir entre **aceitar**,
+Este documento revisa uma alteração funcional real do histórico do PetWalk, escolhida para os itens C01–C06
+da AV2. O objetivo é que um revisor consiga decidir entre **aceitar**,
 **corrigir** ou **rejeitar** a alteração sem abrir nada além do que está citado aqui. Cada item é
 preenchido em uma fatia própria; neste momento apenas **C01** está preenchido.
 
@@ -17,7 +17,7 @@ preenchido em uma fatia própria; neste momento apenas **C01** está preenchido.
 | Commit pai | `8871eef` ("Tirar DateTime.UtcNow do domínio") |
 
 Ambiente desta revisão: SDK .NET `10.0.400` (`dotnet --version`), 15/11/2026. A alteração **não** é a mesma
-do registro de depuração (`docs/av2/registro-de-depuracao.md`), como o plano exige.
+do registro de depuração (`docs/av2/registro-de-depuracao.md`), como esperado para estes itens.
 
 ## C01 — Identificação da alteração
 

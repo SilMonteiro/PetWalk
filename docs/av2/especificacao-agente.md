@@ -1,6 +1,6 @@
 # Especificação para agente de código — PetWalk (AV2)
 
-Este documento registra, para a Etapa 7 do `docs/plano-av2.md` (item G02), o **contexto** e o **pedido**
+Este documento registra, para o item G02, o **contexto** e o **pedido**
 entregues a um agente de código para executar uma alteração funcional real no PetWalk. A ordem das seções
 segue a ordem real do trabalho: primeiro o que o agente recebeu, depois o que foi pedido — o plano, o diff e
 a inspeção vêm depois da execução e serão registrados nas seções seguintes quando existirem. Nesta data
@@ -65,7 +65,7 @@ concorrência). O agente trabalha apenas em `Endpoints/` (produção) e em `Proj
 
 ### Alteração pedida
 
-Implementar o tratamento central de falhas inesperadas (item **D03** do plano): criar um `IExceptionHandler`
+Implementar o tratamento central de falhas inesperadas (item **D03**): criar um `IExceptionHandler`
 chamado `FalhaInesperadaHandler`, registrado **depois** do `ErroDePersistenciaHandler`, que:
 
 1. registra a exceção com `ILogger`, incluindo o método HTTP e o caminho da requisição;
@@ -84,7 +84,7 @@ já lê (`frontend/src/services/api.js:12`).
   formato do corpo é **"não verificado"**.
 - A mesma seção, linha 538, registra que o corpo `{ "erro": "Erro interno. Tente novamente mais tarde." }`
   **"não existe no código"** e que **não há logging explícito** (`ILogger`, `LogError` ou equivalente).
-- `docs/plano-av2.md`, Etapa 4 (D03/D04), pede exatamente o handler central que registra a exceção e devolve
+- Os itens **D03/D04** pedem exatamente o handler central que registra a exceção e devolve
   mensagem genérica, e testes para as três situações de falha.
 
 ### Arquivos PERMITIDOS
