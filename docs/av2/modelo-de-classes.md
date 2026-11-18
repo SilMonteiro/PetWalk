@@ -90,7 +90,7 @@ classDiagram
         +Para(TipoCobranca tipo) IPoliticaDePreco$
     }
 
-    Usuario "1" *-- "0..*" Pet : pets
+    Usuario "1" o-- "0..*" Pet : pets
     Pet --> Usuario : tutor
     Passeio --> Usuario : tutor
     Passeio --> Usuario : passeador
@@ -222,6 +222,8 @@ classDiagram
 
 ### Fundamento no código
 
+Esta relação é uma **associação**, não composição: `Pet` tem construtor público (`Pet.cs`), é criado fora de `Usuario` e só depois vinculado por `Usuario.AdicionarPet`/`RemoverPet` (`Usuario.cs`). No banco, a FK `Pets.TutorId` usa `DeleteBehavior.Restrict` (`PetConfiguration.cs`), então o usuário não é dono do ciclo de vida do pet.
+
 No código (`Usuario.cs` e `Pet.cs`):
 - `Usuario` mantém `private readonly List<Pet> _pets` exposta como `IReadOnlyList<Pet> Pets`.
 - `Pet` possui `public Usuario Tutor { get; }` — referência sem setter (atribuída no construtor).
@@ -261,16 +263,25 @@ public Avaliacao Avaliar(Usuario avaliador, int nota, string comentario, DateTim
 
 ### Pontos que caracterizam a composição
 
-- `Avaliacao` é criada dentro de `Passeio.Avaliar` — não há construtor público de `Avaliacao` chamável de fora do domínio sem um `Passeio`.
-- O construtor de `Avaliacao` recebe `Passeio passeio` e verifica `passeio.Status != StatusPasseio.FINALIZADO` — a avaliação depende do estado do passeio.
-- A lista `_avaliacoes` é privada em `Passeio` e exposta apenas como `IReadOnlyList<Avaliacao> Avaliacoes` — ninguém adiciona avaliações diretamente.
-- Multiplicidade máxima: 0..2 (uma avaliação por participante: tutor avalia passeador, passeador avalia tutor). A regra "Passeio já avaliado por este usuário" protege esse limite.
+- **Criação fechada:** o construtor com parâmetros de `Avaliacao` é `internal` (`backend/Projeto.Api/Dominio/Avaliacao.cs`) e sua única chamada de produção é `new Avaliacao(...)` dentro de `Passeio.Avaliar` (`backend/Projeto.Api/Dominio/Passeio.cs`). O teste `Avaliacao_NaoTemConstrutorPublico` falha se o construtor voltar a ser público.
+- **Dependência do todo:** o construtor exige `passeio.Status == StatusPasseio.FINALIZADO` e `passeio.Participou(avaliador)` (`Avaliacao.cs`): a parte só nasce de um passeio válido e com o avaliador participante.
+- **Coleção encapsulada:** `Passeio._avaliacoes` é `private readonly List<Avaliacao>` e só é exposta como `IReadOnlyList<Avaliacao> Avaliacoes` (`Passeio.cs`); apenas `Passeio.Avaliar` adiciona itens.
+- **Ciclo de vida no banco:** a FK `Avaliacoes.PasseioId` usa `DeleteBehavior.Cascade` (`backend/Projeto.Api/Dados/Configuracoes/AvaliacaoConfiguration.cs`), materializada na migration `20261117235421_AvaliacaoCascataComPasseio`: excluir o passeio remove as avaliações. O teste `ExcluirPasseio_RemoveAvaliacaoPelaCascataDoBanco` prova a cascata com SQLite real.
+- **Multiplicidade máxima 0..2:** uma avaliação por participante (tutor avalia passeador, passeador avalia tutor); a regra "Passeio já avaliado por este usuário" (`Passeio.Avaliar`) protege esse limite.
+
+### Observação: o índice do avaliado não é posse
+
+`Usuario._avaliacoesRecebidas` (`backend/Projeto.Api/Dominio/Usuario.cs`) guarda a mesma referência de `Avaliacao` para calcular `MediaAvaliacao`, por meio de `RegistrarAvaliacaoRecebida`. É um índice de leitura do avaliado, não uma segunda posse: `Usuario` não cria nem remove `Avaliacao`; o dono do ciclo de vida é `Passeio`.
 
 ### Testes que cobrem esta composição
 
+- Construtor fechado: `Avaliacao_NaoTemConstrutorPublico` (reflexão sobre `Avaliacao`).
+- Criação apenas por `Passeio.Avaliar`: `Avaliacao_SoEhCriadaPorPasseioAvaliar` (o retorno de `Avaliar` é a instância contida em `passeio.Avaliacoes`, com `Passeio` e `Avaliado` corretos).
 - Avaliação criada com sucesso após passeio FINALIZADO: `TutorAvaliaPasseador_RegistraAvaliacaoERecalculaMedia`, `PasseadorAvaliaTutor_RegistraAvaliacaoERecalculaMedia`
+- Passeio em ACEITO não gera avaliação nem altera a média: `PasseioNaoFinalizado_NaoGeraAvaliacaoNemAlteraMedia`
 - Avaliar passeio não finalizado → `InvalidOperationException`: `PasseioNaoFinalizado_NaoPodeSerAvaliado`
 - Avaliar duas vezes pelo mesmo usuário → `InvalidOperationException`: `MesmoAvaliadorNaoPodeAvaliarDuasVezes`
+- Cascata no banco: `ExcluirPasseio_RemoveAvaliacaoPelaCascataDoBanco`
 
 ## Polimorfismo: IPoliticaDePreco
 
