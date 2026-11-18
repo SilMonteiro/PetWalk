@@ -111,6 +111,7 @@ namespace Projeto.Api.Dados.Migracoes
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -246,7 +247,7 @@ namespace Projeto.Api.Dados.Migracoes
                     b.HasOne("Passeio", "Passeio")
                         .WithMany("Avaliacoes")
                         .HasForeignKey("PasseioId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Avaliado");

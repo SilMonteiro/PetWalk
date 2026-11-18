@@ -36,11 +36,12 @@ public class AvaliacaoConfiguration : IEntityTypeConfiguration<Avaliacao>
             .HasForeignKey("AvaliadoId")
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Passeio fecha a inversa Passeio.Avaliacoes.
+        // Passeio fecha a inversa Passeio.Avaliacoes. A avaliacao e parte do passeio:
+        // excluir o passeio exclui as avaliacoes, direto no banco (composicao).
         builder.HasOne(a => a.Passeio)
             .WithMany(p => p.Avaliacoes)
             .HasForeignKey("PasseioId")
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         // REG-001 no banco: o mesmo usuario nao avalia o mesmo passeio duas vezes.
         builder.HasIndex("PasseioId", "AvaliadorId").IsUnique();

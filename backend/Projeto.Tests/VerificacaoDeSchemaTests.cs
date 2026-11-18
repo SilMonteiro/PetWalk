@@ -194,7 +194,12 @@ public class VerificacaoDeSchemaTests
             {
                 criacao.Database.Migrate();
 
-                Assert.Contains(criacao.Database.GetAppliedMigrations(), m => m.EndsWith("_Inicial"));
+                // Exige o histórico completo: nenhuma pendente e todas as migrations registradas.
+                var aplicadas = criacao.Database.GetAppliedMigrations().ToList();
+
+                Assert.Empty(criacao.Database.GetPendingMigrations());
+                Assert.Contains(aplicadas, m => m.EndsWith("_Inicial"));
+                Assert.Contains(aplicadas, m => m.EndsWith("_AvaliacaoCascataComPasseio"));
             }
 
             // Cobre também a comparação de tabelas e colunas contra o modelo.

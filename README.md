@@ -56,7 +56,7 @@ dotnet restore
 dotnet ef database update
 ```
 
-A migration inicial (`20261111012746_Inicial`) cria as tabelas `Usuarios`, `Pets`, `Passeios`, `Avaliacoes` e `Notificacoes`. Não há seed: o banco começa vazio, e o primeiro usuário pode ser cadastrado pela tela `/cadastro`.
+As migrations (`20261111012746_Inicial` e `20261117235421_AvaliacaoCascataComPasseio`) criam as tabelas `Usuarios`, `Pets`, `Passeios`, `Avaliacoes` e `Notificacoes`; a segunda ajusta a FK de `Avaliacoes` para `Passeios` com `ON DELETE CASCADE`. Não há seed: o banco começa vazio, e o primeiro usuário pode ser cadastrado pela tela `/cadastro`.
 
 ### Recriar o banco
 
@@ -216,6 +216,8 @@ PetWalk
 │   │   │   ├── Migracoes        # Migrations do EF Core
 │   │   │   │   ├── 20261111012746_Inicial.cs
 │   │   │   │   ├── 20261111012746_Inicial.Designer.cs
+│   │   │   │   ├── 20261117235421_AvaliacaoCascataComPasseio.cs
+│   │   │   │   ├── 20261117235421_AvaliacaoCascataComPasseio.Designer.cs
 │   │   │   │   └── PetWalkDbContextModelSnapshot.cs
 │   │   │   ├── PetWalkDbContext.cs
 │   │   │   └── VerificacaoDeSchema.cs

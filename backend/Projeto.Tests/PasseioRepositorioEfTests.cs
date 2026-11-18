@@ -315,4 +315,51 @@ public class PasseioRepositorioEfTests
         using var leitura = CriarContexto(conexao);
         Assert.Equal(StatusPasseio.ACEITO, leitura.Passeios.Single(p => p.Id == passeioId).Status);
     }
+
+    // A FK Avaliacoes.PasseioId e Cascade: excluir o passeio remove as avaliacoes no banco,
+    // sem depender de carregar a colecao no contexto que exclui.
+    [Fact]
+    public void ExcluirPasseio_RemoveAvaliacaoPelaCascataDoBanco()
+    {
+        using var conexao = AbrirConexao();
+
+        // A cascata e do banco: a conexao precisa aplicar a FK.
+        using (var comando = conexao.CreateCommand())
+        {
+            comando.CommandText = "PRAGMA foreign_keys = ON";
+            comando.ExecuteNonQuery();
+        }
+
+        int passeioId;
+        int avaliacaoId;
+
+        using (var escrita = CriarContextoComSchema(conexao))
+        {
+            var (tutor, passeador, _, passeio) = SemearParticipantes(escrita);
+
+            passeio.Aceitar(passeador);
+            passeio.Iniciar(passeador);
+            passeio.Finalizar(passeador);
+            var avaliacao = passeio.Avaliar(tutor, 5, "Comentário", Fabrica.Agora);
+
+            new PasseioRepositorio(escrita).Adicionar(passeio);
+            new UnidadeDeTrabalho(escrita).Salvar();
+
+            passeioId = passeio.Id;
+            avaliacaoId = avaliacao.Id;
+        }
+
+        using (var exclusao = CriarContexto(conexao))
+        {
+            var passeio = exclusao.Passeios.Single(p => p.Id == passeioId);
+
+            exclusao.Passeios.Remove(passeio);
+            exclusao.SaveChanges();
+        }
+
+        using var leitura = CriarContexto(conexao);
+
+        Assert.Null(leitura.Avaliacoes.Find(avaliacaoId));
+        Assert.Empty(leitura.Avaliacoes);
+    }
 }
