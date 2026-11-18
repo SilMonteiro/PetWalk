@@ -109,7 +109,10 @@
     "descricao": "Composição Passeio ◆— Avaliacao documentada com código e testes",
     "status": "concluido",
     "evidencias": [
-      "docs/av2/modelo-de-classes.md"
+      "docs/av2/modelo-de-classes.md",
+      "backend/Projeto.Api/Dominio/Avaliacao.cs",
+      "backend/Projeto.Api/Dominio/Passeio.cs",
+      "backend/Projeto.Tests/AvaliacaoTests.cs"
     ]
   },
   "B06": {
@@ -232,7 +235,8 @@
   },
   "E04": {
     "descricao": "Técnica de depuração aplicada e comprovada",
-    "status": "concluido",
+    "status": "atendido_com_limitacao",
+    "limitacao": "O print do breakpoint não está incluído no repositório; a técnica foi comprovada pelo log temporário via ITestOutputHelper, com saída real registrada em registro-de-depuracao.md.",
     "evidencias": [
       "docs/av2/registro-de-depuracao.md"
     ]

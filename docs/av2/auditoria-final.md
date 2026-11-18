@@ -28,7 +28,7 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 | B02 | Mapeamento classe → arquivo e enums | ✅ | `modelo-de-classes.md` — "Mapeamento Classe → Arquivo" (linha 112) e "Enums Relevantes" (linha 126) |
 | B03 | Atributos e métodos por classe | ✅ | `modelo-de-classes.md` — "Atributos e Métodos Relevantes por Classe" (linha 137), subseções Usuario (139), Pet (164), Passeio (180), Avaliacao (197), Notificacao (208) |
 | B04 | Multiplicidade `Usuario 1 — 0..* Pet` provada | ✅ | `modelo-de-classes.md` — linha 221, com fundamento no código e cenários com métodos reais de `SolicitacaoDePasseioTests`/`UsuarioTests` |
-| B05 | Composição `Passeio ◆— Avaliacao` documentada | ✅ | `modelo-de-classes.md` — linha 241, com trecho de `Passeio.Avaliar` e testes de `AvaliacaoTests` |
+| B05 | Composição `Passeio ◆— Avaliacao` documentada | ✅ | `modelo-de-classes.md` — seção "Composição: Passeio ◆— Avaliacao" (linha 243): construtor `internal` em `backend/Projeto.Api/Dominio/Avaliacao.cs`, chamada única em `Passeio.Avaliar` (`backend/Projeto.Api/Dominio/Passeio.cs`), teste `Avaliacao_NaoTemConstrutorPublico` (`backend/Projeto.Tests/AvaliacaoTests.cs`) e FK `Avaliacoes.PasseioId` com `ON DELETE CASCADE` (`AvaliacaoConfiguration.cs` + migration `20261117235421_AvaliacaoCascataComPasseio`) |
 | B06 | Polimorfismo via `IPoliticaDePreco` | ✅ | `modelo-de-classes.md` — linha 275 (contrato, implementações, fábrica, ponto de uso, Aberto/Fechado e 15 testes referenciados) |
 | B07 | Invariantes do modelo | ✅ | `modelo-de-classes.md` — linha 330 (INV-01 a INV-04, com guardiões e testes reais) |
 | B08 | Duas decisões de modelagem comparadas | ✅ | `docs/av2/analise-do-modelo.md` — Decisão 1 (linha 3) e Decisão 2 (linha 28), com alternativas, critérios e justificativa no código |
@@ -71,7 +71,7 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 | F01 | Testes de sucesso e violação para as regras | ✅ | `SolicitacaoDePasseioTests.cs`, `AvaliacaoTests.cs`, `UsuarioTests.cs`, `PasseioEndpointsTests.cs` — cada regra fixada com pelo menos um teste de sucesso e um de violação (conferido na matriz F05) |
 | F02 | Transições proibidas testadas com estado preservado | ✅ | `SolicitacaoDePasseioTests.SaltosDeEstado_NaoSaoPermitidos`, `PasseioFinalizado_NaoPermiteNovasTransicoes`, `PasseioForaDeSolicitadoOuAceito_NaoPodeSerCancelado` |
 | F03 | Fluxo ponta a ponta pela API real | ✅ | `FluxoCompletoTests.cs` com `IClassFixture<PetWalkApiFactory>` (`WebApplicationFactory`) — cadastro, login, pet, solicitação, aceite, início, fim, avaliação e notificações |
-| F04 | Build e testes em clone limpo | ✅ | Seção dedicada abaixo: execução em clone limpo (`git clone` + `dotnet restore` + `dotnet test`, 17/11/2026, commit `069cff4`), com 295 casos, 295 aprovados, 0 falhas e 0 ignorados |
+| F04 | Build e testes em clone limpo | ✅ | Seção dedicada abaixo: clone limpo (`git clone` + `dotnet restore` + `dotnet test`, 17/11/2026, commit `069cff4`) com 295 casos, 295 aprovados, 0 falhas e 0 ignorados; execução atual (commit de código `3bf69bc`): 299 casos, 299 aprovados, 0 falhas e 0 ignorados |
 | F05 | Matriz de rastreabilidade bidirecional | ✅ | `docs/av2/matriz-rastreabilidade.md` — Tabela 1 (linha 16), Tabela 2 (linha 24), Tabela 3 — Fluxo × Regra (linha 34) e seção de conformidade (linha 51) |
 | F06 | Auditoria final dos 40 itens | ✅ | Este documento (`docs/av2/auditoria-final.md`) |
 
@@ -91,7 +91,7 @@ Este documento consolida o fechamento formal da AV2, cobrindo os itens **F04** (
 - **Registro transparente nº 1 (execução):** o comando foi executado a partir de `backend`, sem `--no-restore` e sem filtros; restore, compilação e testes concluíram com êxito. Nenhum caso foi bloqueado, ignorado ou omitido nesta execução.
 - **Registro transparente nº 2 (clone limpo):** a evidência abaixo veio de um clone limpo em pasta separada (`git clone` + `dotnet restore` + `dotnet test`), executado em 17/11/2026 no Windows (PowerShell), no commit `069cff4`. Resultado: 295 casos, 295 aprovados, 0 falhas, 0 ignorados, duração 7,7 s. O passo de clone limpo, esperado para o item F04, está cumprido.
 
-**Resultado real da suíte (resumo xUnit):**
+**Resultado real da suíte no clone limpo (commit `069cff4`):**
 
 ```
 [xUnit.net 00:00:06.54]   Finished:    Projeto.Tests
@@ -106,6 +106,16 @@ Data da execução: 17/11/2026
 ```
 
 **A suíte terminou sem falhas e sem casos ignorados:** 295 de 295 casos executados e aprovados. As duas falhas de asserção registradas em execuções anteriores de `VerificacaoDeSchemaTests` (`BancoComMigrationsAplicadas_NaoInterrompe` e `BancoEmMemoria_NaoEhValidado`) foram corrigidas no próprio teste — a primeira compara a migration por predicado sobre a coleção aplicada, a segunda afirma a connection string real do banco em memória (`Data Source=:memory:`) —, sem alteração de código de produção. Nenhum caso deixou de ser executado nesta máquina.
+
+### Execução atual da suíte (17/11/2026)
+
+Executada na árvore de trabalho sobre o commit de código `3bf69bc` (fatias D03/D04 e cascata `Passeio → Avaliacao` já commitadas):
+
+```text
+Aprovado!  – Com falha: 0, Aprovado: 299, Ignorado: 0, Total: 299, Duração: 23 s - Projeto.Tests.dll (net10.0)
+```
+
+Total atual: **299 casos — 299 aprovados, 0 falhas, 0 ignorados**. O clone limpo do commit `069cff4` permanece registrado acima com 295 casos porque era o total naquele commit.
 
 ## Limitações Conhecidas do Sistema
 
@@ -122,7 +132,7 @@ Com base na evidência compilada neste documento e nos artefatos que ele referen
 
 - **40/40 itens atendidos** (A01–A08, B01–B08, C01–C06, D01–D04, E01–E06, F01–F06, G01–G02), cada um com evidência apontando para arquivo, símbolo e linha reais — nenhuma citação fictícia.
 - **1 item atendido com limitação declarada:** E04 (print do breakpoint pendente; o log temporário com saída real foi executado). A limitação está nomeada, não oculta.
-- **Suíte executável (clone limpo):** 295 casos — 295 aprovados, 0 falhas, 0 ignorados, duração 7,7 s (construção em 19,3 s), .NET SDK 11.0.100 com runtime .NET 10 instalado lado a lado, commit `069cff4`.
+- **Suíte executável:** 299 casos na execução atual — 299 aprovados, 0 falhas, 0 ignorados, duração 23 s, .NET SDK 10.0.400, commit de código `3bf69bc`; o clone limpo do item F04, no commit `069cff4`, registrou 295 casos — 295 aprovados, 0 falhas, 0 ignorados (7,7 s).
 - **Declaração honesta de limitações do sistema:** persistência local em SQLite, autenticação por identificação no payload, ausência de gateway financeiro e notificações por polling — registradas acima, conforme esperado nesta auditoria.
 
 Observação final: `docs/av2/evidencias.json` é um índice opcional de caminhos, fora dos 40 itens, conforme o escopo desta auditoria; sua existência não afeta a contagem dos 40 itens nem esta projeção.
