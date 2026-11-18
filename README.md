@@ -139,7 +139,7 @@ Em cada terminal, pressione `Ctrl+C`.
 
 ## Testes
 
-Os testes do backend usam xUnit. A suíte tem **295 casos** (257 `[Fact]` e 38 casos de `[InlineData]` em 14 métodos `[Theory]`) em **34 classes**, cobrindo domínio, endpoints, persistência EF/SQLite, integração HTTP, schema de inicialização e concorrência.
+Os testes do backend usam xUnit. A suíte tem **299 casos** (261 `[Fact]` e 38 casos de `[InlineData]` em 14 métodos `[Theory]`) em **34 classes**, cobrindo domínio, endpoints, persistência EF/SQLite, integração HTTP, schema de inicialização e concorrência.
 
 Para executar toda a suíte, a partir da raiz do repositório:
 
@@ -162,14 +162,16 @@ dotnet build backend/PetWalk.slnx
 
 ### Execução dos testes no Windows
 
-A suíte completa foi executada neste ambiente (Windows, PowerShell) em 17/11/2026, com .NET SDK **11.0.100** e runtime .NET 10 instalado lado a lado:
+A suíte completa foi executada a partir de um clone limpo do commit `9f6a85f`, neste ambiente (Windows 10.0.19045, shell Git Bash), em 17/11/2026. O README exige .NET SDK **10**; a versão de fato testada foi **10.0.400**.
 
-```powershell
+```bash
 cd backend
+dotnet restore
+dotnet build PetWalk.slnx
 dotnet test
 ```
 
-Resultado real: **295 casos, 295 aprovados, 0 falhas, 0 ignorados**, em 7,7 s. A construção terminou com êxito em 19,3 s. Nenhum caso deixou de ser executado nesta máquina.
+Resultado real: **299 casos, 299 aprovados, 0 falhas, 0 ignorados**, em 21 s. A construção terminou com êxito em 1 min 10 s, com 0 avisos e 0 erros. Nenhum caso deixou de ser executado nesta máquina.
 
 ## Limitações conhecidas
 
